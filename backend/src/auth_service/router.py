@@ -72,49 +72,6 @@ async def register_user(user_data: UserCreate):
 
     return user
 
-@auth_router.post("/auth/activate_account", status_code=status.HTTP_200_OK)
-async def activate_account(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
-    """
-    Activate a user
-    :param credentials: header with token
-    :return: Activated user's data
-    """
-    # Checking token
-    token_verified = await check_auth(credentials)
-    if not token_verified or not token_verified["token"]:
-        logger.error(f"Invalid token for registed user with credentials {credentials}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    logger.info(f"Token verified: {token_verified['token']}")
-    payload = decode_token(token_verified["token"])
-    logger.info(f"Token decoded: {payload}")
-
-    # Getting user by email
-    response = await find_user_by_email(payload["sub"])
-    error = verify_response(response,200)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    user = UserDTO(**response.json())
-    logger.info(f"User {user.username} is found by email {payload['sub']}")
-
-    # Activating user
-    user.is_active = True
-    response = await update_user(user, token_verified["token"],True)
-    error = verify_response(response,200)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"]["data"])
-    logger.info(f"User {user.username} is updated by token {token_verified['token']}")
-
-    # Delete activation session
-    user_activated = AuthResponse.model_validate(response.json())
-    response = await delete_sessions_by_token(user_activated.token, True)
-    error = verify_response(response,200)
-    if error:
-        logger.error(error)
-        logger.warning("Session may expired before deleting, but user is activated and session existence was checked at the beginning")
-    logger.info(f"Successfully activated user {user.username}")
-    return user_activated.data
 
 
 @auth_router.post("/auth/login", response_model=TokenModelResponse, status_code=status.HTTP_200_OK)
@@ -178,66 +135,10 @@ async def login_user(auth_form: AuthForm):
     return TokenModelResponse(token=access_token).model_dump()
 
 
-@auth_router.get("/auth/get_forgot_password_email/{email}", status_code=status.HTTP_200_OK)
-async def get_forgot_password(email: str):
-    """
-    Create email for password reset link
-    :param email: User's email'
-    :return: Kafka message
-    """
-    # Find user by email
-    response = await find_user_by_email(email)
-    error = verify_response(response)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    user = UserDTO(**response.json())
-    logger.info(f"User {user.username} is found by email {email}")
-
-    recovery_token = auth_functions.create_new_token(email)
-    logger.info(f"User {user.username}'s recovery token {recovery_token}")
-
-    # Create recovery session
-    response = await create_session(
-        SessionSchema(
-            user_id=user.id,
-            access_token=recovery_token))
-    error = verify_response(response, 201)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    logger.info(f"User {user.username} recovery session created")
-
-    message = await send_email_signal(recovery_token, user.email, "recover_password")
-    if not message:
-        logger.warning(f"Could not send recovery message for user {user}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Message not sent")
-    logger.info(f"User {user.username} recovery message sent")
-    return {"message": message}
 
 
-@auth_router.post("/auth/forgot_password", status_code=status.HTTP_200_OK, response_model=AuthResponse)
-async def forgot_password(new_password_form: PasswordForm, credentials: HTTPAuthorizationCredentials = Depends(bearer)):
-    """
-    Reset user password
-    :param new_password_form: Contains new user password
-    :param credentials: Header with token
-    :return: New token and UserDTO
-    """
-    token_verified = await check_auth(credentials)
-    if not token_verified or not token_verified["token"]:
-        logger.warning(f"Invalid token for forgot password")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    logger.info(f"Token verified: {token_verified['token']}")
-    response = await update_user_password(new_password_form, token_verified["token"], True)
-    error = verify_response(response)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    user = UserDTO(**response.json()["data"])
-    logger.info(f"User {user.username} forgot password updated")
-    return AuthResponse(data=user, token=token_verified["token"]).model_dump()
+
 
 
 @auth_router.post("/auth/logout", status_code=status.HTTP_200_OK, response_model=AuthResponse)

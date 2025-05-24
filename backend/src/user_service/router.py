@@ -124,31 +124,9 @@ async def get_profile(token: str = Depends(get_valid_token), db: AsyncSession = 
     return result.model_dump(by_alias=True)
 
 
-@user_router.delete("/user/me", status_code=status.HTTP_200_OK, response_model=AuthResponse)
-async def delete_me(token: str = Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
-    """
-    Delete of my self
-    :param token: User access token
-    :param db: Database session
-    :return: None
-    """
-    decoded_token = decode_token(token)
-    result = AuthResponse(token=token, data={"message": ""})
-    user: User = await crud.get_user_by_email(db, email=decoded_token["sub"])
-    if not user:
-        logger.warning("User not found")
-        result.data["message"] = "User not found"
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    user = await crud.delete_user(db, user)
-    if not user:
-        logger.warning("User not found")
-        result.data["message"] = "User not found"
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    logger.info(f"User {user.username} deleted")
-    result.data = UserDTO.model_validate(user)
-    return result.model_dump()
 
 
+# TODO: ПЕРЕДЕЛАТЬ РУЧКУ ОБНОВЛЕНИЯ ПАРОЛЯ ДЛЯ ОБНОВЛЕНИЯ ПРОИЗВОЛЬНОГО ПОЛЬЗОВАТЕЛЯ
 @user_router.patch("/user/me/password", status_code=status.HTTP_200_OK, response_model=AuthResponse)
 async def update_password(password_form: PasswordForm, token: str = Depends(get_valid_token),
                           db: AsyncSession = Depends(get_db)):
