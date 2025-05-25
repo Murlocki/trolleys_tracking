@@ -4,7 +4,7 @@ from typing import Optional, Any
 from pydantic import BaseModel, Field, EmailStr, AliasChoices
 from pydantic.alias_generators import to_camel
 
-from src.shared.models import TaskStatus
+from src.user_service.models import TaskStatus
 
 
 class AuthForm(BaseModel):
