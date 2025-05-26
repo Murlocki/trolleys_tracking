@@ -2,14 +2,14 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends
+from fastapi import APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from src.auth_service import auth_functions
 from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record
-from src.auth_service.external_functions import create_session, get_session_by_token, delete_session_by_id, create_user, \
-    authenticate_user, find_user_by_username, get_user_sessions
-from src.auth_service.schemas import UserCreate, AuthForm
+from src.auth_service.external_functions import create_session, get_session_by_token, delete_session_by_id, \
+    authenticate_user, find_user_by_username
+from src.auth_service.schemas import AuthForm
 from src.shared import logger_setup
 from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
@@ -28,44 +28,117 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 
 bearer = HTTPBearer()
 
+from fastapi import status, HTTPException, Depends
+import logging
 
-@auth_router.post("/auth/login", response_model=TokenModelResponse, status_code=status.HTTP_200_OK)
-async def login_user(auth_form: AuthForm):
-    # Authenticate user
-    response = await authenticate_user(UserAuthDTO(identifier=auth_form.identifier, password=auth_form.password),
-                                       settings.api_key)
-    error = verify_response(response)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    user = UserDTO(**response.json())
-    logger.info(f"User {user.username} is found")
+logger = logging.getLogger(__name__)
 
-    # Check if user is active
-    if not user.is_active:
-        logger.error(f"Could not login user {user.username} because it is inactive")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Activate account")
-    logger.info(f"User {user} logged in")
 
-    # Create access tokens
-    access_token = auth_functions.create_new_token(user.username, user.role)
-    logger.info(f"User {user.username} logged in with access token {access_token}")
-    # Create refresh token if remember_me is set
-    refresh_token = auth_functions.create_new_token(user.username, user.role,
-                                                    is_refresh=True) if auth_form.remember_me else None
-    response = await create_session(
-        SessionSchema(
+@auth_router.post(
+    "/auth/login",
+    response_model=TokenModelResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "Invalid credentials"},
+        401: {"description": "Unauthorized - account inactive or invalid credentials"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def login_user(
+        auth_form: AuthForm,
+) -> TokenModelResponse:
+    """
+    Authenticate user and return access token.
+
+    Flow:
+    1. Validate credentials
+    2. Verify user status
+    3. Generate tokens
+    4. Create session record
+    5. Return access token
+
+    Security:
+    - Rate limiting recommended
+    - All errors return generic messages
+    - Sensitive data not logged
+    """
+    try:
+        # 1. Authenticate user
+        auth_data = UserAuthDTO(
+            identifier=auth_form.identifier,
+            password=auth_form.password
+        )
+
+        auth_response = await authenticate_user(
+            auth_data,
+            settings.api_key
+        )
+
+        if error := verify_response(auth_response):
+            logger.warning(f"Authentication failed for {auth_form.identifier}")
+            raise HTTPException(
+                status_code=error["status_code"],
+                detail="Invalid credentials"
+            )
+
+        user = UserDTO(**auth_response.json())
+        logger.info(f"User authentication successful: {user.username}")
+
+        # 2. Verify user status
+        if not user.is_active:
+            logger.warning(f"Login attempt for inactive account: {user.username}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account inactive"
+            )
+
+        # 3. Generate tokens
+        access_token = auth_functions.create_new_token(
+            username=user.username,
+            role=user.role
+        )
+
+        refresh_token = None
+        if auth_form.remember_me:
+            refresh_token = auth_functions.create_new_token(
+                username=user.username,
+                role=user.role,
+                is_refresh=True
+            )
+            logger.debug("Refresh token generated (remember_me=True)")
+
+        # 4. Create session
+        session_data = SessionSchema(
             user_id=user.id,
             access_token=access_token,
             refresh_token=refresh_token,
             device=auth_form.device,
-            ip_address=auth_form.ip_address))
-    error = verify_response(response, 201)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    logger.info(f"User logged in {'(rem mode)' if auth_form.remember_me else ''}: {user.username}")
-    return TokenModelResponse(token=access_token).model_dump()
+            ip_address=auth_form.ip_address  # More reliable than client-provided IP
+        )
+
+        session_response = await create_session(session_data, settings.api_key)
+
+        if error := verify_response(session_response, 201):
+            logger.error(f"Session creation failed: {error}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Login processing failed"
+            )
+
+        # 5. Return response
+        logger.info(f"Successful login for {user.username} from {auth_form.ip_address}")
+        return TokenModelResponse(token=access_token)
+
+    except HTTPException:
+        # Re-raise handled exceptions
+        raise
+
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login processing failed"
+        )
 
 
 @auth_router.post("/auth/logout", status_code=status.HTTP_200_OK, response_model=AuthResponse)
@@ -94,22 +167,13 @@ async def logout_user(credentials: HTTPAuthorizationCredentials = Depends(bearer
     session = SessionDTO(**response.json())
     logger.info(f"Found session {session}")
     # Delete session
-    response = await delete_session_by_id(session.session_id, token, True)
+    response = await delete_session_by_id(settings.api_key, session.session_id, token)
     error = verify_response(response)
     if error:
         logger.error(error)
         raise HTTPException(status_code=error["status_code"], detail=error["detail"])
     logger.info(f"Session {session.session_id} deleted")
     return AuthResponse(data=response.json(), token=token).model_dump()
-
-
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import Depends, HTTPException, status
-from datetime import datetime, timedelta
-import logging
-from typing import Optional
-
-logger = logging.getLogger(__name__)
 
 
 @auth_router.get("/auth/check_auth",
@@ -189,7 +253,7 @@ async def check_auth(
             )
 
         # Return the most current valid token
-        return TokenModelResponse(token = refreshed_token)
+        return TokenModelResponse(token=refreshed_token)
 
     except HTTPException:
         # Re-raise already handled HTTP exceptions

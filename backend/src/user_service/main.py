@@ -5,7 +5,6 @@ from src.user_service.router import user_router
 
 logger = setup_logger(__name__)
 
-
 app = FastAPI()
 app.include_router(user_router)
 
@@ -13,7 +12,3 @@ app.include_router(user_router)
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
-
-
-
-

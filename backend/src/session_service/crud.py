@@ -2,9 +2,9 @@
 import uuid
 from datetime import datetime, timedelta
 
-from src.shared.redis_base import redis_client
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
+from src.shared.redis_base import redis_client
 from src.shared.schemas import SessionDTO
 
 logger = setup_logger(__name__)
@@ -125,7 +125,8 @@ async def delete_session_by_access_token(token: str, token_type: str = "access_t
     return None
 
 
-async def update_session_access_token(old_token: str, new_token: str, session_obj: SessionDTO = None)-> SessionDTO | None:
+async def update_session_access_token(old_token: str, new_token: str,
+                                      session_obj: SessionDTO = None) -> SessionDTO | None:
     """
     Update session access token
     :param old_token: Old access token
@@ -139,6 +140,7 @@ async def update_session_access_token(old_token: str, new_token: str, session_ob
         session = await get_session_by_token(new_token)
         return session
     return None
+
 
 async def delete_sessions_by_user_id(user_id: int) -> list[SessionDTO]:
     """

@@ -1,5 +1,3 @@
-
-
 import asyncio
 
 from confluent_kafka.admin import AdminClient, NewTopic
@@ -44,6 +42,7 @@ async def recreate_kafka(topic_configs: dict[str, int], replication_factor: int 
             print(f"Topic {topic} created")
         except Exception as e:
             print(f"Failed to create topic {topic}: {e}")
+
 
 if __name__ == "__main__":
     asyncio.run(recreate_kafka({

@@ -51,4 +51,3 @@ async def delete_user_sessions(access_token: str, skip_auth: bool = False) -> Re
         response = await client.delete(DELETE_USER_SESSIONS, headers=headers)
         logger.info(f"Deleted user sessions with response {response}")
         return response
-

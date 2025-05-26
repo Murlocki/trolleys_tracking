@@ -10,6 +10,7 @@ from src.session_service.crud import create_and_store_session, delete_inactive_s
 from src.session_service.external_functions import check_auth_from_external_service, find_user_by_email
 from src.shared import logger_setup
 from src.shared.common_functions import decode_token, verify_response
+from src.shared.config import settings
 from src.shared.schemas import SessionDTO, AccessTokenUpdate, AuthResponse, UserDTO
 from src.shared.schemas import SessionSchema
 
@@ -26,9 +27,8 @@ bearer = HTTPBearer()
 
 
 async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
-    if request.headers.get("X-Skip-Auth") == "True":
-        logger.info("Skip authentication check")
-        return credentials.credentials
+    if request.headers.get("X-API-Key") == settings.api_key:
+        return settings.api_key
     verify_result = await check_auth_from_external_service(credentials.credentials)
     logger.info(f"Verify result {verify_result}")
     if not verify_result or not verify_result["token"]:
@@ -64,9 +64,9 @@ async def get_sessions(token: str = Depends(get_valid_token)):
     session_dtos = [SessionDTO(**session) for session in sessions]
     return AuthResponse(data=session_dtos, token=token).model_dump()
 
-@session_router.delete("/session/crud/me/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_session_by_token(token:str,access_token=Depends(get_valid_token)):
 
+@session_router.delete("/session/crud/me/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def delete_session_by_token(token: str, access_token=Depends(get_valid_token)):
     """
     Delete session by ID
     :param access_token: auth token
@@ -82,6 +82,7 @@ async def delete_session_by_token(token:str,access_token=Depends(get_valid_token
                                                 token=token).model_dump())
     logger.info(f"Session {session.session_id} was deleted")
     return AuthResponse(data=session, token=access_token).model_dump()
+
 
 @session_router.delete("/session/crud/me/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_session_by_id(session_id: str, token=Depends(get_valid_token)):
@@ -100,6 +101,7 @@ async def delete_session_by_id(session_id: str, token=Depends(get_valid_token)):
                                                 token=token).model_dump())
     logger.info(f"Session {session_id} was deleted")
     return AuthResponse(data=session, token=token).model_dump()
+
 
 @session_router.delete("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_sessions(token=Depends(get_valid_token)):
@@ -122,6 +124,7 @@ async def delete_sessions(token=Depends(get_valid_token)):
     result = await delete_sessions_by_user_id(user.id)
     return AuthResponse(data=result, token=token).model_dump()
 
+
 @session_router.get("/session/crud/user/{user_id}", response_model=list[SessionDTO], status_code=status.HTTP_200_OK)
 async def get_user_sessions(user_id: int):
     """
@@ -132,6 +135,7 @@ async def get_user_sessions(user_id: int):
     sessions = await crud.get_sessions(user_id=user_id)
     logger.info(f"Sessions for user {user_id} were found")
     return [SessionDTO(**session) for session in sessions]
+
 
 @session_router.patch("/session/crud/{session_id}/update_token", response_model=SessionDTO,
                       status_code=status.HTTP_200_OK)
@@ -150,7 +154,7 @@ async def update_session_token(session_id: str, access_token_update_data: Access
         logger.warning("Session ID does not match")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session ID does not match")
     session = await crud.update_session_access_token(access_token_update_data.old_access_token,
-                                                access_token_update_data.new_access_token)
+                                                     access_token_update_data.new_access_token)
     if not session:
         logger.warning("Session not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")

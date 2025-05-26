@@ -6,7 +6,6 @@ from src.shared.logger_setup import setup_logger
 logger = setup_logger(__name__)
 
 
-
 async def listen_expirations():
     redis_client = aioredis.Redis(
         host=settings.redis_host,

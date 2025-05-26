@@ -5,10 +5,10 @@ from datetime import timedelta, datetime
 from jose import jwt, JWTError
 
 from src.auth_service.external_functions import get_session_by_token, update_session_token, create_session
-from src.shared.redis_base import redis_client
 from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
+from src.shared.redis_base import redis_client
 from src.shared.schemas import SessionDTO, AccessTokenUpdate, SessionSchema
 
 logger = setup_logger(__name__)
@@ -56,7 +56,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
     return encoded_jwt
 
 
-def create_new_token(username: str, role:str, is_refresh: bool = False):
+def create_new_token(username: str, role: str, is_refresh: bool = False):
     """
     Create new access or refresh token
     :param role: User role
@@ -64,7 +64,7 @@ def create_new_token(username: str, role:str, is_refresh: bool = False):
     :param is_refresh: True if refresh token needs to be created
     :return: str: JWT token
     """
-    data = {"iss": "auth-service", "sub": username, "role":role ,"jti": str(uuid.uuid4())}
+    data = {"iss": "auth-service", "sub": username, "role": role, "jti": str(uuid.uuid4())}
     return create_refresh_token(data=data) if is_refresh else create_access_token(data=data)
 
 
@@ -95,7 +95,7 @@ async def verify_and_refresh_access_token(token: str) -> str | None:
             return None
 
         # Check if we have session for token
-        response = await get_session_by_token(token)
+        response = await get_session_by_token(settings.api_key, token)
         error = verify_response(response)
         if error:
             logger.error(f"Cannot find session with token {token}")
@@ -121,12 +121,13 @@ async def verify_and_refresh_access_token(token: str) -> str | None:
             else:
                 # Create new access token without refresh token and update session
                 logger.info("Creating new access token")
-                new_access_token = create_new_token(payload['sub'],payload['role'])
+                new_access_token = create_new_token(payload['sub'], payload['role'])
                 if not new_access_token:
                     logger.error("Failed to create new access token")
                     return None
-                response = await update_session_token(session.session_id,
-                                     AccessTokenUpdate(old_access_token=token, new_access_token=new_access_token))
+                response = await update_session_token(settings.api_key, session.session_id,
+                                                      AccessTokenUpdate(old_access_token=token,
+                                                                        new_access_token=new_access_token))
                 error = verify_response(response)
                 if error:
                     logger.error("Failed to verify new access token")
@@ -168,7 +169,7 @@ async def refresh_access_token(refresh_token: str):
             return None
 
         # Get session by refresh token
-        response = await get_session_by_token(refresh_token, token_type="refresh_token")
+        response = await get_session_by_token(settings.api_key, refresh_token, token_type="refresh_token")
         error = verify_response(response)
         if error:
             logger.error("Failed to verify new access token")
@@ -181,13 +182,14 @@ async def refresh_access_token(refresh_token: str):
             logger.error("Failed to create new access token")
             return None
 
-        #If refresh token is expired, create new refresh token session
+        # If refresh token is expired, create new refresh token session
         exp_time: datetime = datetime.fromtimestamp(payload.get("exp"))
         logger.info(f"Token expires at: {exp_time}")
         about_to_expire: bool = is_about_to_expire(exp_time)
 
         if about_to_expire or exp_time <= datetime.now():
-            logger.warning("Refresh token is about to expire" if about_to_expire else f"Refresh token expired at: {exp_time}")
+            logger.warning(
+                "Refresh token is about to expire" if about_to_expire else f"Refresh token expired at: {exp_time}")
             # Create new refresh token
             new_refresh_token = create_new_token(username, role, is_refresh=True)
             if not new_refresh_token:
@@ -200,12 +202,15 @@ async def refresh_access_token(refresh_token: str):
                     access_token=new_access_token,
                     refresh_token=new_refresh_token,
                     device=session.device,
-                    ip_address=session.ip_address)
+                    ip_address=session.ip_address),
+                settings.api_key
             )
 
         # Otherwise Update session token
-        else: response = await update_session_token(session.session_id, AccessTokenUpdate(old_access_token=session.access_token,
-                                                                      new_access_token=new_access_token))
+        else:
+            response = await update_session_token(settings.api_key, session.session_id,
+                                                  AccessTokenUpdate(old_access_token=session.access_token,
+                                                                    new_access_token=new_access_token))
         error = verify_response(response)
         if error:
             logger.error("Failed to verify new access token")
@@ -216,7 +221,8 @@ async def refresh_access_token(refresh_token: str):
         logger.warning(f"refresh_access_token - JWT Error: {e}")
         return None
 
-async def add_old_token_record(old_access_token:str, new_access_token:str):
+
+async def add_old_token_record(old_access_token: str, new_access_token: str):
     record_data = {"new_access_token": new_access_token, "created_at": datetime.now().isoformat()}
     expires_at = datetime.now() + timedelta(seconds=settings.old_access_token_record_expire_seconds)
     record_data["expires_at"] = expires_at.isoformat()
@@ -225,7 +231,8 @@ async def add_old_token_record(old_access_token:str, new_access_token:str):
     logger.info(f"Old access token record added: {record_data}")
     return record_data
 
-async def get_old_token_record(old_access_token:str):
+
+async def get_old_token_record(old_access_token: str):
     record_data = await redis_client.hgetall(f"old_access_token:{old_access_token}")
     if not record_data:
         logger.warning("Old access token record does not exist")

@@ -10,11 +10,11 @@ from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
-from src.user_service.models import User
 from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
+from src.user_service.models import User
 from src.user_service.schemas import UserCreate, UserUpdate
 
 user_router = APIRouter()
@@ -29,7 +29,7 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 bearer = HTTPBearer(auto_error=False)
 
 
-async def get_valid_token(request:Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
+async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
     logger.info(request.headers)
     if request.headers.get("X-API-Key") == settings.api_key:
         return settings.api_key
@@ -79,7 +79,7 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -
 
 
 @user_router.post("/user/authenticate", response_model=UserDTO, status_code=status.HTTP_200_OK)
-async def auth_user(user_auth_data: UserAuthDTO, token = Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
+async def auth_user(user_auth_data: UserAuthDTO, token=Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
     user = await crud.authenticate_user(db, user_auth_data.identifier, user_auth_data.password)
     if not user:
         logger.info("User authentication failed")
@@ -89,7 +89,7 @@ async def auth_user(user_auth_data: UserAuthDTO, token = Depends(get_valid_token
 
 
 @user_router.get("/user/crud/search", status_code=status.HTTP_200_OK, response_model=UserDTO)
-async def search_user(username: str, db: AsyncSession = Depends(get_db), token = Depends(get_valid_token)):
+async def search_user(username: str, db: AsyncSession = Depends(get_db), token=Depends(get_valid_token)):
     logger.info(f"Searching user using {username}")
     user = await crud.get_user_by_username(db, username)
     if not user:
@@ -122,8 +122,6 @@ async def get_profile(token: str = Depends(get_valid_token), db: AsyncSession = 
     logger.info(f"User {user.username} found")
     result.data = UserDTO.model_validate(user)
     return result.model_dump(by_alias=True)
-
-
 
 
 # TODO: ПЕРЕДЕЛАТЬ РУЧКУ ОБНОВЛЕНИЯ ПАРОЛЯ ДЛЯ ОБНОВЛЕНИЯ ПРОИЗВОЛЬНОГО ПОЛЬЗОВАТЕЛЯ
@@ -169,7 +167,8 @@ async def update_password(password_form, token: str = Depends(get_valid_token),
 
 
 @user_router.patch("/user/me/account", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def update_my_account(user: UserUpdate, token: str = Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
+async def update_my_account(user: UserUpdate, token: str = Depends(get_valid_token),
+                            db: AsyncSession = Depends(get_db)):
     """
     Update user by username
     :param db: database session

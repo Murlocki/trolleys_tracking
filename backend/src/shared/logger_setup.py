@@ -6,7 +6,7 @@ from logging.handlers import TimedRotatingFileHandler
 from src.shared.config import settings
 
 
-def setup_logger(name:str, console: bool = False)->logging.Logger:
+def setup_logger(name: str, console: bool = False) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
 

@@ -7,6 +7,7 @@ from src.shared.schemas import TokenModelResponse
 
 logger = setup_logger(__name__)
 
+
 async def check_auth_from_external_service(access_token: str, skip_auth: bool = False) -> TokenModelResponse | None:
     """
     Check auth

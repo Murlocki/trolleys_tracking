@@ -39,5 +39,6 @@ class Settings(BaseSettings):
     api_key: str = ""
     old_access_token_record_expire_seconds: int = 0
 
+
 settings = Settings()
 print(settings)
