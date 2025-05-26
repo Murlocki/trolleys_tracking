@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     auth_service_url: str = Field("http://127.0.0.1:8000")
     kafka_broker: str = Field("localhost:9093")
     api_key: str = ""
+    old_access_token_record_expire_seconds: int = 0
 
 settings = Settings()
 print(settings)

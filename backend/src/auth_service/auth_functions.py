@@ -5,6 +5,7 @@ from datetime import timedelta, datetime
 from jose import jwt, JWTError
 
 from src.auth_service.external_functions import get_session_by_token, update_session_token, create_session
+from src.shared.redis_base import redis_client
 from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
@@ -112,15 +113,13 @@ async def verify_and_refresh_access_token(token: str) -> str | None:
             if session.refresh_token:
                 # Update session with new access token
                 logger.info("Refreshing token using refresh token")
-                new_token: str = await refresh_access_token(session.refresh_token)
+                new_access_token: str = await refresh_access_token(session.refresh_token)
                 # Check if we have new token and update session
-                if not new_token:
+                if not new_access_token:
                     logger.error("Failed to refresh token")
                     return None
-                logger.info("Token refreshed successfully")
-                return new_token
             else:
-                # Create new access token without refsrh token and update session
+                # Create new access token without refresh token and update session
                 logger.info("Creating new access token")
                 new_access_token = create_new_token(payload['sub'],payload['role'])
                 if not new_access_token:
@@ -132,7 +131,10 @@ async def verify_and_refresh_access_token(token: str) -> str | None:
                 if error:
                     logger.error("Failed to verify new access token")
                     return None
-                return new_access_token
+            logger.info(f"New access token created successfully: {new_access_token}")
+            await add_old_token_record(token, new_access_token)
+            logger.info(f"Add old token record: {new_access_token}")
+            return new_access_token
         logger.info("Token is valid")
         return token
     except JWTError as e:
@@ -214,3 +216,20 @@ async def refresh_access_token(refresh_token: str):
         logger.warning(f"refresh_access_token - JWT Error: {e}")
         return None
 
+async def add_old_token_record(old_access_token:str, new_access_token:str):
+    record_data = {"new_access_token": new_access_token, "created_at": datetime.now().isoformat()}
+    expires_at = datetime.now() + timedelta(seconds=settings.old_access_token_record_expire_seconds)
+    record_data["expires_at"] = expires_at.isoformat()
+    logger.info(f"Old access token record expires at: {expires_at}")
+    await redis_client.hset(f"old_access_token:{old_access_token}", mapping=record_data)
+    logger.info(f"Old access token record added: {record_data}")
+    return record_data
+
+async def get_old_token_record(old_access_token:str):
+    record_data = await redis_client.hgetall(f"old_access_token:{old_access_token}")
+    if not record_data:
+        logger.warning("Old access token record does not exist")
+        return None
+    await redis_client.delete(f"old_access_token:{old_access_token}")
+    logger.info(f"Old access token record added: {record_data}")
+    return record_data

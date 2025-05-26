@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.session_service.as_tasks import listen_expirations
-from src.session_service.redis_base import redis_client
+from src.shared.redis_base import redis_client
 from src.session_service.router import session_router
 from src.shared.logger_setup import setup_logger
 
