@@ -14,7 +14,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
-
+print(get_password_hash("hashed_password_123"))
 
 def verify_password(plain_password, hashed_password):
     logger.info(f"{pwd_context.hash(plain_password)}, {hashed_password}")

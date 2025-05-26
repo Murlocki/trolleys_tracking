@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     session_service_url: str = Field("http://127.0.0.1:8001")
     auth_service_url: str = Field("http://127.0.0.1:8000")
     kafka_broker: str = Field("localhost:9093")
+    api_key: str = ""
 
 settings = Settings()
 print(settings)

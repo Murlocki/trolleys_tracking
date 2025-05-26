@@ -4,7 +4,7 @@ from typing import Optional, Any
 from pydantic import BaseModel, Field, EmailStr, AliasChoices
 from pydantic.alias_generators import to_camel
 
-from src.user_service.models import TaskStatus
+
 
 
 class AuthForm(BaseModel):
@@ -50,33 +50,13 @@ class AuthResponse(BaseModel):
 class UserDTO(BaseModel):
     id: int
     username: str = Field(validation_alias=AliasChoices('username', 'userName'))
-    first_name: str = Field(validation_alias=AliasChoices('first_name', 'firstName'))
-    last_name: str = Field(validation_alias=AliasChoices('last_name', 'lastName'))
-    email: EmailStr
     is_active: bool = Field(False, validation_alias=AliasChoices('is_active', 'isActive'))
-    is_superuser: bool = Field(False, validation_alias=AliasChoices('is_superuser', 'isSuperuser'))
-    version: int = Field(0)
+    role: str = Field("Service", validation_alias=AliasChoices('role'))
+
     class Config:
         alias_generator = to_camel
         from_attributes = True
 class UserAuthDTO(BaseModel):
     identifier: str
     password: str
-class PasswordForm(BaseModel):
-    new_password: str
 
-class TaskDTO(BaseModel):
-    id: int
-    title: str
-    description: str | None = Field(None)
-    status: int = Field(TaskStatus.IN_PROGRESS.value)
-    user_id: int = Field(validation_alias=AliasChoices('user_id', 'userId'))
-    fulfilled_date: Optional[datetime] | None = Field(None,validation_alias=AliasChoices('fulfilled_date', 'fulfilledDate'))
-    version: int = Field(0)
-    class Config:
-        from_attributes = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),  # Преобразование datetime в ISO строку
-        }
-        alias_generator = to_camel
-        validate_by_name = True

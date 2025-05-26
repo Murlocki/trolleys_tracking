@@ -5,7 +5,6 @@ from src.auth_service.endpoints import CREATE_SESSION, GET_SESSION_BY_TOKEN, UPD
     CREATE_USER, AUTHENTICATE_USER, FIND_USER_BY_EMAIL, UPDATE_USER, DELETE_SESSION_BY_TOKEN, UPDATE_USER_PASSWORD, \
     GET_USER_SESSIONS
 from src.shared.logger_setup import setup_logger
-from src.shared.schemas import PasswordForm
 from src.shared.schemas import SessionSchema, AccessTokenUpdate, UserDTO, UserAuthDTO
 from src.user_service.schemas import UserCreate
 
@@ -133,15 +132,18 @@ async def create_user(user: UserCreate) -> Response:
         return response
 
 
-async def authenticate_user(user: UserAuthDTO) -> Response:
+async def authenticate_user(user: UserAuthDTO, api_key: str) -> Response:
     """
     Authenticate user
+    :param api_key: service api key
     :param user: User identifier and password
     :return: Auth response
     """
     headers = {
         "content-type": "application/json",
+        "X-API-Key": api_key,
     }
+    logger.info(headers)
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{AUTHENTICATE_USER}",
@@ -193,7 +195,7 @@ async def update_user(user: UserDTO, access_token: str, skip_auth: bool = False)
         return response
 
 
-async def update_user_password(password_form: PasswordForm, access_token: str, skip_auth: bool = False) -> Response:
+async def update_user_password(password_form, access_token: str, skip_auth: bool = False) -> Response:
     """
     Update user password
     :param password_form: password form with new password

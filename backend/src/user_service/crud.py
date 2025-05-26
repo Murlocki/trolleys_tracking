@@ -1,9 +1,9 @@
 # Crud юзеров
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.shared import logger_setup
-from src.user_service.models import User
+from src.user_service.models import User, Role, UserData
 from src.user_service.auth_functions import get_password_hash, verify_password
 from src.user_service.schemas import UserCreate, UserUpdate
 
@@ -63,7 +63,16 @@ async def delete_user(db: AsyncSession, user: User):
 
 async def get_user_by_email(db: AsyncSession, email: str):
     async with db.begin():
-        db_user = await db.execute(select(User).filter(User.email == email))
+        db_user = await db.execute(
+            select(User)
+            .join(User.user_data)  # Явное соединение
+            .where(
+                and_(
+                    User.role.in_([Role.ADMIN, Role.SUPER_ADMIN]),
+                    UserData.email == email  # Прямое обращение к связанной таблице
+                )
+            )
+        )
         db_user = db_user.scalar_one_or_none()
         logger.info(f"Found user {db_user}")
         return db_user

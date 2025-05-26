@@ -5,7 +5,6 @@ from datetime import timedelta, datetime
 from jose import jwt, JWTError
 
 from src.auth_service.external_functions import get_session_by_token, update_session_token, create_session
-from src.auth_service.kafka_producers import send_kafka_message
 from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
@@ -56,14 +55,15 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
     return encoded_jwt
 
 
-def create_new_token(email: str, is_refresh: bool = False):
+def create_new_token(email: str, role:str, is_refresh: bool = False):
     """
     Create new access or refresh token
+    :param role: User role
     :param email: User email for sub header
     :param is_refresh: True if refresh token needs to be created
     :return: str: JWT token
     """
-    data = {"iss": "auth-service", "sub": email, "jti": str(uuid.uuid4())}
+    data = {"iss": "auth-service", "sub": email, "role":role ,"jti": str(uuid.uuid4())}
     return create_refresh_token(data=data) if is_refresh else create_access_token(data=data)
 
 
@@ -209,13 +209,3 @@ async def refresh_access_token(refresh_token: str):
         logger.warning(f"refresh_access_token - JWT Error: {e}")
         return None
 
-
-async def send_email_signal(access_token:str, user_email:str, message_type:str = "register_email"):
-    message = await send_kafka_message({"message_type": message_type,"token": access_token, "email": user_email})
-
-    if not message:
-        logger.warning(f"Failed to send {message_type} email")
-        return None
-
-    logger.info(f"Send {message_type} email signal sent for {user_email}")
-    return message

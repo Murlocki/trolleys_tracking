@@ -1,26 +1,13 @@
 import asyncio
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+
 
 from sqlalchemy import String, Boolean, DateTime, func, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.shared.config import settings
-
-# Инициализация базы данных (замените на вашу реальную конфигурацию)
-engine = create_async_engine(settings.postgres_db, echo=True)
-
-# Фабрика асинхронных сессий
-SessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
+from src.shared.database import engine, SessionLocal
 
 Base = declarative_base()
 
