@@ -141,39 +141,102 @@ async def login_user(
         )
 
 
-@auth_router.post("/auth/logout", status_code=status.HTTP_200_OK, response_model=AuthResponse)
-async def logout_user(credentials: HTTPAuthorizationCredentials = Depends(bearer)):
+@auth_router.post(
+    "/auth/logout",
+    status_code=status.HTTP_200_OK,
+    response_model=AuthResponse,
+    responses={
+        401: {"description": "Invalid or expired token"},
+        404: {"description": "Session not found"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def logout_user(
+        credentials: HTTPAuthorizationCredentials = Depends(bearer),
+) -> AuthResponse:
     """
-    Perform logout of user
-    :param credentials: token
-    :return: AuthResponse
+    Perform user logout by invalidating the current session.
+
+    Steps:
+    1. Verify the access token
+    2. Retrieve the active session
+    3. Delete the session record
+    4. Return success response
+
+    Security:
+    - Invalidates the current access token
+    - Logs the logout activity
+    - Returns generic error messages
     """
-    # Check if token is valid
-    token_verified = await check_auth(credentials)
-    logger.info("Verified token {token_verified}")
-    if not token_verified or not token_verified["token"]:
-        logger.warning("Invalid token")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                            detail={"message": "Invalid token"})
-    token = token_verified["token"]
-    logger.info(f"Valid Token: {token}")
-    # Get session by token
-    response = await get_session_by_token(token, token_type="access_token")
-    error = verify_response(response)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"],
-                            detail=AuthResponse(token=token, data=error["detail"]).model_dump())
-    session = SessionDTO(**response.json())
-    logger.info(f"Found session {session}")
-    # Delete session
-    response = await delete_session_by_id(settings.api_key, session.session_id, token)
-    error = verify_response(response)
-    if error:
-        logger.error(error)
-        raise HTTPException(status_code=error["status_code"], detail=error["detail"])
-    logger.info(f"Session {session.session_id} deleted")
-    return AuthResponse(data=response.json(), token=token).model_dump()
+    try:
+        # 1. Verify token
+        token_verified = await check_auth(credentials)
+        if not token_verified or not token_verified.token:
+            logger.warning("Invalid token provided for logout")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={"message": "Invalid token"}
+            )
+
+        token = token_verified.token
+        logger.debug(f"Token verified (first 6 chars): {token[:6]}...")
+
+        # 2. Get session by token
+        session_response = await get_session_by_token(
+            api_key=settings.api_key,
+            token=token,
+            token_type="access_token"
+        )
+
+        if error := verify_response(session_response):
+            logger.error(f"Session lookup failed: {error}")
+            raise HTTPException(
+                status_code=error["status_code"],
+                detail=AuthResponse(
+                    token=token,
+                    data={"message": "Session not found"}
+                ).model_dump()
+            )
+
+        session = SessionDTO(**session_response.json())
+        logger.info(f"Session found: {session.session_id}")
+
+        # 3. Delete session
+        delete_response = await delete_session_by_id(
+            api_key=settings.api_key,
+            session_id=session.session_id,
+            access_token=token
+        )
+
+        if error := verify_response(delete_response):
+            logger.error(f"Session deletion failed: {error}")
+            raise HTTPException(
+                status_code=error["status_code"],
+                detail=AuthResponse(
+                    token=token,
+                    data={"message": "Logout processing failed"}
+                ).model_dump()
+            )
+
+        # 4. Return success response
+        logger.info(f"Successful logout for session {session.session_id}")
+        return AuthResponse(
+            token=token,
+            data={"message": "Successfully logged out"}
+        )
+
+    except HTTPException as http_exc:
+        # Re-raise already handled HTTP exceptions
+        raise http_exc
+    except Exception as e:
+        logger.error(f"Unexpected logout error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=AuthResponse(
+                token=credentials.credentials if credentials else None,
+                data={"message": "Logout processing failed"}
+            ).model_dump()
+        )
 
 
 @auth_router.get("/auth/check_auth",
