@@ -8,7 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.auth_service import auth_functions
 from src.auth_service.auth_functions import verify_and_refresh_access_token
 from src.auth_service.external_functions import create_session, get_session_by_token, delete_session_by_id, create_user, \
-    authenticate_user, find_user_by_email, get_user_sessions
+    authenticate_user, find_user_by_username, get_user_sessions
 from src.auth_service.schemas import UserCreate, AuthForm
 from src.shared import logger_setup
 from src.shared.common_functions import decode_token, verify_response
@@ -104,7 +104,6 @@ async def check_auth(credentials: HTTPAuthorizationCredentials = Depends(bearer)
     """
     Check if user is authenticated
     :param credentials: Carryind token in header
-    :param db: Database session
     :return: Token data
     """
     token = credentials.credentials
@@ -118,7 +117,7 @@ async def check_auth(credentials: HTTPAuthorizationCredentials = Depends(bearer)
                                                                            "token": None})
 
     # Get token user
-    user = await find_user_by_email(email=payload["sub"])
+    user = await find_user_by_username(username=payload["sub"], api_key=settings.api_key)
     if not user:
         logger.warning("User not found")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail={"message": "User is not found",

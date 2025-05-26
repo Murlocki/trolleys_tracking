@@ -8,6 +8,6 @@ DELETE_SESSION_BY_TOKEN = f"{settings.session_service_url}/session/crud/me"
 GET_USER_SESSIONS = f"{settings.session_service_url}/session/crud/user"
 CREATE_USER = f"{settings.user_service_url}/user/crud"
 AUTHENTICATE_USER = (f"{settings.user_service_url}/user/authenticate")
-FIND_USER_BY_EMAIL = f"{settings.user_service_url}/user/crud/search"
+FIND_USER_BY_USERNAME = f"{settings.user_service_url}/user/crud/search"
 UPDATE_USER = f"{settings.user_service_url}/user/me/account"
 UPDATE_USER_PASSWORD = f"{settings.user_service_url}/user/me/password"

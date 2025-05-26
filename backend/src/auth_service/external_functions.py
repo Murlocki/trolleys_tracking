@@ -2,8 +2,8 @@ import httpx
 from httpx import Response
 
 from src.auth_service.endpoints import CREATE_SESSION, GET_SESSION_BY_TOKEN, UPDATE_SESSION_TOKEN, DELETE_SESSION, \
-    CREATE_USER, AUTHENTICATE_USER, FIND_USER_BY_EMAIL, UPDATE_USER, DELETE_SESSION_BY_TOKEN, UPDATE_USER_PASSWORD, \
-    GET_USER_SESSIONS
+    CREATE_USER, AUTHENTICATE_USER, UPDATE_USER, DELETE_SESSION_BY_TOKEN, UPDATE_USER_PASSWORD, \
+    GET_USER_SESSIONS, FIND_USER_BY_USERNAME
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import SessionSchema, AccessTokenUpdate, UserDTO, UserAuthDTO
 from src.user_service.schemas import UserCreate
@@ -154,21 +154,22 @@ async def authenticate_user(user: UserAuthDTO, api_key: str) -> Response:
         return response
 
 
-async def find_user_by_email(email: str) -> Response:
+async def find_user_by_username(username: str, api_key:str) -> Response:
     """
-    Find user by email
-    :param email: email for finding user
+    Find user by username
+    :param username: username for finding user
     :return: response from external service
     """
     headers = {
         "content-type": "application/json",
+        "X-API-Key": api_key,
     }
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{FIND_USER_BY_EMAIL}?email={email}",
+            f"{FIND_USER_BY_USERNAME}?username={username}",
             headers=headers,
         )
-        logger.info(f"Find user by email: {email} with response {response.json()}")
+        logger.info(f"Find user by username: {username} with response {response.json()}")
         return response
 
 
