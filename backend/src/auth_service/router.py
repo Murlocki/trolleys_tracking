@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fastapi import APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
+from fastapi import status, HTTPException, Depends
 from src.auth_service import auth_functions
 from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record
 from src.auth_service.external_functions import create_session, get_session_by_token, delete_session_by_id, \
@@ -26,12 +26,10 @@ System timezone: {time.tzname}
 Environment timezone: {os.environ.get('TZ', 'Not set')}
 """)
 
-bearer = HTTPBearer()
+bearer = HTTPBearer(auto_error=False)
 
-from fastapi import status, HTTPException, Depends
-import logging
 
-logger = logging.getLogger(__name__)
+
 
 
 @auth_router.post(

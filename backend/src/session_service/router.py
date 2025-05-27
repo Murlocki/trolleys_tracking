@@ -23,7 +23,7 @@ System timezone: {time.tzname}
 Environment timezone: {os.environ.get('TZ', 'Not set')}
 """)
 
-bearer = HTTPBearer()
+bearer = HTTPBearer(auto_error=False)
 
 
 async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
@@ -36,41 +36,23 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
     return verify_result["token"]
 
 
-@session_router.get("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def get_sessions(token: str = Depends(get_valid_token)):
-    """
-    Get all sessions for user
-    :param token: Token for authentication
-    :param db: Database session
-    :return: List of sessions
-    """
-    decoded_token = decode_token(token)
-    logger.info(f"Decoded token: {decoded_token}")
-    result = AuthResponse(token=token, data={"message": ""})
-    # Find user by email
-    response = await find_user_by_email(email=decoded_token["sub"])
-    error = verify_response(response)
-    if error:
-        logger.error(f"Error: {error}")
-        result.data = {"message": f"Error finding user by email: {error['detail']}"}
-        raise HTTPException(status_code=error["status"], detail=result.model_dump())
-    user = UserDTO(**response.json())
-    logger.info(f"Found user: {user}")
-    # Delete his sessions
-    await delete_inactive_sessions(user_id=user.id)
-    # Return only active sessions
-    sessions = await crud.get_sessions(user_id=user.id)
-    logger.info(f"Sessions for user {user.username}: {sessions}")
-    session_dtos = [SessionDTO(**session) for session in sessions]
-    return AuthResponse(data=session_dtos, token=token).model_dump()
+# @session_router.delete("/session/crud/me/search",
+# @session_router.delete("/session/crud/me/{session_id}"
+# @session_router.delete("/session/crud/me"
+# @session_router.post("/session/crud/me"
 
+# @session_router.get("/session/crud/{user_id}"
+# @session_router.delete("/session/crud/{user_id}/{session_id}"
+
+# @session_router.patch("/session/crud/{session_id}/update_token"
+# @session_router.get("/session/crud/search"
 
 @session_router.delete("/session/crud/me/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_session_by_token(token: str, access_token=Depends(get_valid_token)):
     """
     Delete session by ID
     :param access_token: auth token
-    :param token: JWT Token
+    :param token: JWT Token or api key
     :return: AuthResponse
     """
     session = await crud.delete_session_by_access_token(token)
@@ -82,7 +64,6 @@ async def delete_session_by_token(token: str, access_token=Depends(get_valid_tok
                                                 token=token).model_dump())
     logger.info(f"Session {session.session_id} was deleted")
     return AuthResponse(data=session, token=access_token).model_dump()
-
 
 @session_router.delete("/session/crud/me/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_session_by_id(session_id: str, token=Depends(get_valid_token)):
@@ -101,7 +82,6 @@ async def delete_session_by_id(session_id: str, token=Depends(get_valid_token)):
                                                 token=token).model_dump())
     logger.info(f"Session {session_id} was deleted")
     return AuthResponse(data=session, token=token).model_dump()
-
 
 @session_router.delete("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_sessions(token=Depends(get_valid_token)):
@@ -124,17 +104,64 @@ async def delete_sessions(token=Depends(get_valid_token)):
     result = await delete_sessions_by_user_id(user.id)
     return AuthResponse(data=result, token=token).model_dump()
 
+@session_router.post("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
+async def create_session(session_create_data: SessionSchema, token=Depends(get_valid_token)):
+    """
+    Create new session
+    :param token: token or api key
+    :param session_create_data:
+    :return: Created session
+    """
+    session = await create_and_store_session(
+        user_id=session_create_data.user_id,
+        access_token=session_create_data.access_token,
+        refresh_token=session_create_data.refresh_token,
+        device=session_create_data.device,
+        ip_address=session_create_data.ip_address
+    )
+    if not session:
+        logger.error(f"Session not created {session_create_data}")
+        raise HTTPException(status_code=404, detail=AuthResponse(token=token, data={"message":"Session create error"}).model_dump())
+    logger.info(f"Created session with data {session}")
+    return AuthResponse(token=token, data=session).model_dump()
 
-@session_router.get("/session/crud/user/{user_id}", response_model=list[SessionDTO], status_code=status.HTTP_200_OK)
-async def get_user_sessions(user_id: int):
+
+@session_router.get("/session/crud/{user_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def get_user_sessions(user_id: int, token=Depends(get_valid_token)):
     """
     Get all sessions for user
+    :param token: user token or api key
     :param user_id: User ID
     :return: List of sessions
     """
     sessions = await crud.get_sessions(user_id=user_id)
     logger.info(f"Sessions for user {user_id} were found")
-    return [SessionDTO(**session) for session in sessions]
+    return AuthResponse(data=[SessionDTO(**session) for session in sessions], token=token).model_dump()
+
+
+@session_router.delete("/session/crud/{user_id}/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def delete_user_session(user_id: int, session_id: str, token=Depends(get_valid_token)):
+    """
+    Delete user session by ID
+    :param user_id: user ID
+    :param session_id: session ID
+    :param token: api key or jwt token
+    :return:
+    """
+    result = AuthResponse(token=token, data={"message": ""})
+    user_sessions = await crud.get_sessions(user_id=user_id)
+    if not user_sessions:
+        logger.error(f"Session for user {user_id} not found")
+        result.data = {"message": f"Session not found"}
+        raise HTTPException(status_code=404, detail=result.model_dump())
+
+    logger.info(f"Sessions for user {user_id} were found")
+    session = await crud.delete_session_by_id(session_id)
+    if not session:
+        result.data = {"message": f"Session not found"}
+        logger.error("Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
+    return AuthResponse(data=session, token=token).model_dump()
 
 
 @session_router.patch("/session/crud/{session_id}/update_token", response_model=SessionDTO,
@@ -161,23 +188,6 @@ async def update_session_token(session_id: str, access_token_update_data: Access
     logger.info(f"Session {session_id} was updated")
     return session
 
-
-@session_router.post("/session/crud", response_model=SessionDTO, status_code=status.HTTP_201_CREATED)
-async def create_session(session_create_data: SessionSchema):
-    """
-    Create new session
-    :param session_create_data:
-    :return: Created session
-    """
-    session = await create_and_store_session(
-        user_id=session_create_data.user_id,
-        access_token=session_create_data.access_token,
-        refresh_token=session_create_data.refresh_token,
-        device=session_create_data.device,
-        ip_address=session_create_data.ip_address
-    )
-    logger.info(f"Created session with data {session}")
-    return session.model_dump()
 
 
 @session_router.get("/session/crud/search", response_model=SessionDTO, status_code=status.HTTP_200_OK)
