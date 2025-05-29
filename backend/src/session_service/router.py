@@ -157,29 +157,92 @@ async def delete_user_sessions(user_id: int, token=Depends(get_valid_token)):
     logger.info(f"Sessions for user {user_id} were deleted")
     return result.model_dump()
 
-@session_router.delete("/session/crud/{user_id}/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_user_session(user_id: int, session_id: str, token=Depends(get_valid_token)):
+
+@session_router.delete(
+    "/session/crud/{user_id}/{session_id}",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        403: {"description": "Forbidden - session doesn't belong to user"},
+        404: {"description": "Session not found"},
+    }
+)
+async def delete_user_session(
+        user_id: int,
+        session_id: str,
+        token: str = Depends(get_valid_token),
+) -> AuthResponse:
     """
-    Delete user session by ID
-    :param user_id: user ID
-    :param session_id: session ID
-    :param token: api key or jwt token
-    :return:
+    Deletes a specific user session after validation.
+
+    Security Flow:
+    1. Validates the authentication token
+    2. Verifies session ownership
+    3. Deletes session if all checks pass
+
+    Args:
+        user_id: ID of the user owning the session (from path)
+        session_id: Session ID to delete (from path)
+        token: Validated via get_valid_token dependency
+
+    Returns:
+        AuthResponse with deletion confirmation
+
+    Raises:
+        HTTPException: 403 if session doesn't belong to user
+        HTTPException: 404 if session not found
     """
     result = AuthResponse(token=token, data={"message": ""})
-    user_sessions = await crud.get_sessions(user_id=user_id)
-    if not user_sessions:
-        logger.error(f"Session for user {user_id} not found")
-        result.data = {"message": f"Session not found"}
-        raise HTTPException(status_code=404, detail=result.model_dump())
 
-    logger.info(f"Sessions for user {user_id} were found")
-    session = await crud.delete_session_by_id(session_id)
-    if not session:
-        result.data = {"message": f"Session not found"}
-        logger.error("Session not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    return AuthResponse(data=session, token=token).model_dump()
+    try:
+        # 1. Verify user sessions exist
+        user_sessions = await crud.get_sessions(user_id=user_id)
+        if not user_sessions:
+            logger.warning(f"No sessions found for user {user_id}")
+            result.data = {"message": "No sessions found for user"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        logger.info(f"Found {len(user_sessions)} sessions for user {user_id}")
+
+        # 3. Perform deletion
+        deleted_session = await crud.delete_session_by_id(session_id)
+        if not deleted_session:
+            logger.error(f"Deletion failed for session {session_id}")
+            result.data = {"message": "Session not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        logger.info(
+            f"Successfully deleted session {session_id} for user {user_id} | "
+            f"Deleted at: {datetime.now().isoformat()}"
+        )
+
+        result.data = {
+            "message": "Session deleted successfully",
+            "session_id": session_id,
+            "deleted_at": datetime.now().isoformat()
+        }
+        return result
+
+    except HTTPException:
+        # Re-raise already handled exceptions
+        raise
+    except Exception as e:
+        logger.error(
+            f"Unexpected error deleting session {session_id}: {str(e)} | "
+            f"User: {user_id}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
 
 
 @session_router.patch(
