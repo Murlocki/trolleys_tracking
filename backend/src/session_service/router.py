@@ -182,38 +182,99 @@ async def delete_user_session(user_id: int, session_id: str, token=Depends(get_v
     return AuthResponse(data=session, token=token).model_dump()
 
 
-@session_router.patch("/session/crud/{user_id}/{session_id}/update_token", response_model=AuthResponse,
-                      status_code=status.HTTP_200_OK)
-async def update_session_token(user_id:int, session_id: str, access_token_update_data: AccessTokenUpdate, access_token=Depends(get_valid_token)):
+@session_router.patch(
+    "/session/crud/{user_id}/{session_id}/update_token",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "Invalid session or user mismatch"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Session not found"},
+    }
+)
+async def update_session_token(
+        user_id: int,
+        session_id: str,
+        access_token_update_data: AccessTokenUpdate,
+        access_token: str = Depends(get_valid_token)
+) -> AuthResponse:
     """
-    Update session token
-    :param access_token: jwt token or api key
-    :param user_id: session user id
-    :param access_token_update_data: New access token
-    :param session_id: Session ID
-    :return: New session entity
+    Updates the access token for a specific session after validation.
+
+    Security Flow:
+    1. Validates the current access token
+    2. Verifies session ownership
+    3. Updates token if all checks pass
+
+    Args:
+        user_id: ID of the user owning the session (from path)
+        session_id: Session ID to update (from path)
+        access_token_update_data: Contains old and new tokens
+        access_token: Validated via get_valid_token dependency
+
+    Returns:
+        AuthResponse with updated session data
+
+    Raises:
+        HTTPException: For any validation failure with appropriate status code
     """
     result = AuthResponse(token=access_token, data={"message": ""})
-    session = await crud.get_session_by_token(access_token_update_data.old_access_token)
-    if not session:
-        result.data = {"message": f"Session not found"}
-        logger.error("Session not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    logger.info(f"Session {session.session_id} was found")
-    if session.user_id != user_id:
-        logger.error(f"Session user id {session.user_id} does not match user_id: {user_id}")
-        result.data = {"message": f"Session user id does not match user_id"}
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    if session.session_id != session_id:
-        logger.error("Session ID does not match")
-        result.data = {"message": f"Session ID does not match"}
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
-    session = await crud.update_session_access_token(access_token_update_data.old_access_token,
-                                                     access_token_update_data.new_access_token)
-    if not session:
-        logger.warning("Session not found")
-        result.data = {"message": f"Session not found"}
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    logger.info(f"Session {session_id} was updated")
-    result.data = session
-    return result.model_dump()
+
+    try:
+        # 1. Verify existing session
+        session = await crud.get_session_by_token(access_token_update_data.old_access_token)
+        if not session:
+            logger.error(f"Session not found for token: {access_token_update_data.old_access_token[:8]}...")
+            result.data = {"message": "Session not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        logger.info(f"Session found: {session.session_id}")
+
+        # 2. Validate session ownership
+        if session.user_id != user_id:
+            logger.error(f"User ID mismatch: session:{session.user_id} vs path:{user_id}")
+            result.data = {"message": "Session does not belong to this user"}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=result.model_dump()
+            )
+
+        if session.session_id != session_id:
+            logger.error(f"Session ID mismatch: {session.session_id} vs {session_id}")
+            result.data = {"message": "Session ID does not match"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+
+        # 3. Perform token update
+        updated_session = await crud.update_session_access_token(
+            old_token=access_token_update_data.old_access_token,
+            new_token=access_token_update_data.new_access_token
+        )
+
+        if not updated_session:
+            logger.error("Token update failed")
+            result.data = {"message": "Token update failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        logger.info(f"Token updated for session {session_id}")
+        result.data = updated_session
+        return result
+
+    except HTTPException:
+        # Re-raise already handled exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during token update: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
