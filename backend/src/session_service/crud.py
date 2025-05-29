@@ -49,7 +49,8 @@ async def get_sessions(user_id: int):
     sessions = []
     async for key in redis_client.scan_iter(f"session:*"):
         session_data = await redis_client.hgetall(key)
-        if session_data.get("user_id") == str(user_id):
+        logger.info(f"{type(session_data.get('user_id'))} {type(user_id)} {session_data.get('user_id')} {user_id}")
+        if int(session_data.get("user_id")) == int(user_id):
             # Проверяем наличие всех необходимых полей
             required_fields = ["session_id", "user_id", "access_token", "device", "ip_address", "created_at",
                                "expires_at"]

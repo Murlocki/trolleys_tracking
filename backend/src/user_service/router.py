@@ -77,7 +77,7 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -
     logger.info(f"Created new user using {user}")
     return user
 
-@user_router.get("/user/{user_id}", response_model=UserDTO)
+@user_router.get("/user/crud/{user_id}", response_model=UserDTO)
 async def find_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> UserDTO:
     """
     Find a user by ID

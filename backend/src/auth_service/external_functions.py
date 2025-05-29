@@ -159,7 +159,7 @@ async def find_user_by_username(username: str, api_key: str) -> Response:
         logger.info(f"Find user by username: {username} with response {response.json()}")
         return response
 
-async def find_user_by_id(user_id: str, api_key: str) -> Response:
+async def find_user_by_id(user_id: int, api_key: str) -> Response:
     """
     Find user by username
     :param api_key: api key
