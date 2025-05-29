@@ -56,15 +56,15 @@ def create_refresh_token(data: dict, expires_delta: timedelta = None) -> str:
     return encoded_jwt
 
 
-def create_new_token(username: str, role: str, is_refresh: bool = False):
+def create_new_token(user_id: int, role: str, is_refresh: bool = False):
     """
     Create new access or refresh token
     :param role: User role
-    :param username: User username for sub header
+    :param user_id: User user_id for sub header
     :param is_refresh: True if refresh token needs to be created
-    :return: str: JWT token
+    :return: int: JWT token
     """
-    data = {"iss": "auth-service", "sub": username, "role": role, "jti": str(uuid.uuid4())}
+    data = {"iss": "auth-service", "sub": str(user_id), "role": role, "jti": str(uuid.uuid4())}
     return create_refresh_token(data=data) if is_refresh else create_access_token(data=data)
 
 
@@ -158,9 +158,9 @@ async def refresh_access_token(refresh_token: str):
         if not payload:
             logger.error("Invalid refresh token")
             return None
-        username = payload.get("sub")
-        if not username:
-            logger.error("No username in refresh token payload")
+        user_id = payload.get("sub")
+        if not user_id:
+            logger.error("No user_id in refresh token payload")
             return None
 
         role = payload.get("role")
@@ -177,7 +177,7 @@ async def refresh_access_token(refresh_token: str):
         session = SessionDTO(**response.json()['data'])
 
         # Create new access token
-        new_access_token = create_new_token(username, role)
+        new_access_token = create_new_token(user_id, role)
         if not new_access_token:
             logger.error("Failed to create new access token")
             return None
@@ -191,7 +191,7 @@ async def refresh_access_token(refresh_token: str):
             logger.warning(
                 "Refresh token is about to expire" if about_to_expire else f"Refresh token expired at: {exp_time}")
             # Create new refresh token
-            new_refresh_token = create_new_token(username, role, is_refresh=True)
+            new_refresh_token = create_new_token(user_id, role, is_refresh=True)
             if not new_refresh_token:
                 logger.error("Failed to create new refresh token")
                 return None

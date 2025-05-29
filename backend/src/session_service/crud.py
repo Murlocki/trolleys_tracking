@@ -94,6 +94,16 @@ async def delete_session_by_id(session_id: str) -> SessionDTO | None:
             return SessionDTO(**session_data)
     return None
 
+async def get_session_by_id(session_id: str) -> SessionDTO | None:
+    """
+    Get session by ID
+    :param session_id: Session ID
+    :return: Found session data
+    """
+    session_data = await redis_client.hgetall(f"session:{session_id}")
+    if session_data:
+        return SessionDTO(**session_data)
+    return None
 
 async def get_session_by_token(token: str, token_type: str = "access_token") -> SessionDTO | None:
     """

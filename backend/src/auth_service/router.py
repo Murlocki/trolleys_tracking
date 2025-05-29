@@ -80,11 +80,11 @@ async def login_user(
             )
 
         user = UserDTO(**auth_response.json())
-        logger.info(f"User authentication successful: {user.username}")
+        logger.info(f"User authentication successful: {user.id}")
 
         # 2. Verify user status
         if not user.is_active:
-            logger.warning(f"Login attempt for inactive account: {user.username}")
+            logger.warning(f"Login attempt for inactive account: {user.id}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Account inactive"
@@ -92,14 +92,14 @@ async def login_user(
 
         # 3. Generate tokens
         access_token = auth_functions.create_new_token(
-            username=user.username,
+            user_id=user.id,
             role=user.role
         )
 
         refresh_token = None
         if auth_form.remember_me:
             refresh_token = auth_functions.create_new_token(
-                username=user.username,
+                user_id=user.id,
                 role=user.role,
                 is_refresh=True
             )
@@ -124,7 +124,7 @@ async def login_user(
             )
 
         # 5. Return response
-        logger.info(f"Successful login for {user.username} from {auth_form.ip_address}")
+        logger.info(f"Successful login for {user.id} from {auth_form.ip_address}")
         return TokenModelResponse(token=access_token)
 
     except HTTPException:
@@ -203,7 +203,7 @@ async def logout_user(
         delete_response = await delete_session_by_id(
             api_key=settings.api_key,
             session_id=session.session_id,
-            access_token=token
+            user_id=session.user_id
         )
 
         if error := verify_response(delete_response):

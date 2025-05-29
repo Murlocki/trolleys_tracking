@@ -48,6 +48,15 @@ async def update_user(db: AsyncSession, user_name: str, user: UserUpdate):
     await db.refresh(db_user)
     return db_user
 
+async def get_user_by_id(db: AsyncSession, user_id: int):
+    async with db.begin():
+        db_user = await db.execute(select(User).filter(User.id == user_id))
+        db_user = db_user.scalar()
+        if db_user is None:
+            logger.error(f"User {user_id} not found.")
+            return None
+        logger.info(f"Found user {db_user.to_dict()}")
+        return db_user
 
 async def delete_user(db: AsyncSession, user: User):
     async with db.begin():

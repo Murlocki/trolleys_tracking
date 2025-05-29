@@ -77,6 +77,19 @@ async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -
     logger.info(f"Created new user using {user}")
     return user
 
+@user_router.get("/user/{user_id}", response_model=UserDTO)
+async def find_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> UserDTO:
+    """
+    Find a user by ID
+    :param user_id: user id
+    :param db: db session
+    :return: user info
+    """
+    user: UserDTO = await crud.get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    logger.info(f"Finding user by ID {user_id}")
+    return user.to_dict()
 
 @user_router.post("/user/authenticate", response_model=UserDTO, status_code=status.HTTP_200_OK)
 async def auth_user(user_auth_data: UserAuthDTO, token=Depends(get_valid_token), db: AsyncSession = Depends(get_db)):

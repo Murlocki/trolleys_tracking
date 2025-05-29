@@ -2,7 +2,7 @@ import httpx
 from httpx import Response
 
 from src.auth_service.endpoints import CREATE_SESSION, GET_SESSION_BY_TOKEN, UPDATE_SESSION_TOKEN, DELETE_SESSION, \
-    AUTHENTICATE_USER, DELETE_SESSION_BY_TOKEN, FIND_USER_BY_USERNAME
+    AUTHENTICATE_USER, DELETE_SESSION_BY_TOKEN, FIND_USER_BY_USERNAME, FIND_USER_BY_ID
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import SessionSchema, AccessTokenUpdate, UserAuthDTO
 
@@ -75,23 +75,21 @@ async def update_session_token(api_key: str, session_id: str, user_id:int, acces
         return response
 
 
-async def delete_session_by_id(api_key: str, session_id: str, access_token: str) -> Response:
+async def delete_session_by_id(api_key: str, session_id: str, user_id: int) -> Response:
     """
     Delete session by id
+    :param user_id: session user id
     :param api_key: api key
     :param session_id: session id for deleting
-    :param access_token: access token for auth
-    :param skip_auth: need check auth in method
     :return: response from external service
     """
     async with httpx.AsyncClient() as client:
         headers = {
             "content-type": "application/json",
-            "authorization": f"bearer {access_token}",
             "X-API-Key": api_key,
         }
         response = await client.delete(
-            f"{DELETE_SESSION}/{session_id}",
+            f"{DELETE_SESSION}/{user_id}/{session_id}",
             headers=headers
         )
         logger.info(f"Deleted session {session_id} with response: {response.json()}")
@@ -159,4 +157,23 @@ async def find_user_by_username(username: str, api_key: str) -> Response:
             headers=headers,
         )
         logger.info(f"Find user by username: {username} with response {response.json()}")
+        return response
+
+async def find_user_by_id(user_id: str, api_key: str) -> Response:
+    """
+    Find user by username
+    :param api_key: api key
+    :param user_id: username for finding user
+    :return: response from external service
+    """
+    headers = {
+        "content-type": "application/json",
+        "X-API-Key": api_key,
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{FIND_USER_BY_ID}/{user_id}",
+            headers=headers,
+        )
+        logger.info(f"Find user by user_id: {user_id} with response {response.json()}")
         return response

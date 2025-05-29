@@ -56,23 +56,95 @@ async def delete_my_session_by_token(token: str, access_token=Depends(get_valid_
     return AuthResponse(data=session, token=access_token).model_dump()
 
 
-@session_router.delete("/session/crud/me/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_my_session_by_id(session_id: str, token=Depends(get_valid_token)):
+@session_router.delete(
+    "/session/crud/me/{session_id}",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Session deleted successfully"},
+        401: {"description": "Unauthorized - invalid token"},
+        403: {"description": "Forbidden - session ownership mismatch"},
+        404: {"description": "Session not found"}
+    }
+)
+async def delete_my_session_by_id(
+        session_id: str,
+        token: str = Depends(get_valid_token)
+) -> AuthResponse:
     """
-    Delete session by ID
-    :param token: JWT Token
-    :param session_id: Session ID
-    :return: None
+    Deletes a specific session for the authenticated user.
+
+    Security Flow:
+    1. Validates JWT token
+    2. Verifies session exists and belongs to user
+    3. Deletes the session
+
+    Args:
+        session_id: UUID of session to delete
+        token: Validated JWT token
+
+    Returns:
+        AuthResponse with deletion confirmation
+
+    Raises:
+        HTTPException: 404 if session not found
+        HTTPException: 403 if session doesn't belong to user
     """
-    session = await crud.delete_session_by_id(session_id)
-    if not session:
-        logger.warning("Session not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=AuthResponse(data=
-                                                {"message": "Session not found"},
-                                                token=token).model_dump())
-    logger.info(f"Session {session_id} was deleted")
-    return AuthResponse(data=session, token=token).model_dump()
+    # Initialize response
+    result = AuthResponse(token=token, data={"message": ""})
+
+    try:
+        # 1. Get and validate session
+        session = await crud.get_session_by_id(session_id)
+        if not session:
+            logger.warning(f"Session not found | ID: {session_id}")
+            result.data = {"message": "Session not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 2. Verify session ownership
+        decoded_token = decode_token(token)
+        if not decoded_token or str(session.user_id) != decoded_token.get("sub"):
+            logger.warning(
+                f"Session ownership mismatch | "
+                f"User: {decoded_token.get('sub', 'unknown')} | "
+                f"Session User: {session.user_id}"
+            )
+            result.data = {"message": "Session does not belong to user"}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=result.model_dump()
+            )
+
+        # 3. Perform deletion
+        deleted_session = await crud.delete_session_by_id(session_id)
+        if not deleted_session:
+            logger.error(f"Deletion failed | Session: {session_id}")
+            result.data = {"message": "Deletion failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 4. Return success
+        logger.info(f"Session deleted | ID: {session_id}")
+        result.data = {
+            "message": "Session deleted successfully",
+            "session_id": session_id,
+            "deleted_at": datetime.now().isoformat()
+        }
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Session deletion error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error"}
+        )
 
 
 @session_router.delete(
