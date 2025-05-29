@@ -100,7 +100,7 @@ async def verify_and_refresh_access_token(token: str) -> str | None:
         if error:
             logger.error(f"Cannot find session with token {token}")
             return None
-        session = SessionDTO(**response.json())
+        session = SessionDTO(**response.json()['data'])
         logger.info(f"Token verification succeeded: {session}")
         # Check token exp time
         exp_time: datetime = datetime.fromtimestamp(payload.get("exp"))
@@ -125,7 +125,7 @@ async def verify_and_refresh_access_token(token: str) -> str | None:
                 if not new_access_token:
                     logger.error("Failed to create new access token")
                     return None
-                response = await update_session_token(settings.api_key, session.session_id,
+                response = await update_session_token(settings.api_key, session.session_id, session.user_id,
                                                       AccessTokenUpdate(old_access_token=token,
                                                                         new_access_token=new_access_token))
                 error = verify_response(response)
@@ -174,7 +174,7 @@ async def refresh_access_token(refresh_token: str):
         if error:
             logger.error("Failed to verify new access token")
             return None
-        session = SessionDTO(**response.json())
+        session = SessionDTO(**response.json()['data'])
 
         # Create new access token
         new_access_token = create_new_token(username, role)
@@ -208,7 +208,7 @@ async def refresh_access_token(refresh_token: str):
 
         # Otherwise Update session token
         else:
-            response = await update_session_token(settings.api_key, session.session_id,
+            response = await update_session_token(settings.api_key, session.session_id, session.user_id,
                                                   AccessTokenUpdate(old_access_token=session.access_token,
                                                                     new_access_token=new_access_token))
         error = verify_response(response)

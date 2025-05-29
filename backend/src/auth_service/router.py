@@ -196,7 +196,7 @@ async def logout_user(
                 ).model_dump()
             )
 
-        session = SessionDTO(**session_response.json())
+        session = SessionDTO(**session_response.json()['data'])
         logger.info(f"Session found: {session.session_id}")
 
         # 3. Delete session

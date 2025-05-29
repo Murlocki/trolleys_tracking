@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+from idlelib.query import Query
 
 from fastapi import HTTPException, status, APIRouter, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -36,19 +37,10 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
     return verify_result["token"]
 
 
-# @session_router.delete("/session/crud/me/search",
-# @session_router.delete("/session/crud/me/{session_id}"
-# @session_router.delete("/session/crud/me"
-# @session_router.post("/session/crud/me"
 
-# @session_router.get("/session/crud/{user_id}"
-# @session_router.delete("/session/crud/{user_id}/{session_id}"
-
-# @session_router.patch("/session/crud/{session_id}/update_token"
-# @session_router.get("/session/crud/search"
 
 @session_router.delete("/session/crud/me/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_session_by_token(token: str, access_token=Depends(get_valid_token)):
+async def delete_my_session_by_token(token: str, access_token=Depends(get_valid_token)):
     """
     Delete session by ID
     :param access_token: auth token
@@ -66,7 +58,7 @@ async def delete_session_by_token(token: str, access_token=Depends(get_valid_tok
     return AuthResponse(data=session, token=access_token).model_dump()
 
 @session_router.delete("/session/crud/me/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_session_by_id(session_id: str, token=Depends(get_valid_token)):
+async def delete_my_session_by_id(session_id: str, token=Depends(get_valid_token)):
     """
     Delete session by ID
     :param token: JWT Token
@@ -84,7 +76,7 @@ async def delete_session_by_id(session_id: str, token=Depends(get_valid_token)):
     return AuthResponse(data=session, token=token).model_dump()
 
 @session_router.delete("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_sessions(token=Depends(get_valid_token)):
+async def delete_my_sessions(token=Depends(get_valid_token)):
     """
     Delete all sessions for user
     :param token: User token
@@ -105,7 +97,7 @@ async def delete_sessions(token=Depends(get_valid_token)):
     return AuthResponse(data=result, token=token).model_dump()
 
 @session_router.post("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def create_session(session_create_data: SessionSchema, token=Depends(get_valid_token)):
+async def create_my_session(session_create_data: SessionSchema, token=Depends(get_valid_token)):
     """
     Create new session
     :param token: token or api key
@@ -126,6 +118,25 @@ async def create_session(session_create_data: SessionSchema, token=Depends(get_v
     return AuthResponse(token=token, data=session).model_dump()
 
 
+@session_router.get("/session/crud/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def get_session_by_token(token: str, token_type: str = "access_token", access_token = Depends(get_valid_token)):
+    """
+    Get session by token
+    :param token: session token
+    :param token_type: access_token or refresh_token
+    :return: dict|None
+    """
+    result = AuthResponse(token=token, data={"message": ""})
+    session = await crud.get_session_by_token(token, token_type)
+    if not session:
+        logger.warning("Session not found")
+        result.data = {"message": f"Session not found"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
+    result.data = session
+    logger.info(f"Session {session.session_id} was found")
+    return result.model_dump()
+
+
 @session_router.get("/session/crud/{user_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def get_user_sessions(user_id: int, token=Depends(get_valid_token)):
     """
@@ -138,6 +149,13 @@ async def get_user_sessions(user_id: int, token=Depends(get_valid_token)):
     logger.info(f"Sessions for user {user_id} were found")
     return AuthResponse(data=[SessionDTO(**session) for session in sessions], token=token).model_dump()
 
+@session_router.delete("/session/crud/{user_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
+async def delete_user_sessions(user_id: int, token=Depends(get_valid_token)):
+    result = AuthResponse(token=token, data={"message": ""})
+    session_list = await crud.delete_sessions_by_user_id(user_id)
+    result.data = session_list
+    logger.info(f"Sessions for user {user_id} were deleted")
+    return result.model_dump()
 
 @session_router.delete("/session/crud/{user_id}/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_user_session(user_id: int, session_id: str, token=Depends(get_valid_token)):
@@ -164,43 +182,38 @@ async def delete_user_session(user_id: int, session_id: str, token=Depends(get_v
     return AuthResponse(data=session, token=token).model_dump()
 
 
-@session_router.patch("/session/crud/{session_id}/update_token", response_model=SessionDTO,
+@session_router.patch("/session/crud/{user_id}/{session_id}/update_token", response_model=AuthResponse,
                       status_code=status.HTTP_200_OK)
-async def update_session_token(session_id: str, access_token_update_data: AccessTokenUpdate):
+async def update_session_token(user_id:int, session_id: str, access_token_update_data: AccessTokenUpdate, access_token=Depends(get_valid_token)):
     """
     Update session token
-    :param access_token_update_data:
+    :param access_token: jwt token or api key
+    :param user_id: session user id
+    :param access_token_update_data: New access token
     :param session_id: Session ID
     :return: New session entity
     """
+    result = AuthResponse(token=access_token, data={"message": ""})
     session = await crud.get_session_by_token(access_token_update_data.old_access_token)
     if not session:
-        logger.warning("Session not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        result.data = {"message": f"Session not found"}
+        logger.error("Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
+    logger.info(f"Session {session.session_id} was found")
+    if session.user_id != user_id:
+        logger.error(f"Session user id {session.user_id} does not match user_id: {user_id}")
+        result.data = {"message": f"Session user id does not match user_id"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
     if session.session_id != session_id:
-        logger.warning("Session ID does not match")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session ID does not match")
+        logger.error("Session ID does not match")
+        result.data = {"message": f"Session ID does not match"}
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
     session = await crud.update_session_access_token(access_token_update_data.old_access_token,
                                                      access_token_update_data.new_access_token)
     if not session:
         logger.warning("Session not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        result.data = {"message": f"Session not found"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
     logger.info(f"Session {session_id} was updated")
-    return session
-
-
-
-@session_router.get("/session/crud/search", response_model=SessionDTO, status_code=status.HTTP_200_OK)
-async def get_session_by_token(token: str, token_type: str = "access_token"):
-    """
-    Get session by token
-    :param token: session token
-    :param token_type: access_token or refresh_token
-    :return: dict|None
-    """
-    session = await crud.get_session_by_token(token, token_type)
-    if not session:
-        logger.warning("Session not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-    logger.info(f"Session {session.session_id} was found")
-    return session.model_dump()
+    result.data = session
+    return result.model_dump()
