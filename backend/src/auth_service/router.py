@@ -8,7 +8,7 @@ from fastapi import status, HTTPException, Depends
 from src.auth_service import auth_functions
 from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record
 from src.auth_service.external_functions import create_session, get_session_by_token, delete_session_by_id, \
-    authenticate_user, find_user_by_username, find_user_by_id
+    authenticate_user, find_user_by_id
 from src.auth_service.schemas import AuthForm
 from src.shared import logger_setup
 from src.shared.common_functions import decode_token, verify_response

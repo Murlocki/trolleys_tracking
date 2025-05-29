@@ -140,25 +140,6 @@ async def authenticate_user(user: UserAuthDTO, api_key: str) -> Response:
         return response
 
 
-async def find_user_by_username(username: str, api_key: str) -> Response:
-    """
-    Find user by username
-    :param api_key: api key
-    :param username: username for finding user
-    :return: response from external service
-    """
-    headers = {
-        "content-type": "application/json",
-        "X-API-Key": api_key,
-    }
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{FIND_USER_BY_USERNAME}?username={username}",
-            headers=headers,
-        )
-        logger.info(f"Find user by username: {username} with response {response.json()}")
-        return response
-
 async def find_user_by_id(user_id: int, api_key: str) -> Response:
     """
     Find user by username
