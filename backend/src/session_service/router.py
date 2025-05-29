@@ -1,14 +1,14 @@
 import os
 import time
 from datetime import datetime
-from idlelib.query import Query
 
 from fastapi import HTTPException, status, APIRouter, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from src.session_service import crud
-from src.session_service.crud import create_and_store_session, delete_inactive_sessions, delete_sessions_by_user_id
-from src.session_service.external_functions import check_auth_from_external_service, find_user_by_email
+from src.session_service.crud import create_and_store_session, delete_sessions_by_user_id
+from src.session_service.external_functions import check_auth_from_external_service,  \
+    find_user_by_username
 from src.shared import logger_setup
 from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
@@ -37,8 +37,6 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
     return verify_result["token"]
 
 
-
-
 @session_router.delete("/session/crud/me/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_my_session_by_token(token: str, access_token=Depends(get_valid_token)):
     """
@@ -56,6 +54,7 @@ async def delete_my_session_by_token(token: str, access_token=Depends(get_valid_
                                                 token=token).model_dump())
     logger.info(f"Session {session.session_id} was deleted")
     return AuthResponse(data=session, token=access_token).model_dump()
+
 
 @session_router.delete("/session/crud/me/{session_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
 async def delete_my_session_by_id(session_id: str, token=Depends(get_valid_token)):
@@ -75,79 +74,321 @@ async def delete_my_session_by_id(session_id: str, token=Depends(get_valid_token
     logger.info(f"Session {session_id} was deleted")
     return AuthResponse(data=session, token=token).model_dump()
 
-@session_router.delete("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_my_sessions(token=Depends(get_valid_token)):
+
+@session_router.delete(
+    "/session/crud/me",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Sessions deleted successfully"},
+        401: {"description": "Invalid or expired token"},
+        403: {"description": "Forbidden operation"},
+        404: {"description": "User not found"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def delete_my_sessions(
+        token: str = Depends(get_valid_token)
+) -> AuthResponse:
     """
-    Delete all sessions for user
-    :param token: User token
-    :return: Sessions
+    Deletes all active sessions for the currently authenticated user.
+
+    Security Flow:
+    1. Validates JWT token
+    2. Extracts user identity from token
+    3. Verifies user exists
+    4. Deletes all user sessions
+    5. Returns deletion confirmation
+
+    Authentication:
+    - Requires valid JWT access token
+
+    Returns:
+        AuthResponse with deletion result
+
+    Raises:
+        HTTPException: For any validation or authorization failure
     """
-    decoded_token = decode_token(token)
-    logger.info(f"Decoded token: {decoded_token}")
+    # Initialize response with current token
     result = AuthResponse(token=token, data={"message": ""})
-    response = await find_user_by_email(email=decoded_token["sub"])
-    error = verify_response(response)
-    if error:
-        logger.error(f"Error: {error}")
-        result.data = {"message": f"Error finding user by email: {error['detail']}"}
-        raise HTTPException(status_code=error["status"], detail=result.model_dump())
-    user = UserDTO(**response.json())
-    logger.info(f"Sessions deleting for user {user.username}")
-    result = await delete_sessions_by_user_id(user.id)
-    return AuthResponse(data=result, token=token).model_dump()
 
-@session_router.post("/session/crud/me", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def create_my_session(session_create_data: SessionSchema, token=Depends(get_valid_token)):
+    try:
+        # 1. Decode token (already validated by get_valid_token)
+        decoded_token = decode_token(token)
+        if not decoded_token or "sub" not in decoded_token:
+            logger.warning("Invalid token payload")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
+
+        # 2. Find user by username from token
+        user_response = await find_user_by_username(username=decoded_token["sub"], api_key=settings.api_key)
+        if error := verify_response(user_response):
+            logger.error(
+                f"User lookup failed:{error.get('detail')}",
+            )
+            result.data = {"message": "User not found"}
+            raise HTTPException(
+                status_code=error.get("status", 404),
+                detail=result.model_dump()
+            )
+
+        # 3. Get user data
+        user = UserDTO(**user_response.json())
+        logger.info(
+            f"Initiating session deletion for user {user.id}",
+        )
+
+        # 4. Perform deletion
+        deletion_result = await delete_sessions_by_user_id(user.id)
+        if not deletion_result:
+            logger.error(f"Session deletion failed for user: {user.id}")
+            result.data = {"message": "Session deletion failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 5. Return success response
+        logger.info(
+            f"Sessions deleted successfully for user: {user.id} with count {len(deletion_result)}")
+
+        result.data = {
+            "message": "Sessions deleted successfully",
+            "deleted_sessions": deletion_result,
+            "count": len(deletion_result)
+        }
+        return result
+
+    except HTTPException:
+        # Re-raise handled exceptions
+        raise
+    except Exception as e:
+        logger.error(
+            f"Unexpected error during session deletion: {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error"}
+        )
+
+
+@session_router.post(
+    "/session/crud/me",
+    response_model=AuthResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {"description": "Session created successfully"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def create_my_session(
+        session_create_data: SessionSchema,
+        token: str = Depends(get_valid_token)
+) -> AuthResponse:
     """
-    Create new session
-    :param token: token or api key
-    :param session_create_data:
-    :return: Created session
+    Creates a new authenticated session for the current user.
+
+    Authentication:
+    - Requires valid token via get_valid_token dependency
+
+    Input Validation:
+    - Automatic Pydantic validation of SessionSchema
+    - Checks for existing sessions
+
+    Process Flow:
+    1. Validates authentication token
+    2. Creates new session record
+    3. Returns session details
+
+    Security:
+    - Never logs sensitive token data
+    - Validates all inputs
+    - Returns standardized error responses
     """
-    session = await create_and_store_session(
-        user_id=session_create_data.user_id,
-        access_token=session_create_data.access_token,
-        refresh_token=session_create_data.refresh_token,
-        device=session_create_data.device,
-        ip_address=session_create_data.ip_address
-    )
-    if not session:
-        logger.error(f"Session not created {session_create_data}")
-        raise HTTPException(status_code=404, detail=AuthResponse(token=token, data={"message":"Session create error"}).model_dump())
-    logger.info(f"Created session with data {session}")
-    return AuthResponse(token=token, data=session).model_dump()
+    # Initialize response with authenticated token
+    result = AuthResponse(token=token, data={"message": ""})
+
+    try:
+        # Attempt to create new session
+        session = await create_and_store_session(
+            user_id=session_create_data.user_id,
+            access_token=session_create_data.access_token,  # Encrypted in storage
+            refresh_token=session_create_data.refresh_token,  # Encrypted in storage
+            device=session_create_data.device,
+            ip_address=session_create_data.ip_address  # Validated format
+        )
+
+        # Handle creation failure
+        if not session:
+            logger.error(
+                f"Session creation failed for user {session_create_data.user_id} on device {session_create_data.device}",
+            )
+            result.data = {"message": "Session creation failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # Log successful creation (excluding sensitive data)
+        logger.info(
+            f"New session created: {session}"
+        )
+
+        # Return standardized success response
+        result.data = session
+        return result
+    except HTTPException:
+        # Re-raise existing HTTP exceptions
+        raise
+
+    except Exception as e:
+        # Catch-all for unexpected errors
+        logger.error(
+            f"Unexpected session creation error for user {session_create_data.user_id} on device {session_create_data.device}: {str(e)}",
+            exc_info=True,
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
 
 
-@session_router.get("/session/crud/search", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def get_session_by_token(token: str, token_type: str = "access_token", access_token = Depends(get_valid_token)):
+@session_router.get(
+    "/session/crud/search",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Session by token"},
+        401: {"description": "Invalid token"},
+        403: {"description": "Unauthorized method"},
+    }
+)
+async def get_session_by_token(
+        token: str,
+        token_type: str = "access_token",
+        access_token: str = Depends(get_valid_token)  # Проверка через вашу функцию
+) -> AuthResponse:
     """
     Get session by token
-    :param token: session token
-    :param token_type: access_token or refresh_token
-    :return: dict|None
+
+    Args:
+        token: session token (from query string)
+        token_type: token type (access/refresh)
+        access_token: jwt token or api key
+
+    Returns:
+        AuthResponse: Session data
     """
-    result = AuthResponse(token=token, data={"message": ""})
-    session = await crud.get_session_by_token(token, token_type)
-    if not session:
-        logger.warning("Session not found")
-        result.data = {"message": f"Session not found"}
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    result.data = session
-    logger.info(f"Session {session.session_id} was found")
-    return result.model_dump()
+    result = AuthResponse(token=access_token, data={"message": ""})
+
+    try:
+        # 1. Get session
+        session = await crud.get_session_by_token(token, token_type)
+
+        if not session:
+            logger.warning(f"Session not found | Token: {token[:8]}...")
+            result.data = {"message": "Session not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 2. log result
+        logger.info(f"Session found | ID: {session.session_id} | User: {session.user_id}")
+
+        result.data = session
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Session lookup error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error"}
+        )
 
 
-@session_router.get("/session/crud/{user_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def get_user_sessions(user_id: int, token=Depends(get_valid_token)):
+@session_router.get(
+    "/session/crud/{user_id}",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "List of user sessions"},
+        401: {"description": "Invalid token"},
+    }
+)
+async def get_user_sessions(
+        user_id: int,
+        token: str = Depends(get_valid_token),
+) -> AuthResponse:
     """
-    Get all sessions for user
-    :param token: user token or api key
-    :param user_id: User ID
-    :return: List of sessions
+    Retrieves all sessions for a specific user after validation.
+
+    Security Flow:
+    1. Validates the authentication token
+    2. Verifies user exists and has sessions
+
+    Args:
+        user_id: ID of the user whose sessions should be retrieved
+        token: Validated via get_valid_token dependency
+
+    Returns:
+        AuthResponse with list of sessions
+
+    Raises:
+        HTTPException: 403 if insufficient permissions
+        HTTPException: 404 if no sessions found
     """
-    sessions = await crud.get_sessions(user_id=user_id)
-    logger.info(f"Sessions for user {user_id} were found")
-    return AuthResponse(data=[SessionDTO(**session) for session in sessions], token=token).model_dump()
+    try:
+
+        # 1. Get sessions with optional filters
+        sessions = await crud.get_sessions(
+            user_id=user_id,
+        )
+
+        if not sessions:
+            logger.info(f"No sessions found for user {user_id}")
+            return AuthResponse(
+                token=token,
+                data={
+                    "message": "No sessions found",
+                    "count": 0,
+                    "sessions": []
+                }
+            )
+
+        # 3. Log and return results
+        logger.info(
+            f"Retrieved {len(sessions)} sessions for user {user_id}"
+        )
+
+        return AuthResponse(
+            token=token,
+            data={
+                "message": "Sessions retrieved successfully",
+                "count": len(sessions),
+                "sessions": [SessionDTO(**session) for session in sessions]
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Error retrieving sessions for user {user_id}: {str(e)}",
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error"}
+        )
 
 
 @session_router.delete(
@@ -156,6 +397,7 @@ async def get_user_sessions(user_id: int, token=Depends(get_valid_token)):
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Sessions deleted successfully"},
+        401: {"description": "Invalid token"},
         403: {"description": "Forbidden - insufficient permissions"},
         404: {"description": "User not found or no sessions exist"},
         500: {"description": "Internal server error"}
@@ -231,8 +473,7 @@ async def delete_user_sessions(
         raise
     except Exception as e:
         logger.error(
-            f"Unexpected error deleting sessions for user {user_id}: {str(e)}",
-            exc_info=True
+            f"Unexpected error deleting sessions for user {user_id}: {str(e)}", exc_info=True,
         )
         result.data = {"message": "Internal server error"}
         raise HTTPException(

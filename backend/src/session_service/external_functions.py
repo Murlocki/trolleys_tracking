@@ -1,7 +1,7 @@
 import httpx
 from httpx import Response
 
-from src.session_service.endpoints import CHECK_AUTH, FIND_USER_BY_EMAIL
+from src.session_service.endpoints import CHECK_AUTH, FIND_USER_BY_USERNAME
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import TokenModelResponse
 
@@ -36,19 +36,21 @@ async def check_auth_from_external_service(access_token: str, skip_auth: bool = 
     return None
 
 
-async def find_user_by_email(email: str) -> Response:
+async def find_user_by_username(username: str, api_key:str) -> Response:
     """
-    Find user by email
-    :param email: email to find
+    Find user by username
+    :param api_key: api key of service
+    :param username: email to find
     :return: response from external service
     """
     headers = {
         "content-type": "application/json",
+        "X-API-Key": api_key,
     }
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{FIND_USER_BY_EMAIL}?email={email}",
+            f"{FIND_USER_BY_USERNAME}?username={username}",
             headers=headers,
         )
-        logger.info(f"Find user by email: {email} with response {response.json()}")
+        logger.info(f"Find user by username: {username} with response {response.json()}")
         return response
