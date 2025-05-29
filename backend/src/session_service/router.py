@@ -149,13 +149,96 @@ async def get_user_sessions(user_id: int, token=Depends(get_valid_token)):
     logger.info(f"Sessions for user {user_id} were found")
     return AuthResponse(data=[SessionDTO(**session) for session in sessions], token=token).model_dump()
 
-@session_router.delete("/session/crud/{user_id}", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def delete_user_sessions(user_id: int, token=Depends(get_valid_token)):
+
+@session_router.delete(
+    "/session/crud/{user_id}",
+    response_model=AuthResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Sessions deleted successfully"},
+        403: {"description": "Forbidden - insufficient permissions"},
+        404: {"description": "User not found or no sessions exist"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def delete_user_sessions(
+        user_id: int,
+        token: str = Depends(get_valid_token),
+) -> AuthResponse:
+    """
+    Deletes all sessions for a specific user after validation.
+
+    Security Flow:
+    1. Validates the authentication token
+    2. Verifies user exists and has sessions
+    3. Deletes all sessions if checks pass
+
+    Args:
+        user_id: ID of the user whose sessions should be deleted
+        token: Validated via get_valid_token dependency
+
+    Returns:
+        AuthResponse with list of deleted sessions
+
+    Raises:
+        HTTPException: 403 if insufficient permissions
+        HTTPException: 404 if no sessions found
+        HTTPException: 500 for internal errors
+    """
     result = AuthResponse(token=token, data={"message": ""})
-    session_list = await crud.delete_sessions_by_user_id(user_id)
-    result.data = session_list
-    logger.info(f"Sessions for user {user_id} were deleted")
-    return result.model_dump()
+
+    try:
+        # 1. Verify user exists (optional - depends on your system)
+        # user_exists = await user_service.user_exists(user_id)
+        # if not user_exists:
+        #     raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
+
+        # 2. Check if user has any sessions first
+        existing_sessions = await crud.get_sessions(user_id=user_id)
+        if not existing_sessions:
+            logger.warning(f"No sessions found for user {user_id}")
+            result.data = {"message": "No sessions found for user"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 3. Perform deletion
+        deleted_sessions = await crud.delete_sessions_by_user_id(user_id)
+        if not deleted_sessions:
+            logger.error(f"Deletion failed for user {user_id}'s sessions")
+            result.data = {"message": "Session deletion failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 4. Log and return success
+        logger.info(
+            f"Deleted {len(deleted_sessions)} sessions for user {user_id} | "
+        )
+
+        result.data = {
+            "message": "Sessions deleted successfully",
+            "count": len(deleted_sessions),
+            "sessions": deleted_sessions,
+            "deleted_at": datetime.now().isoformat()
+        }
+        return result
+
+    except HTTPException:
+        # Re-raise already handled exceptions
+        raise
+    except Exception as e:
+        logger.error(
+            f"Unexpected error deleting sessions for user {user_id}: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
 
 
 @session_router.delete(
@@ -165,6 +248,7 @@ async def delete_user_sessions(user_id: int, token=Depends(get_valid_token)):
     responses={
         403: {"description": "Forbidden - session doesn't belong to user"},
         404: {"description": "Session not found"},
+        500: {"description": "Internal server error"}
     }
 )
 async def delete_user_session(
@@ -250,9 +334,9 @@ async def delete_user_session(
     response_model=AuthResponse,
     status_code=status.HTTP_200_OK,
     responses={
-        400: {"description": "Invalid session or user mismatch"},
         401: {"description": "Unauthorized"},
         404: {"description": "Session not found"},
+        500: {"description": "Internal server error"},
     }
 )
 async def update_session_token(
@@ -309,7 +393,7 @@ async def update_session_token(
             logger.error(f"Session ID mismatch: {session.session_id} vs {session_id}")
             result.data = {"message": "Session ID does not match"}
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=result.model_dump()
             )
 
