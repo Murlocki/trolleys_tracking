@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field, AliasChoices, EmailStr
 from pydantic.alias_generators import to_camel
+
 
 
 class AuthForm(BaseModel):
@@ -45,10 +46,10 @@ class AccessTokenUpdate(BaseModel):
     old_access_token: str
     new_access_token: str
 
-
-class AuthResponse(BaseModel):
-    token: str | None = None
-    data: Any = None
+T = TypeVar("T")
+class AuthResponse(BaseModel, Generic[T]):
+    token: Optional[str] = None
+    data: Optional[T] = None
 
 
 

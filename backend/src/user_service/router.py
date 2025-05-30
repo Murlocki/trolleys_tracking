@@ -54,7 +54,7 @@ api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 @user_router.post(
     "/user/crud",
     status_code=status.HTTP_201_CREATED,
-    response_model=AuthResponse,
+    response_model=AuthResponse[UserDTO],
     responses={
         201: {"description": "User created successfully"},
         400: {"description": "Invalid input data"},
@@ -68,7 +68,7 @@ async def create_user(
         user_in: UserCreate,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-) -> AuthResponse:
+) -> AuthResponse[UserDTO]:
     """
     Creates a new user account with validation checks.
 
@@ -176,7 +176,7 @@ async def create_user(
 
 @user_router.get(
     "/user/crud/{user_id}",
-    response_model=AuthResponse,
+    response_model=AuthResponse[UserDTO],
     responses={
         200: {"description": "User data retrieved successfully"},
         401: {"description": "Unauthorized - invalid token"},
@@ -189,7 +189,7 @@ async def find_user_by_id(
         user_id: int,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token),
-) -> AuthResponse:
+) -> AuthResponse[UserDTO]:
     """
     Retrieves user information by ID with access control.
 
@@ -254,7 +254,7 @@ async def find_user_by_id(
 
 @user_router.post(
     "/user/authenticate",
-    response_model=UserDTO,
+    response_model=AuthResponse[UserDTO],
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Authentication successful"},
@@ -267,7 +267,7 @@ async def auth_user(
         user_auth_data: UserAuthDTO,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token),
-) -> UserDTO:
+) -> AuthResponse[UserDTO]:
     """
     Authenticates user credentials and returns user profile if valid.
 
@@ -310,7 +310,8 @@ async def auth_user(
             )
 
         logger.info(f"Successful authentication for user: {user.id}")
-        return user
+        result.data = UserDTO(**user.to_dict())
+        return result
 
     except HTTPException:
         raise
@@ -325,7 +326,7 @@ async def auth_user(
 
 @user_router.get(
     "/user/crud",
-    response_model=AuthResponse,
+    response_model=AuthResponse[list[UserAdminDTO]],
     responses={
         200: {"description": "List of users matching search criteria"},
         401: {"description": "Unauthorized"},
@@ -353,7 +354,7 @@ async def get_users(
         ),
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token),
-) -> AuthResponse:
+) -> AuthResponse[list[UserAdminDTO]]:
     """
     Search and filter users with advanced querying capabilities
 

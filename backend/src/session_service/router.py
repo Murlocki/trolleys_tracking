@@ -39,101 +39,8 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
 
 
 @session_router.delete(
-    "/session/crud/me/search",
-    response_model=AuthResponse,
-    status_code=status.HTTP_200_OK,
-    responses={
-        200: {"description": "Session deleted successfully"},
-        401: {"description": "Unauthorized"},
-        403: {"description": "Forbidden operation"},
-        404: {"description": "Session not found"},
-        500: {"description": "Internal server error"}
-    }
-)
-async def delete_my_session_by_token(
-        token: str,
-        access_token: str = Depends(get_valid_token)
-) -> AuthResponse:
-    """
-    Deletes a specific session by its access token after validation.
-
-    Security Flow:
-    1. Validates the requesting user's token
-    2. Verifies the target session exists
-    3. Checks session ownership
-    4. Deletes the session if authorized
-
-    Args:
-        token: Session token to be deleted (from query parameter)
-        access_token: Validated JWT token of requesting user
-
-    Returns:
-        AuthResponse with deletion confirmation
-
-    Raises:
-        HTTPException: For any validation or authorization failure
-    """
-    # Initialize response
-    result = AuthResponse(token=access_token, data={"message": ""})
-
-    try:
-        # 1. Get session to be deleted
-        session = await crud.get_session_by_token(token)
-        if not session:
-            logger.warning(f"Session not found | Token: {token}...")
-            result.data = {"message": "Session not found"}
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=result.model_dump()
-            )
-
-        # 2. Verify requesting user owns this session
-        decoded_token = decode_token(token)
-        if not decoded_token or str(session.user_id) != decoded_token.get("sub"):
-            logger.warning(
-                f"Ownership mismatch | "
-                f"Requester: {decoded_token.get('sub', 'unknown')} | "
-                f"Session Owner: {session.user_id}"
-            )
-            result.data = {"message": "Not authorized to delete this session"}
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=result.model_dump()
-            )
-
-        # 3. Perform deletion
-        deleted_session = await crud.delete_session_by_access_token(token)
-        if not deleted_session:
-            logger.error(f"Deletion failed | Session: {session.session_id}")
-            result.data = {"message": "Session deletion failed"}
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=result.model_dump()
-            )
-
-        # 4. Return success response
-        logger.info(f"Session deleted | ID: {deleted_session.session_id}")
-        result.data = {
-            "message": "Session deleted successfully",
-            "session_id": deleted_session.session_id,
-            "deleted_at": datetime.now().isoformat()
-        }
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Session deletion error: {str(e)}")
-        result.data = {"message": "Internal server error"}
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=result.model_dump()
-        )
-
-
-@session_router.delete(
     "/session/crud/me/{session_id}",
-    response_model=AuthResponse,
+    response_model=AuthResponse[SessionDTO],
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Session deleted successfully"},
@@ -145,7 +52,7 @@ async def delete_my_session_by_token(
 async def delete_my_session_by_id(
         session_id: str,
         token: str = Depends(get_valid_token)
-) -> AuthResponse:
+) -> AuthResponse[SessionDTO]:
     """
     Deletes a specific session for the authenticated user.
 
@@ -205,11 +112,7 @@ async def delete_my_session_by_id(
 
         # 4. Return success
         logger.info(f"Session deleted | ID: {session_id}")
-        result.data = {
-            "message": "Session deleted successfully",
-            "session_id": session_id,
-            "deleted_at": datetime.now().isoformat()
-        }
+        result.data = deleted_session
         return result
 
     except HTTPException:
@@ -225,7 +128,7 @@ async def delete_my_session_by_id(
 
 @session_router.delete(
     "/session/crud/me",
-    response_model=AuthResponse,
+    response_model=AuthResponse[list[SessionDTO]],
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Sessions deleted successfully"},
@@ -237,7 +140,7 @@ async def delete_my_session_by_id(
 )
 async def delete_my_sessions(
         token: str = Depends(get_valid_token)
-) -> AuthResponse:
+) -> AuthResponse[list[SessionDTO]]:
     """
     Deletes all active sessions for the currently authenticated user.
 
@@ -302,11 +205,7 @@ async def delete_my_sessions(
         logger.info(
             f"Sessions deleted successfully for user: {user.id} with count {len(deletion_result)}")
 
-        result.data = {
-            "message": "Sessions deleted successfully",
-            "deleted_sessions": deletion_result,
-            "count": len(deletion_result)
-        }
+        result.data = deletion_result
         return result
 
     except HTTPException:
@@ -326,7 +225,7 @@ async def delete_my_sessions(
 
 @session_router.post(
     "/session/crud/me",
-    response_model=AuthResponse,
+    response_model=AuthResponse[SessionDTO],
     status_code=status.HTTP_201_CREATED,
     responses={
         201: {"description": "Session created successfully"},
@@ -338,7 +237,7 @@ async def delete_my_sessions(
 async def create_my_session(
         session_create_data: SessionSchema,
         token: str = Depends(get_valid_token)
-) -> AuthResponse:
+) -> AuthResponse[SessionDTO]:
     """
     Creates a new authenticated session for the current user.
 
@@ -410,7 +309,7 @@ async def create_my_session(
 
 @session_router.get(
     "/session/crud/search",
-    response_model=AuthResponse,
+    response_model=AuthResponse[SessionDTO],
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Session by token"},
@@ -422,7 +321,7 @@ async def get_session_by_token(
         token: str,
         token_type: str = "access_token",
         access_token: str = Depends(get_valid_token)  # Проверка через вашу функцию
-) -> AuthResponse:
+) -> AuthResponse[SessionDTO]:
     """
     Get session by token
 
@@ -467,7 +366,7 @@ async def get_session_by_token(
 
 @session_router.get(
     "/session/crud/{user_id}",
-    response_model=AuthResponse,
+    response_model=AuthResponse[list[SessionDTO]],
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "List of user sessions"},
@@ -477,7 +376,7 @@ async def get_session_by_token(
 async def get_user_sessions(
         user_id: int,
         token: str = Depends(get_valid_token),
-) -> AuthResponse:
+) -> AuthResponse[list[SessionDTO]]:
     """
     Retrieves all sessions for a specific user after validation.
 
@@ -517,11 +416,7 @@ async def get_user_sessions(
         logger.info(
             f"Retrieved {len(sessions)} sessions for user {user_id}"
         )
-        result.data = {
-                "message": "Sessions retrieved successfully",
-                "count": len(sessions),
-                "sessions": [SessionDTO(**session) for session in sessions]
-            }
+        result.data = [SessionDTO(**session) for session in sessions]
         return result
 
     except HTTPException:
@@ -540,7 +435,7 @@ async def get_user_sessions(
 
 @session_router.delete(
     "/session/crud/{user_id}",
-    response_model=AuthResponse,
+    response_model=AuthResponse[list[SessionDTO]],
     status_code=status.HTTP_200_OK,
     responses={
         200: {"description": "Sessions deleted successfully"},
@@ -552,7 +447,7 @@ async def get_user_sessions(
 async def delete_user_sessions(
         user_id: int,
         token: str = Depends(get_valid_token),
-) -> AuthResponse:
+) -> AuthResponse[list[SessionDTO]]:
     """
     Deletes all sessions for a specific user after validation.
 
@@ -603,12 +498,7 @@ async def delete_user_sessions(
             f"Deleted {len(deleted_sessions)} sessions for user {user_id} | "
         )
 
-        result.data = {
-            "message": "Sessions deleted successfully",
-            "count": len(deleted_sessions),
-            "sessions": deleted_sessions,
-            "deleted_at": datetime.now().isoformat()
-        }
+        result.data = deleted_sessions
         return result
 
     except HTTPException:
@@ -627,7 +517,7 @@ async def delete_user_sessions(
 
 @session_router.delete(
     "/session/crud/{user_id}/{session_id}",
-    response_model=AuthResponse,
+    response_model=AuthResponse[SessionDTO],
     status_code=status.HTTP_200_OK,
     responses={
         403: {"description": "Forbidden - session doesn't belong to user"},
@@ -639,7 +529,7 @@ async def delete_user_session(
         user_id: int,
         session_id: str,
         token: str = Depends(get_valid_token),
-) -> AuthResponse:
+) -> AuthResponse[SessionDTO]:
     """
     Deletes a specific user session after validation.
 
@@ -690,11 +580,7 @@ async def delete_user_session(
             f"Deleted at: {datetime.now().isoformat()}"
         )
 
-        result.data = {
-            "message": "Session deleted successfully",
-            "session_id": session_id,
-            "deleted_at": datetime.now().isoformat()
-        }
+        result.data = deleted_session
         return result
 
     except HTTPException:
@@ -715,7 +601,7 @@ async def delete_user_session(
 
 @session_router.patch(
     "/session/crud/{user_id}/{session_id}/update_token",
-    response_model=AuthResponse,
+    response_model=AuthResponse[SessionDTO],
     status_code=status.HTTP_200_OK,
     responses={
         401: {"description": "Unauthorized"},
@@ -728,7 +614,7 @@ async def update_session_token(
         session_id: str,
         access_token_update_data: AccessTokenUpdate,
         access_token: str = Depends(get_valid_token)
-) -> AuthResponse:
+) -> AuthResponse[SessionDTO]:
     """
     Updates the access token for a specific session after validation.
 

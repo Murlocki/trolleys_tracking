@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+from typing import Dict, Any
 
 from fastapi import APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -86,7 +87,7 @@ async def login_user(
                 detail=error["detail"]["data"]["message"]
             )
 
-        user = UserDTO(**auth_response.json())
+        user = UserDTO(**(auth_response.json()["data"]))
         logger.info(f"User authentication successful: {user.id}")
 
         # 2. Verify user status
@@ -154,7 +155,7 @@ async def login_user(
 @auth_router.post(
     "/auth/logout",
     status_code=status.HTTP_200_OK,
-    response_model=AuthResponse,
+    response_model=AuthResponse[Dict[str,Any]],
     responses={
         401: {"description": "Invalid or expired token"},
         404: {"description": "Session not found"},
@@ -163,7 +164,7 @@ async def login_user(
 )
 async def logout_user(
         credentials: HTTPAuthorizationCredentials = Depends(bearer),
-) -> AuthResponse:
+) -> AuthResponse[Dict[str,Any]]:
     """
     Perform user logout by invalidating the current session.
 
