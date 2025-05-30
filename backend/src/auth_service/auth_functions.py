@@ -14,6 +14,20 @@ from src.shared.schemas import SessionDTO, AccessTokenUpdate, SessionSchema
 logger = setup_logger(__name__)
 
 
+async def check_one_auth_request(ip_address:str):
+    result = await redis_client.hgetall(f"ddos:{ip_address}")
+    if result:
+        return True
+    return False
+
+async def set_auth_request(ip_address:str):
+    result = await redis_client.hset(f"ddos:{ip_address}",mapping={"ip":ip_address})
+    return result
+
+async def delete_auth_request(ip_address:str):
+    result = await redis_client.delete(f"ddos:{ip_address}")
+    return result
+
 def create_access_token(data: dict, expires_delta: timedelta = None) -> str:
     """
     Create access token

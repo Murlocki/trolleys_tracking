@@ -248,14 +248,72 @@ async def find_user_by_id(
             detail="Internal server error"
         )
 
-@user_router.post("/user/authenticate", response_model=UserDTO, status_code=status.HTTP_200_OK)
-async def auth_user(user_auth_data: UserAuthDTO, token=Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
-    user = await crud.authenticate_user(db, user_auth_data.identifier, user_auth_data.password)
-    if not user:
-        logger.info("User authentication failed")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect identifier or password")
-    logger.info(f"Authenticated user using {user}")
-    return user
+
+@user_router.post(
+    "/user/authenticate",
+    response_model=UserDTO,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Authentication successful"},
+        401: {"description": "Invalid credentials"},
+        403: {"description": "Account inactive"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def auth_user(
+        user_auth_data: UserAuthDTO,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token),
+) -> UserDTO:
+    """
+    Authenticates user credentials and returns user profile if valid.
+
+    Args:
+        user_auth_data: Contains identifier (username/email) and password
+        db: Database session
+        token: jwt token or api key
+
+    Returns:
+        Authenticated user's profile data
+
+    Raises:
+        HTTPException: 401 for invalid credentials
+        HTTPException: 403 for inactive accounts
+    """
+    try:
+        # Authentication attempt
+        user = await crud.authenticate_user(
+            db,
+            user_auth_data.identifier,
+            user_auth_data.password
+        )
+
+        if not user:
+            logger.warning(f"Failed authentication attempt for: {user_auth_data.identifier}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid credentials"
+            )
+
+        # Account activity check
+        if not getattr(user, 'is_active', True):
+            logger.warning(f"Login attempt for inactive account: {user.id}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account inactive"
+            )
+
+        logger.info(f"Successful authentication for user: {user.id}")
+        return user
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Authentication error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication service error"
+        )
 
 
 @user_router.get("/user/crud/search", status_code=status.HTTP_200_OK, response_model=UserDTO)

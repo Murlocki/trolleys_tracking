@@ -6,7 +6,8 @@ from fastapi import APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import status, HTTPException, Depends
 from src.auth_service import auth_functions
-from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record
+from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record, \
+    check_one_auth_request, set_auth_request, delete_auth_request
 from src.auth_service.external_functions import create_session, get_session_by_token, delete_session_by_id, \
     authenticate_user, find_user_by_id
 from src.auth_service.schemas import AuthForm
@@ -49,6 +50,7 @@ async def login_user(
     Authenticate user and return access token.
 
     Flow:
+    0. Check if there is only 1 request from ip
     1. Validate credentials
     2. Verify user status
     3. Generate tokens
@@ -58,9 +60,13 @@ async def login_user(
     Security:
     - Rate limiting recommended
     - All errors return generic messages
-    - Sensitive data not logged
     """
     try:
+        # 0. Check 1 request
+        if await check_one_auth_request(auth_form.ip_address):
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many requests")
+        await set_auth_request(auth_form.ip_address)
+
         # 1. Authenticate user
         auth_data = UserAuthDTO(
             identifier=auth_form.identifier,
@@ -74,6 +80,7 @@ async def login_user(
 
         if error := verify_response(auth_response):
             logger.warning(f"Authentication failed for {auth_form.identifier}")
+            await delete_auth_request(auth_form.ip_address)
             raise HTTPException(
                 status_code=error["status_code"],
                 detail="Invalid credentials"
@@ -85,6 +92,7 @@ async def login_user(
         # 2. Verify user status
         if not user.is_active:
             logger.warning(f"Login attempt for inactive account: {user.id}")
+            await delete_auth_request(auth_form.ip_address)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Account inactive"
@@ -118,6 +126,7 @@ async def login_user(
 
         if error := verify_response(session_response, 201):
             logger.error(f"Session creation failed: {error}")
+            await delete_auth_request(auth_form.ip_address)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Login processing failed"
@@ -125,14 +134,17 @@ async def login_user(
 
         # 5. Return response
         logger.info(f"Successful login for {user.id} from {auth_form.ip_address}")
+        await delete_auth_request(auth_form.ip_address)
         return TokenModelResponse(token=access_token)
 
     except HTTPException:
         # Re-raise handled exceptions
+        await delete_auth_request(auth_form.ip_address)
         raise
 
     except Exception as e:
         logger.error(f"Login error: {str(e)}", exc_info=True)
+        await delete_auth_request(auth_form.ip_address)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login processing failed"
