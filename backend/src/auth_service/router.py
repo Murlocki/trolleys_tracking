@@ -83,7 +83,7 @@ async def login_user(
             await delete_auth_request(auth_form.ip_address)
             raise HTTPException(
                 status_code=error["status_code"],
-                detail="Invalid credentials"
+                detail=error["detail"]["data"]["message"]
             )
 
         user = UserDTO(**auth_response.json())
@@ -129,7 +129,7 @@ async def login_user(
             await delete_auth_request(auth_form.ip_address)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Login processing failed"
+                detail=error["detail"]["data"]["message"]
             )
 
         # 5. Return response
@@ -147,7 +147,7 @@ async def login_user(
         await delete_auth_request(auth_form.ip_address)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Login processing failed"
+            detail="Internal server error"
         )
 
 
@@ -204,7 +204,7 @@ async def logout_user(
                 status_code=error["status_code"],
                 detail=AuthResponse(
                     token=token,
-                    data={"message": "Session not found"}
+                    data=error["detail"]["data"]["message"]
                 ).model_dump()
             )
 
@@ -224,7 +224,7 @@ async def logout_user(
                 status_code=error["status_code"],
                 detail=AuthResponse(
                     token=token,
-                    data={"message": "Logout processing failed"}
+                    data=error["detail"]["data"]["message"]
                 ).model_dump()
             )
 
@@ -244,7 +244,7 @@ async def logout_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=AuthResponse(
                 token=credentials.credentials if credentials else None,
-                data={"message": "Logout processing failed"}
+                data={"message": "Internal server error"}
             ).model_dump()
         )
 
@@ -300,8 +300,11 @@ async def check_auth(
         if error:=verify_response(user):
             logger.warning(f"User not found: {payload['sub']}")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"message": "User not found", "token": None}
+                status_code=error["status_code"],
+                detail=AuthResponse(
+                    token=None,
+                    data=error["detail"]["data"]["message"]
+                ).model_dump()
             )
 
         # 3. Check for token rotation
@@ -311,7 +314,10 @@ async def check_auth(
                 logger.warning("Invalid old token record - missing new token")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail={"message": "Invalid token rotation", "token": None}
+                    detail=AuthResponse(
+                        token=None,
+                        data={"message":"Old token record is invalid"}
+                    ).model_dump()
                 )
             token = old_token_record["new_access_token"]
             logger.info(f"Performed token rotation for user: {payload['sub']}")
@@ -322,7 +328,10 @@ async def check_auth(
             logger.warning(f"Token validation failed for user: {payload['sub']}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"message": "Invalid token", "token": None}
+                detail=AuthResponse(
+                    token=None,
+                    data={"message":"Invalid token"}
+                ).model_dump()
             )
 
         # Return the most current valid token
@@ -336,5 +345,8 @@ async def check_auth(
         logger.error(f"Authentication check failed: {str(error)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"message": "Authentication check failed", "token": None}
+            detail=AuthResponse(
+                token=None,
+                data={"message": "Internal server error"}
+            ).model_dump()
         )

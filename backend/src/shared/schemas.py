@@ -47,7 +47,7 @@ class AccessTokenUpdate(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    token: str
+    token: str | None = None
     data: Any = None
 
 

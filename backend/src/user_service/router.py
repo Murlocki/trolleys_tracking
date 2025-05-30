@@ -232,7 +232,7 @@ async def find_user_by_id(
             username=user_dict["username"],
             is_active=user_dict["is_active"],
             role=user_dict["role"],
-            user_data=user_dict.get(user_dict["user_data"],None),
+            user_data=user_dict.get("user_data",None),
         )
         return result
 
@@ -245,7 +245,10 @@ async def find_user_by_id(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail=AuthResponse(
+                token=token,
+                data={"message":"Internal server error"}
+            ).model_dump()
         )
 
 
@@ -280,6 +283,7 @@ async def auth_user(
         HTTPException: 401 for invalid credentials
         HTTPException: 403 for inactive accounts
     """
+    result = AuthResponse(token=token)
     try:
         # Authentication attempt
         user = await crud.authenticate_user(
@@ -290,17 +294,19 @@ async def auth_user(
 
         if not user:
             logger.warning(f"Failed authentication attempt for: {user_auth_data.identifier}")
+            result.data = {"message": "Invalid credentials"}
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid credentials"
+                detail=result.model_dump()
             )
 
         # Account activity check
         if not getattr(user, 'is_active', True):
             logger.warning(f"Login attempt for inactive account: {user.id}")
+            result.data = {"message": "Inactive account"}
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Account inactive"
+                detail=result.model_dump()
             )
 
         logger.info(f"Successful authentication for user: {user.id}")
@@ -310,9 +316,10 @@ async def auth_user(
         raise
     except Exception as e:
         logger.error(f"Authentication error: {str(e)}")
+        result.data = {"message": "Internal server error"}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication service error"
+            detail=result.model_dump()
         )
 
 

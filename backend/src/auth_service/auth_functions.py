@@ -249,8 +249,8 @@ async def add_old_token_record(old_access_token: str, new_access_token: str):
 async def get_old_token_record(old_access_token: str):
     record_data = await redis_client.hgetall(f"old_access_token:{old_access_token}")
     if not record_data:
-        logger.warning("Old access token record does not exist")
+        logger.warning(f"Old access token record does not exist {record_data}")
         return None
     await redis_client.delete(f"old_access_token:{old_access_token}")
-    logger.info(f"Old access token record added: {record_data}")
+    logger.info(f"Old access token record deleted: {record_data}")
     return record_data
