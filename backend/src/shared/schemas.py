@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Any
 
-from pydantic import BaseModel, Field, AliasChoices
+from pydantic import BaseModel, Field, AliasChoices, EmailStr
 from pydantic.alias_generators import to_camel
 
 
@@ -51,15 +51,24 @@ class AuthResponse(BaseModel):
     data: Any = None
 
 
+
+class UserData(BaseModel):
+    first_name: str = Field(validation_alias=AliasChoices('first_name', 'firstName'))
+    last_name: str = Field(validation_alias=AliasChoices('last_name', 'lastName'))
+    email: EmailStr
+
 class UserDTO(BaseModel):
     id: int
     username: str = Field(validation_alias=AliasChoices('username', 'userName'))
     is_active: bool = Field(False, validation_alias=AliasChoices('is_active', 'isActive'))
-    role: str = Field("Service", validation_alias=AliasChoices('role'))
+    role: str = Field("service", validation_alias=AliasChoices('role'))
+    user_data: UserData | None = Field(None, validation_alias=AliasChoices('user_data', 'userData'))
 
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
+
 
 
 class UserAuthDTO(BaseModel):

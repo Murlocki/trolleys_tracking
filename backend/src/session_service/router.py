@@ -282,7 +282,7 @@ async def delete_my_sessions(
             )
 
         # 3. Get user data
-        user = UserDTO(**user_response.json())
+        user = UserDTO(**user_response.json()['data'])
         logger.info(
             f"Initiating session deletion for user {user.id}",
         )

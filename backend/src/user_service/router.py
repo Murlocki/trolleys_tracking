@@ -154,7 +154,14 @@ async def create_user(
 
         # 7. Return success response
         logger.info(f"User created | ID: {user.id} | Role: {user.role.value}")
-        result.data = user.to_dict()
+        user_dict = user.to_dict()
+        result.data = UserDTO(
+            id=user_dict["id"],
+            username=user_dict["username"],
+            is_active=user_dict["is_active"],
+            role=user_dict["role"],
+            user_data=user_dict.get(user_dict["user_data"], None),
+        )
         return result
 
     except HTTPException:
@@ -166,19 +173,80 @@ async def create_user(
             detail={"message": "Internal server error"}
         )
 
-@user_router.get("/user/crud/{user_id}", response_model=UserDTO)
-async def find_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> UserDTO:
+
+@user_router.get(
+    "/user/crud/{user_id}",
+    response_model=AuthResponse,
+    responses={
+        200: {"description": "User data retrieved successfully"},
+        401: {"description": "Unauthorized - invalid token"},
+        403: {"description": "Forbidden - insufficient permissions"},
+        404: {"description": "User not found"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def find_user_by_id(
+        user_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token),
+) -> AuthResponse:
     """
-    Find a user by ID
-    :param user_id: user id
-    :param db: db session
-    :return: user info
+    Retrieves user information by ID with access control.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Checks requested user exists
+    3. Returns user data
+
+    Permissions:
+    - Service accounts cannot do anything
+
+    Args:
+        user_id: ID of user to retrieve
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with user data
+
+    Raises:
+        HTTPException: For authorization or not found errors
     """
-    user: UserDTO = await crud.get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    logger.info(f"Finding user by ID {user_id}")
-    return user.to_dict()
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Retrieve target user
+        user = await crud.get_user_by_id(db, user_id)
+        if not user:
+            logger.warning(f"User not found | ID: {user_id}")
+            result.data = {"message": "User not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        logger.info(f"User found | ID: {user_id} {user.to_dict()}")
+        # 2. Prepare response data (filter sensitive fields)
+        user_dict = user.to_dict()
+        result.data = UserDTO(
+            id=user_dict["id"],
+            username=user_dict["username"],
+            is_active=user_dict["is_active"],
+            role=user_dict["role"],
+            user_data=user_dict.get(user_dict["user_data"],None),
+        )
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"User lookup error | ID: {user_id} | Error: {str(e)}",
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
 
 @user_router.post("/user/authenticate", response_model=UserDTO, status_code=status.HTTP_200_OK)
 async def auth_user(user_auth_data: UserAuthDTO, token=Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
