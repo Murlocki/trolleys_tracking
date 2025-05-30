@@ -1,6 +1,7 @@
 # Crud юзеров
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, or_, desc, asc, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from src.shared import logger_setup
 from src.user_service.auth_functions import get_password_hash, verify_password
@@ -36,6 +37,68 @@ async def create_user(db: AsyncSession, user: UserCreate):
     logger.info(f"User data created {user_data}")
     await db.refresh(db_user)
     return db_user
+
+async def search_users(
+    db: AsyncSession,
+    filters: dict,
+    sort_by: list[str] = None,
+    sort_order: list[str] = None
+):
+    stmt = select(User).outerjoin(User.user_data).options(joinedload(User.user_data))
+
+    field_column_map = {
+        "username": User.username,
+        "email": UserData.email,
+        "first_name": UserData.first_name,
+        "last_name": UserData.last_name,
+        "role": User.role,
+        "id": User.id,
+        "created_at": User.created_at,
+        "updated_at": User.updated_at,
+    }
+
+    # Фильтрация
+    conditions = []
+    for field, value in filters.items():
+        if value is None:
+            continue
+
+        if field == "created_from" and value is not None:
+            conditions.append(User.created_at >= value)
+        elif field == "created_to" and value is not None:
+            conditions.append(User.created_at <= value)
+        elif field == "updated_from" and value is not None:
+            conditions.append(User.updated_at >= value)
+        elif field == "updated_to" and value is not None:
+            conditions.append(User.updated_at <= value)
+        elif field == "role":
+            conditions.append(cast(User.role, String).ilike(f"%{value}%"))
+        elif field in field_column_map:
+            column = field_column_map[field]
+            conditions.append(column.ilike(f"%{value}%"))
+
+    if conditions:
+        stmt = stmt.where(*conditions)
+
+    # Сортировка
+    order_clauses = []
+    if sort_by:
+        for i, field_name in enumerate(sort_by):
+            column = field_column_map.get(field_name)
+            if not column:
+                continue
+            order = sort_order[i] if i < len(sort_order) else "asc"
+            order_clauses.append(desc(column) if order.lower() == "desc" else asc(column))
+    if order_clauses:
+        stmt = stmt.order_by(*order_clauses)
+
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+
+
+
 
 
 async def update_user(db: AsyncSession, user_name: str, user: UserUpdate):

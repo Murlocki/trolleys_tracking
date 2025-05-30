@@ -2,8 +2,8 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 
 from src.session_service import crud
 from src.session_service.crud import create_and_store_session, delete_sessions_by_user_id
@@ -25,10 +25,11 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 """)
 
 bearer = HTTPBearer(auto_error=False)
+api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-
-async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
-    if request.headers.get("X-API-Key") == settings.api_key:
+async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials | None = Security(bearer), api_key: str | None = Security(api_key_scheme)) -> str:
+    logger.info(request.headers)
+    if api_key == settings.api_key:
         return settings.api_key
     verify_result = await check_auth_from_external_service(credentials.credentials)
     logger.info(f"Verify result {verify_result}")

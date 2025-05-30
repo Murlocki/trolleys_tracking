@@ -2,8 +2,8 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Security, Query
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.shared.common_functions import decode_token, verify_response
@@ -15,7 +15,7 @@ from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
 from src.user_service.models import User, Role
-from src.user_service.schemas import UserCreate, UserUpdate
+from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO
 
 user_router = APIRouter()
 logger = setup_logger(__name__)
@@ -27,11 +27,11 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 """)
 
 bearer = HTTPBearer(auto_error=False)
+api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-
-async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(bearer)) -> str:
+async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials | None = Security(bearer), api_key: str | None = Security(api_key_scheme)) -> str:
     logger.info(request.headers)
-    if request.headers.get("X-API-Key") == settings.api_key:
+    if api_key == settings.api_key:
         return settings.api_key
     verify_result = await check_auth_from_external_service(credentials.credentials)
     logger.info(f"Verify result {verify_result}")
@@ -49,7 +49,7 @@ async def get_db():
 
 
 bearer = HTTPBearer(auto_error=False)
-
+api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 @user_router.post(
     "/user/crud",
@@ -323,15 +323,126 @@ async def auth_user(
         )
 
 
-@user_router.get("/user/crud/search", status_code=status.HTTP_200_OK, response_model=UserDTO)
-async def search_user(username: str, db: AsyncSession = Depends(get_db), token=Depends(get_valid_token)):
-    logger.info(f"Searching user using {username}")
-    user = await crud.get_user_by_username(db, username)
-    if not user:
-        logger.info(f"User with email {user} not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    logger.info(f"User with email {user} found")
-    return user
+@user_router.get(
+    "/user/crud",
+    response_model=AuthResponse,
+    responses={
+        200: {"description": "List of users matching search criteria"},
+        401: {"description": "Unauthorized"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_users(
+        username: str | None = Query(None, description="Filter by username (partial match)"),
+        email: str | None = Query(None, description="Filter by email (partial match)"),
+        first_name: str | None = Query(None, description="Filter by first name (partial match)"),
+        last_name: str | None = Query(None, description="Filter by last name (partial match)"),
+        user_id: int | None = Query(None, description="Filter by exact user ID"),
+        role: str | None = Query(None, description="Filter by role (partial match)"),
+        created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
+        created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
+        updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
+        updated_to: datetime | None = Query(None, description="Filter by update date (to)"),
+        sort_by: list[str] = Query(
+            ["created_at"],
+            description="Fields to sort by (comma-separated)"
+        ),
+        sort_order: list[str] = Query(
+            ["desc"],
+            description="Sort order for each field (asc/desc)"
+        ),
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token),
+) -> AuthResponse:
+    """
+    Search and filter users with advanced querying capabilities
+
+    Features:
+    - Multi-field filtering with partial matching (ILIKE)
+    - Date range filtering
+    - Multi-column sorting
+    - Pagination-ready (use with skip/limit parameters)
+
+    Security:
+    - Requires valid authentication token
+    - Returns only non-sensitive user data
+
+    Examples:
+    - /user/crud?username=john&role=admin
+    - /user/crud?created_from=2023-01-01&sort_by=username&sort_order=asc
+    """
+    result = AuthResponse(token=token,data={})
+    try:
+        # Log the search attempt (mask sensitive parameters)
+        logger.info(
+            "User search initiated",
+            extra={
+                "filters": {
+                    "username": username[:3] + "..." if username else None,
+                    "email": email[:3] + "..." if email else None,
+                    "user_id": user_id,
+                    "role": role
+                },
+                "sorting": {
+                    "by": sort_by,
+                    "order": sort_order
+                }
+            }
+        )
+        if len(sort_by) != len(sort_order):
+            logger.error(f"Sort_by and Sort_order must have same length")
+            result.data = {"message": "Sort_by and Sort_order must have same length"}
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        # Execute the search
+        users = await crud.search_users(
+            db=db,
+            filters={
+                "username": username,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "id": user_id,
+                "role": role,
+                "created_from": created_from,
+                "created_to": created_to,
+                "updated_from": updated_from,
+                "updated_to": updated_to,
+            },
+            sort_by=sort_by,
+            sort_order=sort_order
+        )
+
+        # Log results
+        logger.info(
+            f"User search completed. Found {len(users)} matching records",
+            extra={
+                "result_count": len(users),
+                "first_user_id": users[0].id if users else None
+            }
+        )
+        logger.info([user.to_dict() for user in users])
+        result.data = [UserAdminDTO(**user.to_dict()) for user in users]
+        return result
+
+    except HTTPException:
+        logger.warning("User search failed - authorization error")
+        raise
+    except Exception as e:
+        result.data = {"message": "Internal server error"}
+        logger.error(
+            "User search failed unexpectedly",
+            exc_info=True,
+            extra={"error": str(e)}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+
+
 
 
 @user_router.get("/user/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)

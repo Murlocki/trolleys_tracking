@@ -1,4 +1,4 @@
-from typing import Optional, Annotated
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, AliasChoices
 from pydantic.alias_generators import to_camel
@@ -17,7 +17,17 @@ class UserCreate(BaseModel):
         alias_generator = to_camel
         from_attributes = True
 
-
+class UserAdminDTO(BaseModel):
+    id: int = Field(default=None)
+    username: str = Field(min_length=3, max_length=50)
+    role_display: str = Field(default="Service",validation_alias=AliasChoices('role_display', 'roleDisplay'))
+    is_active: bool = Field(default=True)
+    user_data: UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
+    created_at: str = Field(default="",validation_alias=AliasChoices('created_at', 'createdAt'))
+    updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True
 
 
 class UserUpdate(BaseModel):

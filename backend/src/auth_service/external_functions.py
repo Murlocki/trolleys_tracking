@@ -2,7 +2,7 @@ import httpx
 from httpx import Response
 
 from src.auth_service.endpoints import CREATE_SESSION, GET_SESSION_BY_TOKEN, UPDATE_SESSION_TOKEN, DELETE_SESSION, \
-    AUTHENTICATE_USER, DELETE_SESSION_BY_TOKEN, FIND_USER_BY_USERNAME, FIND_USER_BY_ID
+    AUTHENTICATE_USER, DELETE_SESSION_BY_TOKEN, FIND_USER_BY_ID
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import SessionSchema, AccessTokenUpdate, UserAuthDTO
 
