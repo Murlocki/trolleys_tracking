@@ -13,19 +13,28 @@ logger = logger_setup.setup_logger(__name__)
 # CRUD операции с пользователями
 async def create_user(db: AsyncSession, user: UserCreate):
     user_password_hash = get_password_hash(user.password)
+    user_data = user.user_data
     db_user = User(
         username=user.username,
-        email=str(user.email),
         hashed_password=user_password_hash,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        is_active=False,
+        is_active=True,
+        role=user.role
     )
     logger.info(f"User create data {db_user}")
     async with db.begin():
         db.add(db_user)
+        if user.role != Role.SERVICE:
+            user_data = UserData(
+                first_name=user.user_data.first_name,
+                last_name=user.user_data.last_name,
+                email=user.user_data.email,
+                user=db_user
+            )
+            db.add(user_data)
     await db.refresh(db_user)
-    logger.info(f"User created data {db_user}")
+    logger.info(f"User created {db_user}")
+    logger.info(f"User data created {user_data}")
+    await db.refresh(db_user)
     return db_user
 
 

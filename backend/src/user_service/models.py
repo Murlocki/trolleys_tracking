@@ -34,6 +34,12 @@ class UserData(Base):
     email: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
     user: Mapped["User"] = relationship("User", back_populates="user_data")
 
+    def to_dict(self) -> dict:
+        return {
+            "email": self.email,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+        }
 
 class User(Base):
     __tablename__ = "users"
@@ -56,9 +62,7 @@ class User(Base):
             "is_active": self.is_active,
             "role": self.role.value if self.role else None,
             "role_display": Role.get_display_name(self.role) if self.role else None,
-            "email": self.user_data.email if self.user_data else None,
-            "first_name": self.user_data.first_name if self.user_data else None,
-            "last_name": self.user_data.last_name if self.user_data else None,
+            "user_data": self.user_data.to_dict() if self.user_data else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "version": self.version,

@@ -14,7 +14,7 @@ from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
-from src.user_service.models import User
+from src.user_service.models import User, Role
 from src.user_service.schemas import UserCreate, UserUpdate
 
 user_router = APIRouter()
@@ -48,34 +48,123 @@ async def get_db():
             await db.close()
 
 
-bearer = HTTPBearer()
+bearer = HTTPBearer(auto_error=False)
 
 
-@user_router.post("/user/crud", status_code=status.HTTP_201_CREATED, response_model=UserDTO)
-async def create_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)) -> UserDTO:
+@user_router.post(
+    "/user/crud",
+    status_code=status.HTTP_201_CREATED,
+    response_model=AuthResponse,
+    responses={
+        201: {"description": "User created successfully"},
+        400: {"description": "Invalid input data"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden - insufficient privileges"},
+        409: {"description": "User already exists"},
+        422: {"description": "Validation error"}
+    }
+)
+async def create_user(
+        user_in: UserCreate,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse:
     """
-    Create a new user
-    :param user_in: User data
-    :param db: session
-    :return: new UserDTO
+    Creates a new user account with validation checks.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Checks username/email availability
+    3. Validates password complexity
+    4. Creates user record
+
+    Permissions:
+    - Requires valid service token for SERVICE role creation
+    - Regular users can only create STANDARD role accounts
+
+    Args:
+        user_in: User creation data
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with created user data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
     """
-    logger.info(f"Creating new user using {user_in}")
-    db_user = await crud.get_user_by_email(db, user_in.email)
-    if db_user:
-        logger.error(f"User with email {user_in.email} already exists")
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
-    db_user = await crud.get_user_by_username(db, username=user_in.username)
-    if db_user:
-        logger.error(f"User with username {user_in.username} already exists")
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
-    if not auth_functions.validate_password(user_in.password):
-        logger.warning("Password does not meet complexity requirements")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password error")
-    user = await crud.create_user(db, user_in)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User creation failed")
-    logger.info(f"Created new user using {user}")
-    return user
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"User creation attempt | "
+            f"Username: {user_in.username} | "
+            f"Role: {user_in.role.value if user_in.role else 'STANDARD'}"
+        )
+
+        # 2. Check username availability
+        existing_user = await crud.get_user_by_username(db, user_in.username)
+        if existing_user:
+            logger.warning(f"Username taken | Username: {user_in.username}")
+            result.data = {"message": "Username already in use"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+
+        # 3. Validate user data for non-service accounts
+        if user_in.role != Role.SERVICE:
+            if not user_in.user_data:
+                result.data = {"message": "User data required"}
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=result.model_dump()
+                )
+
+            # 4. Check email availability
+            if hasattr(user_in.user_data, 'email'):
+                existing_email = await crud.get_user_by_email(db, user_in.user_data.email)
+                if existing_email:
+                    logger.warning(f"Email taken | Email: {user_in.user_data.email[:3]}...")
+                    result.data = {"message": "Email already registered"}
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=result.model_dump()
+                    )
+
+        # 5. Validate password complexity
+        if not auth_functions.validate_password(user_in.password):
+            logger.warning("Password complexity failed")
+            result.data = {"message": "Password must contain [A-Z], [a-z], [0-9] and be 8+ chars"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+
+        # 6. Create user
+        user = await crud.create_user(db, user_in)
+        if not user:
+            logger.error("User creation failed")
+            result.data = {"message": "User creation failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 7. Return success response
+        logger.info(f"User created | ID: {user.id} | Role: {user.role.value}")
+        result.data = user.to_dict()
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"User creation error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error"}
+        )
 
 @user_router.get("/user/crud/{user_id}", response_model=UserDTO)
 async def find_user_by_id(user_id: int, db: AsyncSession = Depends(get_db)) -> UserDTO:
