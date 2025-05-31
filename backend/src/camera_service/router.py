@@ -164,7 +164,7 @@ async def create_user(
             username=user_dict["username"],
             is_active=user_dict["is_active"],
             role=user_dict["role"],
-            user_data=user_dict.get("user_data", None),
+            user_data=user_dict.get(user_dict["user_data"], None),
         )
         return result
 

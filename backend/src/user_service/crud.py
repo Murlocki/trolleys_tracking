@@ -1,7 +1,9 @@
 # Crud юзеров
+from datetime import datetime
+
 from sqlalchemy import select, and_, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, InstrumentedAttribute
+from sqlalchemy.orm import joinedload
 
 from src.shared import logger_setup
 from src.user_service.auth_functions import get_password_hash, verify_password
@@ -135,6 +137,7 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
         for key, value in update_data.items():
             if hasattr(db_user, key) and key!="user_data":
                 setattr(db_user, key, value)
+        db_user.updated_at = datetime.now()
         logger.info(f"User updated {db_user.to_dict()}")
         await db.commit()
         await db.refresh(db_user)
@@ -158,6 +161,7 @@ async def update_user_password(db: AsyncSession, user_id: int, password_form: Pa
         return None
     db_user.hashed_password = get_password_hash(password=password_form.new_password)
     db_user.version = password_form.user_version + 1
+    db_user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(db_user)
     return db_user
