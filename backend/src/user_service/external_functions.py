@@ -8,7 +8,7 @@ from src.user_service.endpoints import CHECK_AUTH, DELETE_USER_SESSIONS
 logger = setup_logger(__name__)
 
 
-async def check_auth_from_external_service(access_token: str, skip_auth: bool = False) -> TokenModelResponse | None:
+async def check_auth_from_external_service(access_token: str) -> TokenModelResponse | None:
     """
     Check auth
     :param access_token:
@@ -18,7 +18,6 @@ async def check_auth_from_external_service(access_token: str, skip_auth: bool = 
         headers = {
             "content-type": "application/json",
             "authorization": f"Bearer {access_token}",
-            "X-Skip-Auth": str(skip_auth)
         }
 
         async with httpx.AsyncClient() as client:
@@ -35,19 +34,19 @@ async def check_auth_from_external_service(access_token: str, skip_auth: bool = 
     return None
 
 
-async def delete_user_sessions(access_token: str, skip_auth: bool = False) -> Response:
+async def delete_user_sessions(user_id:int, api_key: str) -> Response:
     """
     Check auth
-    :param access_token:
+    :param user_id:
+    :param api_key:
     :return: json - token old or new
     """
     headers = {
         "content-type": "application/json",
-        "authorization": f"Bearer {access_token}",
-        "X-Skip-Auth": str(skip_auth)
+        "X-API-Key": api_key,
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.delete(DELETE_USER_SESSIONS, headers=headers)
+        response = await client.delete(f"{DELETE_USER_SESSIONS}/{user_id}", headers=headers)
         logger.info(f"Deleted user sessions with response {response}")
         return response

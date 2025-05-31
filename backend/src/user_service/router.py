@@ -13,10 +13,9 @@ from src.shared.logger_setup import setup_logger
 from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO, PaginatorList
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
-from src.user_service.crud import get_user_count
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
 from src.user_service.models import User, Role
-from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO
+from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO, PasswordForm
 
 user_router = APIRouter()
 logger = setup_logger(__name__)
@@ -65,7 +64,8 @@ api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
         401: {"description": "Unauthorized"},
         403: {"description": "Forbidden - insufficient privileges"},
         409: {"description": "User already exists"},
-        422: {"description": "Validation error"}
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"},
     }
 )
 async def create_user(
@@ -186,6 +186,7 @@ async def create_user(
         401: {"description": "Unauthorized - invalid token"},
         403: {"description": "Forbidden - insufficient permissions"},
         404: {"description": "User not found"},
+        422: {"description": "Validation error"},
         500: {"description": "Internal server error"}
     }
 )
@@ -264,6 +265,7 @@ async def find_user_by_id(
         200: {"description": "Authentication successful"},
         401: {"description": "Invalid credentials"},
         403: {"description": "Account inactive"},
+        422: {"description": "Validation error"},
         500: {"description": "Internal server error"}
     }
 )
@@ -335,6 +337,7 @@ async def auth_user(
         200: {"description": "List of users matching search criteria"},
         400: {"description": "Bad request"},
         401: {"description": "Unauthorized"},
+        422: {"description": "Validation error"},
         500: {"description": "Internal server error"}
     }
 )
@@ -453,7 +456,7 @@ async def get_users(
         logger.info([user.to_dict() for user in users])
         result.data = PaginatorList(
             page=page,
-            page_count=len(users)//count + 1,
+            page_count=len(users) // count + 1,
             items_per_page=count,
             item_count=len(users),
             items=[UserAdminDTO(**user.to_dict()) for user in users]
@@ -490,6 +493,7 @@ async def get_users(
         401: {"description": "Unauthorized - invalid token"},
         403: {"description": "Forbidden - insufficient privileges"},
         404: {"description": "User not found"},
+        422: {"description": "Validation error"},
         500: {"description": "Internal server error"}
     }
 )
@@ -593,7 +597,9 @@ async def delete_user_by_id(
     responses={
         200: {"description": "User profile retrieved successfully"},
         401: {"description": "Unauthorized - invalid or missing token"},
-        404: {"description": "User not found"}
+        404: {"description": "User not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
     }
 )
 async def get_profile(
@@ -623,13 +629,13 @@ async def get_profile(
     try:
         payload = decode_token(token)
         if not payload or not payload.get("sub"):
-            logger.warning(f"Invalid token payload | Token: {token[:8]}...")
+            logger.warning(f"Invalid token payload | Token: {token}")
             result.data = {"message": "Invalid token"}
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=result.model_dump()
             )
-
+        logger.info(f"Token decoded successfully | ID: {payload['sub']}")
         user_id = int(payload["sub"])
         user = await crud.get_user_by_id(db, user_id)
         if not user:
@@ -640,7 +646,7 @@ async def get_profile(
                 detail=result.model_dump()
             )
 
-        logger.debug(f"Profile retrieved | User ID: {user.id}")
+        logger.info(f"Profile retrieved | User ID: {user.id}")
         result.data = UserDTO(**user.to_dict())
         return result
 
@@ -655,64 +661,245 @@ async def get_profile(
         )
 
 
-# TODO: ПЕРЕДЕЛАТЬ РУЧКУ ОБНОВЛЕНИЯ ПАРОЛЯ ДЛЯ ОБНОВЛЕНИЯ ПРОИЗВОЛЬНОГО ПОЛЬЗОВАТЕЛЯ
-@user_router.patch("/user/me/password", status_code=status.HTTP_200_OK, response_model=AuthResponse)
-async def update_password(password_form, token: str = Depends(get_valid_token),
-                          db: AsyncSession = Depends(get_db)):
+@user_router.patch(
+    "/user/crud/{user_id}/password_update",
+    status_code=status.HTTP_200_OK,
+    response_model=AuthResponse[UserDTO],
+    responses={
+        200: {"description": "Password successfully updated"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden"},
+        404: {"description": "Not Found"},
+        409: {"description": "User was already updated"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal Server Error"}
+    }
+)
+async def update_password(
+        password_form: PasswordForm,
+        user_id: int,
+        token: str = Depends(get_valid_token),
+        db: AsyncSession = Depends(get_db)
+) -> AuthResponse[UserDTO]:
     """
-    Update user password
-    :param password_form: New password
-    :param token: Access token
-    :param db: Database session
-    :return: None
-    """
-    result = AuthResponse(token=token, data={"message": "Password updated"})
-    payload = decode_token(token)
-    logger.info(f"Decode token {payload}")
-    user: User = await crud.get_user_by_email(db, email=payload["sub"])
-    if not user:
-        logger.warning("User not found")
-        result.data["message"] = "User not found"
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    logger.info(f"User {user.to_dict()} is found")
-    # Check if password meets complexity requirements
-    if not validate_password(password_form.new_password):
-        logger.warning("Password does not meet complexity requirements")
-        result.data["message"] = "Password does not meet complexity requirements"
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
-    logger.info(f"Password validated {password_form.new_password}")
-    # Update user password
-    user_update = UserUpdate(**user.to_dict(), password=password_form.new_password)
-    logger.info(f"Update user:{user_update}")
-    user_update = await crud.update_user(db, user.username, user_update)
-    logger.info(f"User {user_update.username} updated password {user_update.hashed_password}")
+    Update user password with full security checks
 
-    response = await delete_user_sessions(token, skip_auth=True)
-    error = verify_response(response)
-    if error:
-        logger.error(f"Error {error}")
-        result.data["message"] = error["detail"]["message"]
-        raise HTTPException(status_code=error["status"], detail=result.model_dump())
-    logger.info(f"User sessions deleted {response.json()}")
-    return AuthResponse(data=UserDTO(**user_update.to_dict()), token=token).model_dump()
+    Security Flow:
+    1. Authenticates the request using JWT token
+    2. Verifies user exists
+    3. Checks privilege levels
+    4. Validates password complexity
+    5. Checks version to prevent concurrent modifications
+    6. Terminates all active sessions after password change
+
+    Args:
+        password_form: Form with new password and user version
+        user_id: User ID for updating password
+        token: Valid JWT access token or api key
+        db: Database session
+
+    Returns:
+        AuthResponse containing updated UserDTO
+
+    """
+    result = AuthResponse(token=token, data={"message": "Password update in progress"})
+
+    try:
+        # Token validation
+        payload = decode_token(token)
+        if not payload or not payload.get("sub"):
+            logger.error(f"Invalid token payload | Token: {token[:8]}...")
+            result.data = {"message": "Invalid token"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=result.model_dump()
+            )
+        logger.debug(f"Token validated for user_id: {payload.get('sub')}")
+
+        # User lookup
+        user: User = await crud.get_user_by_id(db, user_id)
+        if not user:
+            logger.error(f"User not found | ID: {user_id}")
+            result.data = {"message": "User not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        logger.debug(f"User found | ID: {user.id} | Username: {user.username}")
+
+        # Privilege check
+        if user.role.level() > Role(payload.get("role")).level():
+            logger.warning(
+                f"Privilege escalation attempt | "
+                f"Requester role: {payload.get('role')} | "
+                f"Target role: {user.role.value}"
+            )
+            result.data = {"message": "Cannot update higher-privileged account"}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=result.model_dump()
+            )
+
+        # Version check
+        if user.version > password_form.user_version:
+            logger.warning(
+                f"Version conflict | "
+                f"Current version: {user.version} | "
+                f"Submitted version: {password_form.user_version}"
+            )
+            result.data = {"message": "User was already updated"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+
+        # Password validation
+        if not validate_password(password_form.new_password):
+            logger.error("Password complexity requirements not met")
+            result.data = {"message": "Password must contain uppercase, lowercase, number and special character"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+        logger.debug("Password validated successfully")
+
+        # Password update
+        try:
+            user_update = await crud.update_user_password(db=db, user_id=user_id, password_form=password_form)
+            logger.info(f"Password updated for user | ID: {user_id}")
+        except Exception as e:
+            logger.error(f"Database update failed: {str(e)}", exc_info=True)
+            result.data = {"message": "Failed to update password"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # Session termination
+        try:
+            response = await delete_user_sessions(user_id, api_key=settings.api_key)
+            if error := verify_response(response):
+                logger.error(f"Session termination failed: {error}")
+                result.data["warning"] = "Password changed but sessions may still be active"
+            else:
+                logger.info(f"Sessions terminated | User ID: {user_id}")
+        except Exception as e:
+            logger.error(f"Session termination error: {str(e)}")
+            result.data["warning"] = "Password changed but session cleanup failed"
+
+        return AuthResponse(
+            data=UserDTO(**user_update.to_dict()),
+            token=token
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.critical(
+            f"Unexpected error in password update | "
+            f"User ID: {user_id} | "
+            f"Error: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
 
 
-@user_router.patch("/user/me/account", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def update_my_account(user: UserUpdate, token: str = Depends(get_valid_token),
-                            db: AsyncSession = Depends(get_db)):
+@user_router.patch(
+    "/user/crud/{user_id}",
+    response_model=AuthResponse[UserDTO],
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "User updated successfully"},
+        400: {"description": "Invalid input data"},
+        401: {"description": "Unauthorized - invalid token"},
+        403: {"description": "Forbidden - insufficient privileges"},
+        404: {"description": "User not found"},
+        409: {"description": "User is already updated"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def update_user_by_id(
+        user_id: int,
+        user: UserUpdate,
+        token: str = Depends(get_valid_token),
+        db: AsyncSession = Depends(get_db)
+) -> AuthResponse[UserDTO]:
     """
-    Update user by username
-    :param db: database session
-    :param user: User data
-    :param token: Access token
-    :return: Updated user data
+    Update user information by ID
+
+    Performs the following operations:
+    1. Validates authentication token
+    2. Checks user existence
+    3. Updates user data
+    4. Returns updated user information
+
+    Security:
+    - Requires valid JWT token
+    - Users can only update their own information (or admin access required)
     """
-    db_user = await crud.update_user(db, user_name=user.username, user=user)
-    if not db_user:
-        logger.warning("User not found")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=AuthResponse(token=token,
-                                                data={
-                                                    "message": "User not found"}).model_dump())
-    logger.info(f"User {user.username} updated")
-    return AuthResponse(token=token, data=UserDTO(**db_user.to_dict()))
+    result = AuthResponse(token=token, data={"message": "Update in progress"})
+
+    try:
+        # Token validation
+        payload = decode_token(token)
+        if not payload or not payload.get("sub"):
+            logger.error(f"Invalid token payload | Token: {token[:8]}...")
+            result.data = {"message": "Invalid token"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=result.model_dump()
+            )
+
+        db_user = await crud.get_user_by_id(db=db, user_id=user_id)
+        if not db_user:
+            logger.error(f"User not found | ID: {user_id}")
+            result.data = {"message": "User not found"}
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
+        logger.info(f"Found user | ID: {user_id}")
+
+        if db_user.version > user.version:
+            logger.error(f"User was already updated | ID: {user_id}")
+            result.data = {"message": f"User was already updated | ID: {user_id}"}
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result.model_dump())
+        logger.info(f"User version | Version:{user.version}")
+        user.version += 1
+
+        if db_user.role.level() > Role(payload.get("role")).level():
+            logger.error("Insufficient privileges")
+            result.data = {"message": "Insufficient privileges"}
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=result.model_dump())
+
+        # Update user
+        db_user = await crud.update_user(db, user_id=user_id, user_update=user)
+
+        if not db_user:
+            logger.warning(f"User not found | ID: {user_id}")
+            result.data = {"message": "User not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        logger.info(f"User updated | ID: {user_id} | Username: {db_user.username}")
+        return AuthResponse(
+            token=token,
+            data=UserDTO(**db_user.to_dict())
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Error updating user | ID: {user_id} | Error: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )

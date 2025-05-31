@@ -8,18 +8,16 @@ from src.shared.schemas import TokenModelResponse
 logger = setup_logger(__name__)
 
 
-async def check_auth_from_external_service(access_token: str, skip_auth: bool = False) -> TokenModelResponse | None:
+async def check_auth_from_external_service(access_token: str) -> TokenModelResponse | None:
     """
     Check auth
-    :param skip_auth:
     :param access_token:
     :return: json - token old or new
     """
     try:
         headers = {
             "content-type": "application/json",
-            "authorization": f"Bearer {access_token}",
-            "X-Skip-Auth": str(skip_auth)
+            "authorization": f"Bearer {access_token}"
         }
 
         async with httpx.AsyncClient() as client:

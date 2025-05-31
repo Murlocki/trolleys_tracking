@@ -20,8 +20,9 @@ class UserCreate(BaseModel):
 class UserAdminDTO(BaseModel):
     id: int = Field(default=None)
     username: str = Field(min_length=3, max_length=50)
-    role_display: str = Field(default="Service",validation_alias=AliasChoices('role_display', 'roleDisplay'))
-    is_active: bool = Field(default=True)
+    role_display: str = Field(default=Role.get_display_name(Role.SERVICE),validation_alias=AliasChoices('role_display', 'roleDisplay'))
+    role: str = Field(default=Role.SERVICE)
+    is_active: bool = Field(default=True,validation_alias=AliasChoices('is_active', 'isActive'))
     user_data: UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
     created_at: str = Field(default="",validation_alias=AliasChoices('created_at', 'createdAt'))
     updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
@@ -32,11 +33,9 @@ class UserAdminDTO(BaseModel):
 
 class UserUpdate(BaseModel):
     username: str
-    first_name: str
-    last_name: str
-    email: EmailStr
-    password: str | None = Field(None)
-    is_active: bool = Field(False)
+    role: Role = Field(default=Role.SERVICE)
+    is_active: bool = Field(default=True, validation_alias=AliasChoices('is_active', 'isActive'))
+    user_data:UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
     version: int = Field(0)
 
 
@@ -46,3 +45,7 @@ class AuthForm(BaseModel):
     device: Optional[str] = "unknown"
     ip_address: Optional[str] = "unknown"
     remember_me: Optional[bool] = Field(False)
+
+class PasswordForm(BaseModel):
+    new_password: str = Field(min_length=8, validation_alias=AliasChoices('new_password', 'newPassword'))
+    user_version: int = Field(default=0)

@@ -1,12 +1,12 @@
 # Crud юзеров
 from sqlalchemy import select, and_, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, InstrumentedAttribute
 
 from src.shared import logger_setup
 from src.user_service.auth_functions import get_password_hash, verify_password
 from src.user_service.models import User, Role, UserData
-from src.user_service.schemas import UserCreate, UserUpdate
+from src.user_service.schemas import UserCreate, UserUpdate, PasswordForm
 
 logger = logger_setup.setup_logger(__name__)
 
@@ -101,24 +101,84 @@ async def search_users(
 
 
 
+async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -> User | None:
+    """
+    Обновляет данные пользователя, включая вложенные модели
 
+    Args:
+        db: Асинхронная сессия SQLAlchemy
+        user_id: ID пользователя (целое число)
+        user_update: Данные для обновления (Pydantic модель)
 
-async def update_user(db: AsyncSession, user_name: str, user: UserUpdate):
-    async with db.begin():
-        db_user = await db.execute(select(User).filter(User.username == user_name))
-        db_user = db_user.scalar()
-        if db_user is None:
-            logger.error(f"User {user_name} not found.")
+    Returns:
+        Обновленный объект User или None если пользователь не найден
+    """
+    try:
+        # Получаем пользователя с joined user_data
+        result = await db.execute(
+            select(User)
+            .options(joinedload(User.user_data))
+            .filter(User.id == user_id)
+        )
+        db_user = result.scalar_one_or_none()
+
+        if not db_user:
+            logger.error(f"User {user_id} not found")
             return None
-        logger.info(f"Found old user {db_user.to_dict()}")
-        update_data = user.model_dump(exclude_unset=True)
-        logger.info(f"Updating user {update_data}")
-        if "password" in update_data:
-            password = update_data.pop("password")
-            update_data["hashed_password"] = get_password_hash(password)
-            logger.info(f"Updated password {update_data['hashed_password']} {password}")
+        logger.info(f"User found {db_user.to_dict()}")
+        # Конвертируем Pydantic модель в словарь
+        update_data = user_update.model_dump(exclude_unset=True)
+        logger.info(f"User update data {update_data}")
+        db_user = await update_user_data(db=db, db_user=db_user, user_update=user_update)
+        logger.info(f"User update user_data {db_user.to_dict()}")
+        # Обновляем основные поля пользователя
         for key, value in update_data.items():
-            setattr(db_user, key, value)
+            if hasattr(db_user, key) and key!="user_data":
+                setattr(db_user, key, value)
+        logger.info(f"User updated {db_user.to_dict()}")
+        await db.commit()
+        await db.refresh(db_user)
+        return db_user
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating user {user_id}: {str(e)}", exc_info=True)
+        raise
+
+async def update_user_password(db: AsyncSession, user_id: int, password_form: PasswordForm) -> User | None:
+    result = await db.execute(
+        select(User)
+        .options(joinedload(User.user_data))
+        .filter(User.id == user_id)
+    )
+    db_user = result.scalar_one_or_none()
+
+    if not db_user:
+        logger.error(f"User {user_id} not found")
+        return None
+    db_user.hashed_password = get_password_hash(password=password_form.new_password)
+    db_user.version = password_form.user_version + 1
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+
+async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpdate) -> User | None:
+    if user_update.role == Role.SERVICE:
+        if db_user.user_data is not None:
+            result = await db.delete(db_user.user_data)
+            await db.commit()
+            await db.refresh(db_user)
+        return db_user
+    if db_user.user_data is None:
+        db.add(UserData(user=db_user,**user_update.user_data.model_dump(exclude_unset=True)))
+        await db.commit()
+        await db.refresh(db_user)
+        return db_user
+
+    for key, value in user_update.user_data.model_dump(exclude_unset=True).items():
+        if hasattr(db_user.user_data, key):
+            setattr(db_user.user_data, key, value)
+    await db.commit()
     await db.refresh(db_user)
     return db_user
 
