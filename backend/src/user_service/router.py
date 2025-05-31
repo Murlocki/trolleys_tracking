@@ -373,6 +373,7 @@ async def get_users(
     - /user/crud?created_from=2023-01-01&sort_by=username&sort_order=asc
     """
     result = AuthResponse(token=token,data={})
+    logger.info(decode_token(token))
     try:
         # Log the search attempt (mask sensitive parameters)
         logger.info(
@@ -442,33 +443,179 @@ async def get_users(
         )
 
 
-
-
-
-
-@user_router.get("/user/me", response_model=AuthResponse, status_code=status.HTTP_200_OK)
-async def get_profile(token: str = Depends(get_valid_token), db: AsyncSession = Depends(get_db)):
+@user_router.delete(
+    "/user/crud/{user_id}",
+    response_model=AuthResponse[UserDTO],
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "User deleted successfully"},
+        400: {"description": "Bad request - deletion failed"},
+        401: {"description": "Unauthorized - invalid token"},
+        403: {"description": "Forbidden - insufficient privileges"},
+        404: {"description": "User not found"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def delete_user_by_id(
+        user_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token),
+) -> AuthResponse[UserDTO]:
     """
-    Get user by token (basically gey my profile)
-    :param token: User access token
-    :param db: Database session
-    :return: User data
+    Delete a user account after validation checks
+
+    Security Flow:
+    1. Validate authentication token
+    2. Verify target user exists
+    3. Check requester's permissions
+    4. Delete user if authorized
+
+    Rules:
+    - Users can delete their own account
+    - Admins can delete any account
+    - Cannot delete accounts with higher privilege level
+
+    Args:
+        user_id: ID of user to delete
+        db: Database session
+        token: Validated JWT token
+
+    Returns:
+        AuthResponse with deleted user data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token, data={"message": ""})
+
+    try:
+        # 1. Get target user
+        user = await crud.get_user_by_id(db, user_id)
+        if not user:
+            logger.warning(f"User not found | ID: {user_id}")
+            result.data = {"message": "User not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 2. Check permissions
+        decoded_token = decode_token(token)
+        requester_role = Role(decoded_token["role"])
+        target_role = user.role
+        if target_role.level() > requester_role.level():
+            logger.warning(
+                f"Privilege escalation attempt | "
+                f"Requester: {requester_role.value} | "
+                f"Target: {target_role.value}"
+            )
+            result.data = {"message": "Cannot delete higher-privileged account"}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=result.model_dump()
+            )
+
+        # 3. Perform deletion
+        deleted_user = await crud.delete_user(db, user)
+        if not deleted_user:
+            logger.error(f"Deletion failed | User ID: {user_id}")
+            result.data = {"message": "Deletion failed"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+
+        # 7. Log and return success
+        logger.info(
+            f"User deleted successfully | "
+            f"ID: {user_id} | "
+            f"Role: {target_role.value}"
+        )
+
+        result.data = UserDTO(**deleted_user.to_dict())
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"User deletion error | ID: {user_id} | Error: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@user_router.get(
+    "/user/me",
+    response_model=AuthResponse[UserDTO],
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "User profile retrieved successfully"},
+        401: {"description": "Unauthorized - invalid or missing token"},
+        404: {"description": "User not found"}
+    }
+)
+async def get_profile(
+        token: str = Depends(get_valid_token),
+        db: AsyncSession = Depends(get_db)
+) -> AuthResponse[UserDTO]:
+    """
+    Get current user's profile using their access token
+
+    Security Flow:
+    1. Validate JWT token
+    2. Extract user ID from token
+    3. Fetch user from database
+
+    Args:
+        token: Valid JWT access token
+        db: Database session
+
+    Returns:
+        AuthResponse containing UserDTO if found
+
+    Raises:
+        HTTPException: 401 if token invalid, 404 if user not found
     """
     result = AuthResponse(token=token, data={"message": "User not found"})
-    payload = decode_token(token)
-    if not payload or not payload["sub"]:
-        logger.info(f"Invalid token")
-        result.data = {"message": "Invalid token"}
-        raise HTTPException(status_code=401, detail=result.model_dump())
 
-    user = await crud.get_user_by_email(db, email=payload["sub"])
-    if not user:
-        logger.warning("User not found")
-        result.data = {"message": "User not found"}
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
-    logger.info(f"User {user.username} found")
-    result.data = UserDTO.model_validate(user)
-    return result.model_dump(by_alias=True)
+    try:
+        payload = decode_token(token)
+        if not payload or not payload.get("sub"):
+            logger.warning(f"Invalid token payload | Token: {token[:8]}...")
+            result.data = {"message": "Invalid token"}
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=result.model_dump()
+            )
+
+        user_id = int(payload["sub"])
+        user = await crud.get_user_by_id(db, user_id)
+        if not user:
+            logger.warning(f"User not found | ID: {user_id}")
+            result.data = {"message": "User not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        logger.debug(f"Profile retrieved | User ID: {user.id}")
+        result.data = UserDTO(**user.to_dict())
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected profile retrieval error | Error: {str(e)}")
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
 
 
 # TODO: ПЕРЕДЕЛАТЬ РУЧКУ ОБНОВЛЕНИЯ ПАРОЛЯ ДЛЯ ОБНОВЛЕНИЯ ПРОИЗВОЛЬНОГО ПОЛЬЗОВАТЕЛЯ

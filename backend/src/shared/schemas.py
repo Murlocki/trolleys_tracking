@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional, Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field, AliasChoices, EmailStr
@@ -57,6 +58,10 @@ class UserData(BaseModel):
     first_name: str = Field(validation_alias=AliasChoices('first_name', 'firstName'))
     last_name: str = Field(validation_alias=AliasChoices('last_name', 'lastName'))
     email: EmailStr
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True
+
 
 class UserDTO(BaseModel):
     id: int
@@ -69,8 +74,27 @@ class UserDTO(BaseModel):
         alias_generator = to_camel
         from_attributes = True
 
+class Role(Enum):
+    SERVICE = "service"
+    ADMIN = "admin"
+    SUPER_ADMIN = "super_admin"
 
+    @classmethod
+    def get_display_name(cls, role):
+        names = {
+            cls.SERVICE: "Service Account",
+            cls.ADMIN: "Administrator",
+            cls.SUPER_ADMIN: "Super Administrator"
+        }
+        return names.get(role, "Unknown")
 
+    def level(self):
+        levels = {
+            Role.SERVICE: 1,
+            Role.ADMIN: 2,
+            Role.SUPER_ADMIN: 3,
+        }
+        return levels[self]
 
 class UserAuthDTO(BaseModel):
     identifier: str

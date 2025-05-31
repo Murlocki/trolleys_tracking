@@ -1,5 +1,5 @@
 # Crud юзеров
-from sqlalchemy import select, and_, or_, desc, asc, cast, String
+from sqlalchemy import select, and_,  desc, asc, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 

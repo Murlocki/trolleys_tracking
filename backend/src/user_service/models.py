@@ -7,23 +7,10 @@ from sqlalchemy import String, Boolean, DateTime, func, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 
 from src.shared.database import engine, SessionLocal
+from src.shared.schemas import Role
 
 Base = declarative_base()
 
-
-class Role(Enum):
-    SERVICE = "service"
-    ADMIN = "admin"
-    SUPER_ADMIN = "super_admin"
-
-    @classmethod
-    def get_display_name(cls, role):
-        names = {
-            cls.SERVICE: "Service Account",
-            cls.ADMIN: "Administrator",
-            cls.SUPER_ADMIN: "Super Administrator"
-        }
-        return names.get(role, "Unknown")
 
 
 class UserData(Base):
