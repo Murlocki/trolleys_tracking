@@ -14,7 +14,7 @@ from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO, PaginatorList
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
-from src.user_service.models import User, Role
+from src.shared.models import User, Role
 from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO, PasswordForm
 
 user_router = APIRouter()

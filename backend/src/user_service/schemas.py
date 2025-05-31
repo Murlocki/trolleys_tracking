@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, AliasChoices
 from pydantic.alias_generators import to_camel
 
 from src.shared.schemas import UserData
-from src.user_service.models import Role
+from src.shared.models import Role
 
 
 class UserCreate(BaseModel):
