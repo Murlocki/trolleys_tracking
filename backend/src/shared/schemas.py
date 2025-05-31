@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any, Generic, TypeVar
+from typing import Optional, Any, Generic, TypeVar, List
 
 from pydantic import BaseModel, Field, AliasChoices, EmailStr
 from pydantic.alias_generators import to_camel
@@ -53,6 +53,12 @@ class AuthResponse(BaseModel, Generic[T]):
     data: Optional[T] = None
 
 
+class PaginatorList(BaseModel,Generic[T]):
+    page: int = Field(1)
+    page_count: int = Field(1)
+    items_per_page: int = Field(10)
+    item_count: int = Field(1)
+    items: List[T] = Field(default_factory=lambda :list)
 
 class UserData(BaseModel):
     first_name: str = Field(validation_alias=AliasChoices('first_name', 'firstName'))

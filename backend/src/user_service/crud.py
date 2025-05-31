@@ -1,5 +1,5 @@
 # Crud юзеров
-from sqlalchemy import select, and_,  desc, asc, cast, String
+from sqlalchemy import select, and_, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -42,7 +42,9 @@ async def search_users(
     db: AsyncSession,
     filters: dict,
     sort_by: list[str] = None,
-    sort_order: list[str] = None
+    sort_order: list[str] = None,
+    page: int = 1,
+    count: int = 10
 ):
     stmt = select(User).outerjoin(User.user_data).options(joinedload(User.user_data))
 
@@ -92,7 +94,7 @@ async def search_users(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt)
+    result = await db.execute(stmt.offset((page-1) * count).limit(count))
     return result.scalars().all()
 
 
@@ -140,6 +142,11 @@ async def delete_user(db: AsyncSession, user: User):
         logger.info(f"Deleted user {db_user.to_dict()}")
         await db.delete(db_user)
     return db_user
+
+async def get_user_count(db: AsyncSession)->int:
+    async with db.begin():
+        result = await db.execute(select(func.count(User.id)))
+    return result.scalar()
 
 
 async def get_user_by_email(db: AsyncSession, email: str):

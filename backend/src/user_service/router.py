@@ -10,9 +10,10 @@ from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
-from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO
+from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO, PaginatorList
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
+from src.user_service.crud import get_user_count
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
 from src.user_service.models import User, Role
 from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO
@@ -29,7 +30,9 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 bearer = HTTPBearer(auto_error=False)
 api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials | None = Security(bearer), api_key: str | None = Security(api_key_scheme)) -> str:
+
+async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials | None = Security(bearer),
+                          api_key: str | None = Security(api_key_scheme)) -> str:
     logger.info(request.headers)
     if api_key == settings.api_key:
         return settings.api_key
@@ -50,6 +53,7 @@ async def get_db():
 
 bearer = HTTPBearer(auto_error=False)
 api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 
 @user_router.post(
     "/user/crud",
@@ -232,7 +236,7 @@ async def find_user_by_id(
             username=user_dict["username"],
             is_active=user_dict["is_active"],
             role=user_dict["role"],
-            user_data=user_dict.get("user_data",None),
+            user_data=user_dict.get("user_data", None),
         )
         return result
 
@@ -247,7 +251,7 @@ async def find_user_by_id(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=AuthResponse(
                 token=token,
-                data={"message":"Internal server error"}
+                data={"message": "Internal server error"}
             ).model_dump()
         )
 
@@ -326,14 +330,17 @@ async def auth_user(
 
 @user_router.get(
     "/user/crud",
-    response_model=AuthResponse[list[UserAdminDTO]],
+    response_model=AuthResponse[PaginatorList[UserAdminDTO]],
     responses={
         200: {"description": "List of users matching search criteria"},
+        400: {"description": "Bad request"},
         401: {"description": "Unauthorized"},
         500: {"description": "Internal server error"}
     }
 )
 async def get_users(
+        page: int = Query(1, description="Page number"),
+        count: int = Query(10, description="Number of users to return"),
         username: str | None = Query(None, description="Filter by username (partial match)"),
         email: str | None = Query(None, description="Filter by email (partial match)"),
         first_name: str | None = Query(None, description="Filter by first name (partial match)"),
@@ -354,7 +361,7 @@ async def get_users(
         ),
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token),
-) -> AuthResponse[list[UserAdminDTO]]:
+) -> AuthResponse[PaginatorList[UserAdminDTO]]:
     """
     Search and filter users with advanced querying capabilities
 
@@ -372,27 +379,45 @@ async def get_users(
     - /user/crud?username=john&role=admin
     - /user/crud?created_from=2023-01-01&sort_by=username&sort_order=asc
     """
-    result = AuthResponse(token=token,data={})
+    result = AuthResponse(token=token, data={})
     logger.info(decode_token(token))
     try:
+        if page < 1:
+            result.data = {"message": "Invalid page number"}
+            logger.error(f"Invalid page number {page}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        if count < 1:
+            result.data = {"message": "Invalid number of users per page"}
+            logger.error(f"Invalid number of users per page number {count}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
         # Log the search attempt (mask sensitive parameters)
         logger.info(
             "User search initiated",
             extra={
-                "filters": {
-                    "username": username[:3] + "..." if username else None,
-                    "email": email[:3] + "..." if email else None,
-                    "user_id": user_id,
-                    "role": role
-                },
-                "sorting": {
-                    "by": sort_by,
-                    "order": sort_order
+                "extra_data": {
+                    "filters": {
+                        "username": username[:3] + "..." if username else None,
+                        "email": email[:3] + "..." if email else None,
+                        "user_id": user_id,
+                        "role": role
+                    },
+                    "sorting": {
+                        "by": sort_by,
+                        "order": sort_order
+                    }
                 }
             }
         )
         if len(sort_by) != len(sort_order):
-            logger.error(f"Sort_by and Sort_order must have same length")
+            logger.error(f"Sort_by and Sort_order must have same length",
+                         extra={
+                             "extra_data": {
+                                 "sort_by": sort_by,
+                                 "sort_order": sort_order
+                             }
+                         })
             result.data = {"message": "Sort_by and Sort_order must have same length"}
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
@@ -412,7 +437,9 @@ async def get_users(
                 "updated_to": updated_to,
             },
             sort_by=sort_by,
-            sort_order=sort_order
+            sort_order=sort_order,
+            page=page,
+            count=count
         )
 
         # Log results
@@ -424,7 +451,13 @@ async def get_users(
             }
         )
         logger.info([user.to_dict() for user in users])
-        result.data = [UserAdminDTO(**user.to_dict()) for user in users]
+        result.data = PaginatorList(
+            page=page,
+            page_count=len(users)//count + 1,
+            items_per_page=count,
+            item_count=len(users),
+            items=[UserAdminDTO(**user.to_dict()) for user in users]
+        )
         return result
 
     except HTTPException:
@@ -435,7 +468,11 @@ async def get_users(
         logger.error(
             "User search failed unexpectedly",
             exc_info=True,
-            extra={"error": str(e)}
+            extra={
+                "extra_data": {
+                    "error": str(e)
+                }
+            }
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
