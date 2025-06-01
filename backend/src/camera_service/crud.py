@@ -170,3 +170,24 @@ async def create_camera(db: AsyncSession, camera: CameraSchema, camera_group: Ca
     await db.refresh(new_camera)
     logger.info(f"Created new camera {new_camera.to_dict()}")
     return new_camera
+
+async def get_camera_by_id(db: AsyncSession, camera_id: int):
+    db_camera = await db.execute(select(Camera).filter(Camera.id == camera_id))
+    db_camera = db_camera.scalar_one_or_none()
+    if not db_camera:
+        logger.error(f"Camera with id {camera_id} not found")
+        return None
+    logger.info(f"Found camera with id {db_camera.to_dict()}")
+    return db_camera
+
+async def delete_camera_by_id(db: AsyncSession, camera_id: int):
+    db_camera = await db.execute(select(Camera).filter(Camera.id == camera_id))
+    db_camera = db_camera.scalar_one_or_none()
+    if not db_camera:
+        logger.error(f"Camera with id {camera_id} not found")
+        return None
+    logger.info(f"Found camera with id {db_camera.to_dict()}")
+    await db.delete(db_camera)
+    await db.commit()
+    logger.info(f"Deleted camera with id {db_camera.to_dict()}")
+    return db_camera
