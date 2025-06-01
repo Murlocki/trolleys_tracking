@@ -867,7 +867,7 @@ async def update_user_by_id(
 
         if db_user.version > user.version:
             logger.error(f"User was already updated | ID: {user_id}")
-            result.data = {"message": f"User was already updated | ID: {user_id}"}
+            result.data = {"message": f"User was already updated"}
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result.model_dump())
         logger.info(f"User version | Version:{user.version}")
         user.version += 1

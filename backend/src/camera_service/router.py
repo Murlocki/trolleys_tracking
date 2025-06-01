@@ -351,7 +351,7 @@ async def get_user_camera_groups(
     "/camera/crud/{group_id}",
     response_model=AuthResponse[CameraGroupDTO],
     responses={
-        200: {"description": "List of users matching search criteria"},
+        200: {"description": "Successful deletion"},
         400: {"description": "Bad request"},
         401: {"description": "Unauthorized"},
         404: {"description": "Not found"},
@@ -370,7 +370,7 @@ async def delete_camera_group(
     Security Flow:
     1. Validate authentication token
     2. Verify target group exists
-    3. Check requester's permissions
+    3. Delete target group
 
     Rules:
     - Services cannot delete anything
@@ -423,6 +423,104 @@ async def delete_camera_group(
     except Exception as e:
         logger.error(
             f"Group deletion error | ID: {group_id} | Error: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.patch(
+    "/camera/crud/{group_id}",
+    response_model=AuthResponse[CameraGroupDTO],
+    responses={
+        200: {"description": "Successful update"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def patch_camera_group(
+        group_id: int,
+        camera_update: CameraGroupSchema,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+)-> AuthResponse[CameraGroupDTO]:
+    """
+    Update a camera group account after validation checks
+
+    Security Flow:
+    1. Validate authentication token
+    2. Verify target group exists
+    3. Verify camera group version
+    4. Update camera group
+
+    Rules:
+    - Services cannot update anything
+
+    Args:
+        group_id: ID of camera group to update
+        camera_update: Update camera group schema
+        db: Database session
+        token: Validated JWT token
+
+    Returns:
+        AuthResponse with updated group data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token, data={"message": ""})
+
+    try:
+        # 1. Get target user
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.warning(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        # 2. Check version
+        if camera_group.version > camera_update.version:
+            logger.error(f"Camera group {group_id} was updated to {camera_group.version}")
+            result.data = {"message": f"Camera group {group_id} was already updated"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        camera_update.version +=1
+        logger.info(f"Camera group {group_id} new version is {camera_update.version}")
+
+        # 3. Perform deletion
+        updated_group = await crud.update_group(db=db, group_id=group_id, camera_group=camera_update)
+        if not updated_group:
+            logger.error(f"Update failed | Group ID: {group_id}")
+            result.data = {"message": "Update failed"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+
+        # 4. Log and return success
+        logger.info(
+            f"Group updated successfully | "
+            f"ID: {group_id} | "
+        )
+
+        result.data = CameraGroupDTO(**updated_group.to_dict())
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Group update error | ID: {group_id} | Error: {str(e)}",
             exc_info=True
         )
         result.data = {"message": "Internal server error"}

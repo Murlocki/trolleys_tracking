@@ -131,7 +131,7 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
             return None
         logger.info(f"User found {db_user.to_dict()}")
         # Конвертируем Pydantic модель в словарь
-        update_data = user_update.model_dump(exclude_unset=True)
+        update_data = user_update.model_dump()
         logger.info(f"User update data {update_data}")
         db_user = await update_user_data(db=db, db_user=db_user, user_update=user_update)
         logger.info(f"User update user_data {db_user.to_dict()}")
@@ -176,12 +176,12 @@ async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpd
             await db.refresh(db_user)
         return db_user
     if db_user.user_data is None:
-        db.add(UserData(user=db_user,**user_update.user_data.model_dump(exclude_unset=True)))
+        db.add(UserData(user=db_user,**user_update.user_data.model_dump()))
         await db.commit()
         await db.refresh(db_user)
         return db_user
 
-    for key, value in user_update.user_data.model_dump(exclude_unset=True).items():
+    for key, value in user_update.user_data.model_dump().items():
         if hasattr(db_user.user_data, key):
             setattr(db_user.user_data, key, value)
     await db.commit()

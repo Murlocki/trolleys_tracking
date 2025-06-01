@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select, desc, asc, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -107,3 +109,32 @@ async def delete_group(db: AsyncSession, camera_group: CameraGroup):
     await db.delete(db_group)
     await db.commit()
     return db_group
+
+async def update_group(db: AsyncSession, group_id:int, camera_group: CameraGroupSchema):
+    try:
+        # Получаем пользователя с joined user_data
+        result = await db.execute(
+            select(CameraGroup)
+            .filter(CameraGroup.id == group_id)
+        )
+        db_group = result.scalar_one_or_none()
+
+        if not db_group:
+            logger.error(f"Camera group {group_id} not found")
+            return None
+        logger.info(f"Camera group found {db_group.to_dict()}")
+        update_data = camera_group.model_dump()
+        logger.info(f"Camera group update data {update_data}")
+        for key, value in update_data.items():
+            if hasattr(db_group, key):
+                setattr(db_group, key, value)
+        db_group.updated_at = datetime.now()
+        logger.info(f"Camera group updated {db_group.to_dict()}")
+        await db.commit()
+        await db.refresh(db_group)
+        return db_group
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating camera group {group_id}: {str(e)}", exc_info=True)
+        raise
