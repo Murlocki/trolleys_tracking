@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Dict, Any
 
 from fastapi import APIRouter
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import status, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from src.auth_service import auth_functions
 from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record, \
     check_one_auth_request, set_auth_request, delete_auth_request

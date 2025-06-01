@@ -10,12 +10,12 @@ from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
+from src.shared.models import User, Role
 from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO, PaginatorList
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
 from src.user_service.crud import count_users_with_username
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
-from src.shared.models import User, Role
 from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO, PasswordForm
 
 user_router = APIRouter()

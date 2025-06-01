@@ -1,22 +1,16 @@
-import asyncio
 from datetime import datetime
-from enum import Enum
 
 from sqlalchemy import Enum as SQLAlchemyEnum
-from sqlalchemy import String, Boolean, DateTime, func, ForeignKey, Integer
-from sqlalchemy.orm import Mapped, mapped_column, declarative_base, relationship
 
-from src.shared.database import engine, SessionLocal, Base
-from src.shared.schemas import Role
-
-from datetime import datetime
 from typing import Optional
+
+from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy import ForeignKey, String, Integer, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from enum import Enum
 
-
+from src.shared.database import Base
+from src.shared.schemas import Role
 
 
 class UserData(Base):
@@ -253,15 +247,15 @@ class Camera(Base):
         nullable=False,
         comment="Название камеры"
     )
-    ip_address: Mapped[str] = mapped_column(
+    address_link: Mapped[str] = mapped_column(
         String,
         unique=True,
         nullable=False,
-        comment="IP-адрес камеры"
+        comment="Строка подключения к камере"
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean,
-        default=True,
+        default=False,
         nullable=False,
         comment="Флаг активности камеры"
     )
@@ -305,13 +299,13 @@ class Camera(Base):
     )
 
     def __repr__(self):
-        return f"Camera(id={self.id}, name={self.name}, ip={self.ip_address})"
+        return f"Camera(id={self.id}, name={self.name}, link={self.address_link})"
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
-            "ip_address": self.ip_address,
+            "address_link": self.address_link,
             "is_active": self.is_active,
             "group_id": self.group_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,

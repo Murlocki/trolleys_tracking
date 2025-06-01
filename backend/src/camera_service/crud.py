@@ -3,9 +3,9 @@ from datetime import datetime
 from sqlalchemy import select, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.camera_service.schemas import CameraGroupSchema
+from src.camera_service.schemas import CameraGroupSchema, CameraSchema
 from src.shared.logger_setup import setup_logger
-from src.shared.models import CameraGroup
+from src.shared.models import CameraGroup, Camera
 
 logger = setup_logger(__name__)
 
@@ -146,3 +146,27 @@ async def count_groups_with_name(db: AsyncSession, name: str):
     count = db_groups.scalar_one()
     logger.info(f"Found {count} camera groups with name {name}")
     return count
+
+
+async def count_cameras_with_name(db: AsyncSession, name: str):
+    db_cameras = await db.execute(select(func.count()).select_from(Camera).filter(Camera.name == name))
+    count = db_cameras.scalar_one()
+    logger.info(f"Found {count} cameras with name {name}")
+    return count
+async def count_cameras_with_link(db: AsyncSession, camera_link: str):
+    db_cameras = await db.execute(select(func.count()).select_from(Camera).filter(Camera.address_link==camera_link))
+    count = db_cameras.scalar_one()
+    logger.info(f"Found {count} cameras with link {camera_link}")
+    return count
+async def create_camera(db: AsyncSession, camera: CameraSchema, camera_group: CameraGroup):
+    new_camera = Camera(
+        name=camera.name,
+        address_link=camera.address_link,
+        group_id=camera_group.id,
+    )
+    logger.info(f"Creating new camera {new_camera.to_dict()}")
+    db.add(new_camera)
+    await db.commit()
+    await db.refresh(new_camera)
+    logger.info(f"Created new camera {new_camera.to_dict()}")
+    return new_camera

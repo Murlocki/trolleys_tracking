@@ -3,8 +3,8 @@ from typing import Optional
 from pydantic import BaseModel, Field, AliasChoices
 from pydantic.alias_generators import to_camel
 
-from src.shared.schemas import UserData
 from src.shared.models import Role
+from src.shared.schemas import UserData
 
 
 class UserCreate(BaseModel):

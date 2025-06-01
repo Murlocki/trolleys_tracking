@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from src.shared import logger_setup
-from src.user_service.auth_functions import get_password_hash, verify_password
 from src.shared.models import User, Role, UserData
+from src.user_service.auth_functions import get_password_hash, verify_password
 from src.user_service.schemas import UserCreate, UserUpdate, PasswordForm
 
 logger = logger_setup.setup_logger(__name__)

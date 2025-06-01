@@ -1,10 +1,9 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any, Generic, TypeVar, List
+from typing import Optional, Generic, TypeVar, List
 
 from pydantic import BaseModel, Field, AliasChoices, EmailStr
 from pydantic.alias_generators import to_camel
-
 
 
 class AuthForm(BaseModel):
@@ -105,3 +104,15 @@ class Role(Enum):
 class UserAuthDTO(BaseModel):
     identifier: str
     password: str
+
+class CameraDTO(BaseModel):
+    id: int
+    name: str = Field(alias="name", min_length=1)
+    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
+    group_id: int = Field(validation_alias=AliasChoices('group_id', 'groupId'))
+    is_active: bool = Field(default=False, validation_alias=AliasChoices('is_active', 'isActive'))
+    version: int = Field(alias="version", default=0)
+
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True

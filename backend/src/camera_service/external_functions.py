@@ -1,9 +1,8 @@
 import httpx
-from httpx import Response
 
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import TokenModelResponse
-from src.user_service.endpoints import CHECK_AUTH, DELETE_USER_SESSIONS
+from src.user_service.endpoints import CHECK_AUTH
 
 logger = setup_logger(__name__)
 

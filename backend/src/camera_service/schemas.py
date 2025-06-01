@@ -1,10 +1,5 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field, AliasChoices
 from pydantic.alias_generators import to_camel
-
-from src.shared.schemas import UserData
-from src.shared.models import Role
 
 
 class CameraGroupSchema(BaseModel):
@@ -36,5 +31,12 @@ class CameraGroupAdminDTO(BaseModel):
 
 
 class CameraSchema(BaseModel):
-    id: int = Field(alias="id")
     name: str = Field(alias="name", min_length=1)
+    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
+    is_active: bool = Field(default=False, validation_alias=AliasChoices('is_active', 'isActive'))
+    group_id: int = Field(default=0,validation_alias=AliasChoices('group_id', 'groupId'))
+    version: int = Field(alias="version", default=0)
+
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True

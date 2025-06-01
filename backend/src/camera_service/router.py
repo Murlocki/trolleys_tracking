@@ -9,11 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.camera_service import crud
 from src.camera_service.crud import count_groups_with_name
 from src.camera_service.external_functions import check_auth_from_external_service
-from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO
+from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO, CameraSchema
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
-from src.shared.schemas import PaginatorList, AuthResponse
+from src.shared.schemas import PaginatorList, AuthResponse, CameraDTO
 
 camera_router = APIRouter()
 logger = setup_logger(__name__)
@@ -72,7 +72,7 @@ async def create_camera_group(
         token: str = Depends(get_valid_token)
 ) -> AuthResponse[CameraGroupDTO]:
     """
-    Creates a new user account with validation checks.
+    Creates a new camera group with validation checks.
 
     Security Flow:
     1. Validates authentication token
@@ -129,9 +129,10 @@ async def create_camera_group(
         raise
     except Exception as e:
         logger.error(f"Camera group creation error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"message": "Internal server error"}
+            detail=result.model_dump()
         )
 
 
@@ -193,12 +194,10 @@ async def get_camera_group_by_id(camera_group_id: int, db: AsyncSession = Depend
             f"Group lookup error | ID: {camera_group_id} | Error: {str(e)}",
             exc_info=True
         )
+        result.data = {"message": "Internal server error"}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=AuthResponse(
-                token=token,
-                data={"message": "Internal server error"}
-            ).model_dump()
+            detail=result.model_dump()
         )
 
 
@@ -545,6 +544,101 @@ async def patch_camera_group(
 
 @camera_router.post(
     "/camera/crud/{group_id}",
+    response_model=AuthResponse[CameraDTO],
+    responses={
+        200: {"description": "Successful addition"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
 )
-async def create_camera():
-    pass
+async def create_camera(
+        group_id: int,
+        camera_data: CameraSchema,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+)-> AuthResponse[CameraGroupDTO]:
+    """
+    Creates a new camera with validation checks.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Check existing camera group
+    3. Checks camera name and camera link availability
+    4. Creates camera record
+
+    Args:
+        group_id: ID of camera group
+        camera_data: Camera creation data
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with created camera data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"Camera creation attempt | "
+            f"Schema: {camera_data} | "
+        )
+
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.error(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+
+        # 3. Check name and link availability
+        existing_cameras = await crud.count_cameras_with_name(db=db, name=camera_data.name)
+        if existing_cameras:
+            logger.warning(f"Camera name taken | Name: {camera_data.name}")
+            result.data = {"message": "Camera name already in use"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        existing_cameras = await crud.count_cameras_with_link(db=db, camera_link=camera_data.address_link)
+        if existing_cameras:
+            logger.warning(f"Camera link taken | Link: {camera_data.address_link}")
+            result.data = {"message": "Camera link already in use"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+
+        # 3. Create camera group
+        new_camera = await crud.create_camera(db=db, camera=camera_data, camera_group=camera_group)
+        if not new_camera:
+            logger.error("Camera creation failed")
+            result.data = {"message": "Camera creation failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 4. Return success response
+        logger.info(f"Camera created | ID: {new_camera.id}")
+        camera_dict = new_camera.to_dict()
+        result.data = CameraDTO(**camera_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Camera creation error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
