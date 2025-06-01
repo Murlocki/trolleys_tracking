@@ -239,6 +239,12 @@ async def get_user_by_username(db: AsyncSession, username: str):
         logger.info(f"Found user {db_user}")
         return db_user
 
+async def count_users_with_username(db: AsyncSession, username: str):
+    async with db.begin():
+        db_users = await db.execute(select(func.count()).select_from(User).filter(User.username == username))
+        count = db_users.scalar_one()
+        logger.info(f"Found {count} users with username {username}")
+        return count
 
 async def get_users(db: AsyncSession):
     async with db as session:

@@ -13,6 +13,7 @@ from src.shared.logger_setup import setup_logger
 from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO, PaginatorList
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
+from src.user_service.crud import count_users_with_username
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
 from src.shared.models import User, Role
 from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO, PasswordForm
@@ -877,6 +878,14 @@ async def update_user_by_id(
             result.data = {"message": "Insufficient privileges"}
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=result.model_dump())
 
+        user_count = await count_users_with_username(db=db, username=user.username)
+        if not(user_count == 1 and db_user.username == user.username):
+            logger.error(f"Username {user.username} is not available")
+            result.data = {"message": f"Username {user.username} is not available"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
         # Update user
         db_user = await crud.update_user(db, user_id=user_id, user_update=user)
 

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select, desc, asc, cast, String
+from sqlalchemy import select, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_service.schemas import CameraGroupSchema
@@ -110,7 +110,8 @@ async def delete_group(db: AsyncSession, camera_group: CameraGroup):
     await db.commit()
     return db_group
 
-async def update_group(db: AsyncSession, group_id:int, camera_group: CameraGroupSchema):
+
+async def update_group(db: AsyncSession, group_id: int, camera_group: CameraGroupSchema):
     try:
         # Получаем пользователя с joined user_data
         result = await db.execute(
@@ -138,3 +139,10 @@ async def update_group(db: AsyncSession, group_id:int, camera_group: CameraGroup
         await db.rollback()
         logger.error(f"Error updating camera group {group_id}: {str(e)}", exc_info=True)
         raise
+
+
+async def count_groups_with_name(db: AsyncSession, name: str):
+    db_groups = await db.execute(select(func.count()).select_from(CameraGroup).filter(CameraGroup.name == name))
+    count = db_groups.scalar_one()
+    logger.info(f"Found {count} camera groups with name {name}")
+    return count

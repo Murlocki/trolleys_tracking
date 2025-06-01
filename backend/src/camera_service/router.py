@@ -7,6 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHea
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_service import crud
+from src.camera_service.crud import count_groups_with_name
 from src.camera_service.external_functions import check_auth_from_external_service
 from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO
 from src.shared.config import settings
@@ -486,6 +487,16 @@ async def patch_camera_group(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=result.model_dump()
             )
+
+        group_count = await count_groups_with_name(db=db, name=camera_update.name)
+        if not(group_count == 1 and camera_group.name == camera_update.name):
+            logger.error(f"Camera group name {camera_update.name} is not available")
+            result.data = {"message": f"Camera group name {camera_update.name} is not available"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera group name {camera_update.name} is available")
         # 2. Check version
         if camera_group.version > camera_update.version:
             logger.error(f"Camera group {group_id} was updated to {camera_group.version}")
@@ -528,3 +539,12 @@ async def patch_camera_group(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()
         )
+
+
+
+
+@camera_router.post(
+    "/camera/crud/{group_id}",
+)
+async def create_camera():
+    pass

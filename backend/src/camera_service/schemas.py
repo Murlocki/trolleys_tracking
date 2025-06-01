@@ -32,3 +32,9 @@ class CameraGroupAdminDTO(BaseModel):
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
+
+
+class CameraSchema(BaseModel):
+    id: int = Field(alias="id")
+    name: str = Field(alias="name", min_length=1)
