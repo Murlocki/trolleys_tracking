@@ -345,3 +345,88 @@ async def get_user_camera_groups(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()
         )
+
+
+@camera_router.delete(
+    "/camera/crud/{group_id}",
+    response_model=AuthResponse[CameraGroupDTO],
+    responses={
+        200: {"description": "List of users matching search criteria"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def delete_camera_group(
+        group_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+)  -> AuthResponse[CameraGroupDTO]:
+    """
+    Delete a camera group account after validation checks
+
+    Security Flow:
+    1. Validate authentication token
+    2. Verify target group exists
+    3. Check requester's permissions
+
+    Rules:
+    - Services cannot delete anything
+
+    Args:
+        group_id: ID of camera group to delete
+        db: Database session
+        token: Validated JWT token
+
+    Returns:
+        AuthResponse with deleted group data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token, data={"message": ""})
+
+    try:
+        # 1. Get target user
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.warning(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 2. Perform deletion
+        deleted_group = await crud.delete_group(db=db, camera_group=camera_group)
+        if not deleted_group:
+            logger.error(f"Deletion failed | Group ID: {group_id}")
+            result.data = {"message": "Deletion failed"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+
+        # 3. Log and return success
+        logger.info(
+            f"Group deleted successfully | "
+            f"ID: {group_id} | "
+        )
+
+        result.data = CameraGroupDTO(**deleted_group.to_dict())
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Group deletion error | ID: {group_id} | Error: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )

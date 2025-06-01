@@ -1,11 +1,12 @@
-from sqlalchemy import Select, select, desc, asc, cast, String
+from sqlalchemy import select, desc, asc, cast, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_service.schemas import CameraGroupSchema
-from src.shared.models import CameraGroup
 from src.shared.logger_setup import setup_logger
+from src.shared.models import CameraGroup
 
 logger = setup_logger(__name__)
+
 
 async def create_camera_group(db: AsyncSession, camera_group: CameraGroupSchema):
     new_camera_group = CameraGroup(name=camera_group.name,
@@ -17,6 +18,7 @@ async def create_camera_group(db: AsyncSession, camera_group: CameraGroupSchema)
     logger.info(f"New camera group created: {new_camera_group.to_dict()}")
     return new_camera_group
 
+
 async def get_camera_group_by_name(db: AsyncSession, camera_group_name: str):
     camera_group = await db.execute(select(CameraGroup).filter(CameraGroup.name == camera_group_name))
     camera_group = camera_group.scalar_one_or_none()
@@ -26,8 +28,9 @@ async def get_camera_group_by_name(db: AsyncSession, camera_group_name: str):
     logger.info(f"Camera group found: {camera_group.to_dict()}")
     return camera_group
 
+
 async def get_camera_group_by_id(db: AsyncSession, camera_group_id: int):
-    camera_group =await db.execute(select(CameraGroup).filter(CameraGroup.id == camera_group_id))
+    camera_group = await db.execute(select(CameraGroup).filter(CameraGroup.id == camera_group_id))
     camera_group = camera_group.scalar_one_or_none()
     if not camera_group:
         logger.info(f"No camera group found with id: {camera_group_id}")
@@ -35,13 +38,14 @@ async def get_camera_group_by_id(db: AsyncSession, camera_group_id: int):
     logger.info(f"Camera group found: {camera_group.to_dict()}")
     return camera_group
 
+
 async def search_groups(
-    db: AsyncSession,
-    filters: dict,
-    sort_by: list[str] = None,
-    sort_order: list[str] = None,
-    page: int = 1,
-    count: int = 10
+        db: AsyncSession,
+        filters: dict,
+        sort_by: list[str] = None,
+        sort_order: list[str] = None,
+        page: int = 1,
+        count: int = 10
 ):
     stmt = select(CameraGroup)
 
@@ -89,6 +93,17 @@ async def search_groups(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt.offset((page-1) * count).limit(count))
+    result = await db.execute(stmt.offset((page - 1) * count).limit(count))
     return result.scalars().all()
 
+
+async def delete_group(db: AsyncSession, camera_group: CameraGroup):
+    result = await db.execute(select(CameraGroup).filter(CameraGroup.id == camera_group.id))
+    db_group = result.scalar_one_or_none()
+    if not db_group:
+        logger.warning(f"Camera group {camera_group.id} not found.")
+        return None
+    logger.info(f"Deleted camera group {db_group.to_dict()}")
+    await db.delete(db_group)
+    await db.commit()
+    return db_group
