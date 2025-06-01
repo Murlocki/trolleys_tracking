@@ -32,21 +32,3 @@ async def check_auth_from_external_service(access_token: str) -> TokenModelRespo
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
     return None
-
-
-async def delete_user_sessions(user_id:int, api_key: str) -> Response:
-    """
-    Check auth
-    :param user_id:
-    :param api_key:
-    :return: json - token old or new
-    """
-    headers = {
-        "content-type": "application/json",
-        "X-API-Key": api_key,
-    }
-
-    async with httpx.AsyncClient() as client:
-        response = await client.delete(f"{DELETE_USER_SESSIONS}/{user_id}", headers=headers)
-        logger.info(f"Deleted user sessions with response {response}")
-        return response

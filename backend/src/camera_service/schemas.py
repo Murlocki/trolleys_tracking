@@ -7,45 +7,28 @@ from src.shared.schemas import UserData
 from src.shared.models import Role
 
 
-class UserCreate(BaseModel):
-    username: str = Field(min_length=3, max_length=50)
-    password: str = Field(min_length=8)
-    role: Role = Field(default=Role.SERVICE)
-    user_data: UserData = Field(default=None, validation_alias=AliasChoices('user_data', 'userData'))
+class CameraGroupSchema(BaseModel):
+    name: str = Field(alias="name", min_length=1)
+    address: str | None= Field(default=None,alias="address", min_length=1)
+    description: str | None= Field(alias="description", default=None)
+    version: int = Field(alias="version", default=0)
 
-    class Config:
-        alias_generator = to_camel
-        from_attributes = True
+class CameraGroupDTO(BaseModel):
+    id: int = Field(alias="id")
+    name: str = Field(alias="name", min_length=1)
+    address: str | None = Field(default=None, alias="address", min_length=1)
+    description: str | None = Field(alias="description", default=None)
+    version: int = Field(alias="version", default=0)
 
-class UserAdminDTO(BaseModel):
-    id: int = Field(default=None)
-    username: str = Field(min_length=3, max_length=50)
-    role_display: str = Field(default=Role.get_display_name(Role.SERVICE),validation_alias=AliasChoices('role_display', 'roleDisplay'))
-    role: str = Field(default=Role.SERVICE)
-    is_active: bool = Field(default=True,validation_alias=AliasChoices('is_active', 'isActive'))
-    user_data: UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
-    created_at: str = Field(default="",validation_alias=AliasChoices('created_at', 'createdAt'))
+class CameraGroupAdminDTO(BaseModel):
+    id: int = Field(alias="id")
+    name: str = Field(alias="name", min_length=1)
+    address: str | None = Field(default=None, alias="address", min_length=1)
+    description: str | None = Field(alias="description", default=None)
+    version: int = Field(alias="version", default=0)
+    created_at: str = Field(default="", validation_alias=AliasChoices('created_at', 'createdAt'))
     updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
+
     class Config:
         alias_generator = to_camel
         from_attributes = True
-
-
-class UserUpdate(BaseModel):
-    username: str
-    role: Role = Field(default=Role.SERVICE)
-    is_active: bool = Field(default=True, validation_alias=AliasChoices('is_active', 'isActive'))
-    user_data:UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
-    version: int = Field(0)
-
-
-class AuthForm(BaseModel):
-    identifier: str
-    password: str
-    device: Optional[str] = "unknown"
-    ip_address: Optional[str] = "unknown"
-    remember_me: Optional[bool] = Field(False)
-
-class PasswordForm(BaseModel):
-    new_password: str = Field(min_length=8, validation_alias=AliasChoices('new_password', 'newPassword'))
-    user_version: int = Field(default=0)

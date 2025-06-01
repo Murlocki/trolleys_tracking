@@ -75,6 +75,8 @@ async def search_users(
             conditions.append(User.updated_at >= value)
         elif field == "updated_to" and value is not None:
             conditions.append(User.updated_at <= value)
+        elif field == "id":
+            conditions.append(cast(User.id, String).ilike(f"%{value}%"))
         elif field == "role":
             conditions.append(cast(User.role, String).ilike(f"%{value}%"))
         elif field in field_column_map:

@@ -363,7 +363,7 @@ async def get_users(
             description="Sort order for each field (asc/desc)"
         ),
         db: AsyncSession = Depends(get_db),
-        token: str = Depends(get_valid_token),
+        token: str = Depends(get_valid_token)
 ) -> AuthResponse[PaginatorList[UserAdminDTO]]:
     """
     Search and filter users with advanced querying capabilities
@@ -376,11 +376,10 @@ async def get_users(
 
     Security:
     - Requires valid authentication token
-    - Returns only non-sensitive user data
 
     Examples:
     - /user/crud?username=john&role=admin
-    - /user/crud?created_from=2023-01-01&sort_by=username&sort_order=asc
+    - /user/crud?created_from=2025-04-03T00:00:00&sort_by=id&sort_by=username&sort_order=desc&sort_order=asc
     """
     result = AuthResponse(token=token, data={})
     logger.info(decode_token(token))
@@ -403,8 +402,11 @@ async def get_users(
                     "filters": {
                         "username": username[:3] + "..." if username else None,
                         "email": email[:3] + "..." if email else None,
-                        "user_id": user_id,
-                        "role": role
+                        "id": user_id,
+                        "role": role,
+                        "first_name": first_name[:3] + "..." if first_name else None,
+                        "last_name": last_name[:3] + "..." if last_name else None,
+
                     },
                     "sorting": {
                         "by": sort_by,
