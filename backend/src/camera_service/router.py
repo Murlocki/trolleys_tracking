@@ -2,14 +2,15 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends, Request, Security, Query
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Security, Query, Path
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_service import crud
 from src.camera_service.crud import count_groups_with_name
 from src.camera_service.external_functions import check_auth_from_external_service
-from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO, CameraSchema
+from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO, CameraSchema, \
+    CameraAdminDTO
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
@@ -53,7 +54,7 @@ api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 @camera_router.post(
-    "/camera/crud",
+    "/camera/crud/groups",
     status_code=status.HTTP_201_CREATED,
     response_model=AuthResponse[CameraGroupDTO],
     responses={
@@ -137,7 +138,7 @@ async def create_camera_group(
 
 
 @camera_router.get(
-    "/camera/crud/{camera_group_id}",
+    "/camera/crud/groups/{camera_group_id}",
     response_model=AuthResponse[CameraGroupDTO],
     responses={
         200: {"description": "Group data retrieved successfully"},
@@ -202,7 +203,7 @@ async def get_camera_group_by_id(camera_group_id: int, db: AsyncSession = Depend
 
 
 @camera_router.get(
-    "/camera/crud",
+    "/camera/crud/groups",
     response_model=AuthResponse[PaginatorList[CameraGroupDTO]],
     responses={
         200: {"description": "List of users matching search criteria"},
@@ -348,7 +349,7 @@ async def get_user_camera_groups(
 
 
 @camera_router.delete(
-    "/camera/crud/{group_id}",
+    "/camera/crud/groups/{group_id}",
     response_model=AuthResponse[CameraGroupDTO],
     responses={
         200: {"description": "Successful deletion"},
@@ -433,7 +434,7 @@ async def delete_camera_group(
 
 
 @camera_router.patch(
-    "/camera/crud/{group_id}",
+    "/camera/crud/groups/{group_id}",
     response_model=AuthResponse[CameraGroupDTO],
     responses={
         200: {"description": "Successful update"},
@@ -543,7 +544,7 @@ async def patch_camera_group(
 
 
 @camera_router.post(
-    "/camera/crud/{group_id}",
+    "/camera/crud/groups/{group_id}/cameras",
     response_model=AuthResponse[CameraDTO],
     responses={
         200: {"description": "Successful addition"},
@@ -645,7 +646,7 @@ async def create_camera(
 
 
 @camera_router.delete(
-    "/camera/crud/{group_id}/{camera_id}",
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}",
     response_model=AuthResponse[CameraDTO],
     responses={
         200: {"description": "Successful delete"},
@@ -734,7 +735,7 @@ async def delete_camera(
         )
 
 @camera_router.get(
-    "/camera/crud/{group_id}/{camera_id}",
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}",
     response_model=AuthResponse[CameraDTO],
     responses={
         200: {"description": "Successful return"},
@@ -817,6 +818,159 @@ async def get_camera(
     except Exception as e:
         logger.error(f"Camera getting error: {str(e)}", exc_info=True)
         result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.get(
+    "/camera/crud/groups/{group_id}/cameras",
+    response_model=AuthResponse[PaginatorList[CameraAdminDTO]],
+    responses={
+        200: {"description": "List of cameras matching search criteria"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_cameras(
+        group_id: int= Path(..., description="ID of camera group"),
+        page: int = Query(1, description="Page number"),
+        count: int = Query(10, description="Number of users to return"),
+        name: str | None = Query(None, description="Filter by name (partial match)"),
+        address_link: str | None = Query(None, description="Filter by address_link (partial match)"),
+        camera_id: int | None = Query(None, description="Filter by camera id (partial match)"),
+        is_active: bool | None = Query(None, description="Filter by active (true/false)"),
+        created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
+        created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
+        updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
+        updated_to: datetime | None = Query(None, description="Filter by update date (to)"),
+        sort_by: list[str] = Query(
+            ["created_at"],
+            description="Fields to sort by (comma-separated)"
+        ),
+        sort_order: list[str] = Query(
+            ["desc"],
+            description="Sort order for each field (asc/desc)"
+        ),
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse[PaginatorList[CameraAdminDTO]]:
+    """
+    Search and filter cameras with advanced querying capabilities
+
+    Features:
+    - Multi-field filtering with partial matching (ILIKE)
+    - Date range filtering
+    - Multi-column sorting
+    - Pagination-ready (use with skip/limit parameters)
+
+    Security:
+    - Requires valid authentication token
+
+    Examples:
+    - /camera/crud/groups/5/cameras?created_from=2024-01-01T00:00:00&camera_id=2&sort_by=name&sort_by=id&sort_order=asc&sort_order=desc
+    """
+    result = AuthResponse(token=token, data={})
+    try:
+        if page < 1:
+            result.data = {"message": "Invalid page number"}
+            logger.error(f"Invalid page number {page}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        if count < 1:
+            result.data = {"message": "Invalid number of users per page"}
+            logger.error(f"Invalid number of users per page number {count}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        # Log the search attempt (mask sensitive parameters)
+        logger.info(
+            "Camera search initiated",
+            extra={
+                "extra_data": {
+                    "filters": {
+                        "id": camera_id,
+                        "name": name if name else None,
+                        "address_link": address_link if address_link else None,
+                        "is_active": is_active,
+                        "created_from": created_from if created_from else None,
+                        "created_to": created_to if created_to else None,
+                        "updated_from": updated_from if updated_from else None,
+                        "updated_to": updated_to if updated_to else None,
+                        "group_id": group_id,
+                    },
+                    "sorting": {
+                        "by": sort_by,
+                        "order": sort_order
+                    }
+                }
+            }
+        )
+        if len(sort_by) != len(sort_order):
+            logger.error(f"Sort_by and Sort_order must have same length",
+                         extra={
+                             "extra_data": {
+                                 "sort_by": sort_by,
+                                 "sort_order": sort_order
+                             }
+                         })
+            result.data = {"message": "Sort_by and Sort_order must have same length"}
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        # Execute the search
+        cameras = await crud.search_cameras(
+            db=db,
+            filters={
+                "id": camera_id,
+                "name": name,
+                "address_link": address_link,
+                "is_active": is_active,
+                "group_id": group_id,
+                "created_from": created_from,
+                "created_to": created_to,
+                "updated_from": updated_from,
+                "updated_to": updated_to,
+            },
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            count=count
+        )
+
+        # Log results
+        logger.info(
+            f"Cameras search completed. Found {len(cameras)} matching records",
+            extra={
+                "result_count": len(cameras),
+                "first_user_id": cameras[0].id if cameras else None
+            }
+        )
+        logger.info([camera.to_dict() for camera in cameras])
+        result.data = PaginatorList(
+            page=page,
+            page_count=len(cameras) // count + 1,
+            items_per_page=count,
+            item_count=len(cameras),
+            items=[CameraAdminDTO(**camera.to_dict()) for camera in cameras]
+        )
+        return result
+
+    except HTTPException:
+        logger.warning("Camera search failed - authorization error")
+        raise
+    except Exception as e:
+        result.data = {"message": "Internal server error"}
+        logger.error(
+            "Camera search failed unexpectedly",
+            exc_info=True,
+            extra={
+                "extra_data": {
+                    "error": str(e)
+                }
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()
