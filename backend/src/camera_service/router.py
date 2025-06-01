@@ -732,3 +732,92 @@ async def delete_camera(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()
         )
+
+@camera_router.get(
+    "/camera/crud/{group_id}/{camera_id}",
+    response_model=AuthResponse[CameraDTO],
+    responses={
+        200: {"description": "Successful return"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_camera(
+        group_id: int,
+        camera_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+)-> AuthResponse[CameraGroupDTO]:
+    """
+    Get a camera with validation checks.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Checks existing camera group
+    3. Checks existing camera record
+    4. Returns camera record
+
+    Args:
+        group_id: ID of camera group
+        camera_id: ID of camera to delete
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with deleted camera data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"Camera getting attempt | "
+            f"Camera: {group_id} | {camera_id} | "
+        )
+
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.error(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not camera or camera.group_id != group_id:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        get_camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not get_camera:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        # 4. Return success response
+        logger.info(f"Camera get | ID: {get_camera.id}")
+        camera_dict = get_camera.to_dict()
+        result.data = CameraDTO(**camera_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Camera getting error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
