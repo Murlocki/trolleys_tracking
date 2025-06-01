@@ -489,7 +489,7 @@ async def patch_camera_group(
             )
 
         group_count = await count_groups_with_name(db=db, name=camera_update.name)
-        if not(group_count == 1 and camera_group.name == camera_update.name):
+        if not(group_count == 1 and camera_group.name == camera_update.name or group_count == 0):
             logger.error(f"Camera group name {camera_update.name} is not available")
             result.data = {"message": f"Camera group name {camera_update.name} is not available"}
             raise HTTPException(
@@ -885,6 +885,12 @@ async def get_cameras(
             logger.error(f"Invalid number of users per page number {count}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
+        group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not group:
+            result.data = {"message": "Camera not found"}
+            logger.error(f"Camera group {group_id} not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result.model_dump())
+
         # Log the search attempt (mask sensitive parameters)
         logger.info(
             "Camera search initiated",
@@ -971,6 +977,146 @@ async def get_cameras(
                 }
             }
         )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.patch(
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}",
+    response_model=AuthResponse[CameraDTO],
+    responses={
+        200: {"description": "Successful update"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def patch_camera(
+        group_id: int,
+        camera_id: int,
+        camera_update: CameraSchema,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+)-> AuthResponse[CameraDTO]:
+    """
+    Update a camera group account after validation checks
+
+    Security Flow:
+    1. Validate authentication token
+    2. Verify target group exists
+    3. Verify camera group version
+    4. Update camera group
+
+    Rules:
+    - Services cannot update anything
+
+    Args:
+        group_id: ID of camera group
+        camera_id: ID of camera to update
+        camera_update: Update camera group schema
+        db: Database session
+        token: Validated JWT token
+
+    Returns:
+        AuthResponse with updated group data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token, data={"message": ""})
+
+    try:
+        # 1. Get target camera
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.warning(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not camera:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 2. Check available name and address
+        camera_count = await crud.count_cameras_with_name(db=db, name=camera_update.name)
+        if not(camera_count == 1 and camera.name == camera_update.name or camera_count == 0):
+            logger.error(f"Camera name {camera_update.name} is not available")
+            result.data = {"message": f"Camera name {camera_update.name} is not available"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera name {camera_update.name} is available")
+
+        camera_count = await crud.count_cameras_with_link(db=db, camera_link=camera_update.address_link)
+        if not (camera_count == 1 and camera.address_link == camera_update.address_link or camera_count == 0):
+            logger.error(f"Camera address link {camera_update.address_link} is not available")
+            result.data = {"message": f"Camera address link {camera_update.address_link} is not available"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera address link {camera_update.address_link} is available")
+
+        # 3. Check version
+        if camera.version > camera_update.version:
+            logger.error(f"Camera {camera_id} was updated to {camera.version}")
+            result.data = {"message": f"Camera {camera_id} was already updated"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        camera_update.version +=1
+        logger.info(f"Camera {camera_id} new version is {camera_update.version}")
+
+        # 4. Check exists new camera group
+        camera_group = await crud.get_camera_group_by_id(camera_group_id=camera.group_id, db=db)
+        if not camera_group:
+            logger.error(f"New camera group not found | ID: {camera_id}")
+            result.data = {"message": "New camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        # 4. Perform update
+        updated_camera = await crud.update_camera(db=db, camera_id=camera_id, camera=camera_update)
+        if not updated_camera:
+            logger.error(f"Update failed | Camera ID: {camera_id}")
+            result.data = {"message": "Update failed"}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
+
+        # 4. Log and return success
+        logger.info(
+            f"Camera updated successfully | "
+            f"ID: {camera_id} | "
+        )
+
+        result.data = CameraDTO(**updated_camera.to_dict())
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Camera update error | ID: {camera_id} | Error: {str(e)}",
+            exc_info=True
+        )
+        result.data = {"message": "Internal server error"}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()

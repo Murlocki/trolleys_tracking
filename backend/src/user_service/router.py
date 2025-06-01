@@ -879,7 +879,7 @@ async def update_user_by_id(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=result.model_dump())
 
         user_count = await count_users_with_username(db=db, username=user.username)
-        if not(user_count == 1 and db_user.username == user.username):
+        if not(user_count == 1 and db_user.username == user.username or user_count == 0):
             logger.error(f"Username {user.username} is not available")
             result.data = {"message": f"Username {user.username} is not available"}
             raise HTTPException(

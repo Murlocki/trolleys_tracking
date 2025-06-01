@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy import select, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from src.camera_service.schemas import CameraGroupSchema, CameraSchema
 from src.shared.logger_setup import setup_logger
@@ -201,8 +202,9 @@ async def search_cameras(
         page: int = 1,
         count: int = 10
 ):
-    stmt = select(Camera)
 
+    # Начинаем с динамического запроса камер группы
+    stmt = select(Camera)
     field_column_map = {
         "id": Camera.id,
         "name": Camera.name,
@@ -253,3 +255,33 @@ async def search_cameras(
 
     result = await db.execute(stmt.offset((page - 1) * count).limit(count))
     return result.scalars().all()
+
+
+async def update_camera(db: AsyncSession, camera_id: int, camera: CameraSchema):
+    try:
+        # Получаем пользователя с joined user_data
+        result = await db.execute(
+            select(Camera)
+            .filter(Camera.id == camera_id)
+        )
+        db_camera = result.scalar_one_or_none()
+
+        if not db_camera:
+            logger.error(f"Camera {camera_id} not found")
+            return None
+        logger.info(f"Camera found {db_camera.to_dict()}")
+        update_data = camera.model_dump()
+        logger.info(f"Camera update data {update_data}")
+        for key, value in update_data.items():
+            if hasattr(db_camera, key):
+                setattr(db_camera, key, value)
+        db_camera.updated_at = datetime.now()
+        logger.info(f"Camera updated {db_camera.to_dict()}")
+        await db.commit()
+        await db.refresh(db_camera)
+        return db_camera
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error updating camera {camera_id}: {str(e)}", exc_info=True)
+        raise
