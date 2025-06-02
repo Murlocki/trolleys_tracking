@@ -214,7 +214,6 @@ async def search_cameras(
         "name": Camera.name,
         "address_link": Camera.address_link,
         "group_id": Camera.group_id,
-        "is_active": Camera.is_active,
         "created_at": Camera.created_at,
         "updated_at": Camera.updated_at,
     }
@@ -235,7 +234,7 @@ async def search_cameras(
             conditions.append(Camera.updated_at <= value)
         elif field == "id":
             conditions.append(cast(Camera.id, String).ilike(f"%{value}%"))
-        elif field in ["is_active", "group_id"]:
+        elif field == "group_id":
             column = field_column_map[field]
             conditions.append(column == value)
         elif field in field_column_map:

@@ -110,7 +110,6 @@ class CameraDTO(BaseModel):
     name: str = Field(alias="name", min_length=1)
     address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
     group_id: int = Field(validation_alias=AliasChoices('group_id', 'groupId'))
-    is_active: bool = Field(default=False, validation_alias=AliasChoices('is_active', 'isActive'))
     version: int = Field(alias="version", default=0)
 
     class Config:

@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     session_service_url: str = Field("http://127.0.0.1:8001")
     auth_service_url: str = Field("http://127.0.0.1:8000")
     camera_service_url: str = Field("http://127.0.0.1:8004")
+    camera_reader_service_url: str = Field("http://127.0.0.1:8003")
     kafka_broker: str = Field("localhost:9093")
     api_key: str = ""
     old_access_token_record_expire_seconds: int = 0

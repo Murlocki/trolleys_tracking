@@ -253,12 +253,6 @@ class Camera(Base):
         nullable=False,
         comment="Строка подключения к камере"
     )
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-        comment="Флаг активности камеры"
-    )
     group_id: Mapped[int] = mapped_column(
         ForeignKey("camera_groups.id", ondelete="CASCADE"),
         nullable=False,
@@ -306,7 +300,6 @@ class Camera(Base):
             "id": self.id,
             "name": self.name,
             "address_link": self.address_link,
-            "is_active": self.is_active,
             "group_id": self.group_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
