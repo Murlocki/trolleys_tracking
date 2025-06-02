@@ -7,7 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHea
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_reader_service.external_functions import find_camera_by_id
-from src.camera_reader_service.process_camera import activate_camera, deactivate_camera
+from src.camera_reader_service.process_camera import activate_camera, deactivate_camera, get_camera_status
 from src.camera_service import crud
 from src.camera_service.crud import count_groups_with_name
 from src.camera_service.external_functions import check_auth_from_external_service, find_user_by_id
@@ -120,7 +120,7 @@ async def activate_camera_reader(
         500: {"description": "Internal server error"},
     }
 )
-async def activate_camera_reader(
+async def deactivate_camera_reader(
         group_id: int,
         camera_id: int,
         token: str = Depends(get_valid_token)
@@ -156,6 +156,69 @@ async def activate_camera_reader(
         # 4. Return success response
         logger.info(f"Camera activated | ID: {camera.id}")
         result.data = camera
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Camera activation error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_reader_router.get(
+    "/camera_reader/groups/{group_id}/cameras/{camera_id}/status",
+    status_code=status.HTTP_200_OK,
+    response_model=AuthResponse,
+    responses={
+        201: {"description": "Camera reading status extraction successfully"},
+        400: {"description": "Invalid input data"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Forbidden - insufficient privileges"},
+        409: {"description": "Camera group already exists"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"},
+    }
+)
+async def get_camera_reader_status(
+        group_id: int,
+        camera_id: int,
+        token: str = Depends(get_valid_token)
+) -> AuthResponse:
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"Camera status extraction attempt | "
+            f"Schema: {group_id} | {camera_id} | "
+        )
+
+        # 2. Check name availability
+        response = await find_camera_by_id(group_id=group_id, camera_id=camera_id, api_key=settings.api_key)
+        if error:= verify_response(response, 200):
+            logger.warning(f"Camera not found: {error['detail']['data']['message']} with code: {error['status_code']}")
+            result.data = {"message": error["detail"]["data"]["message"]}
+            raise HTTPException(
+                status_code=error["status_code"],
+                detail=result.model_dump()
+            )
+        camera = CameraDTO(**response.json()["data"])
+        camera_reader_status = await get_camera_status(camera=camera)
+        if not camera_reader_status:
+            result.data = {"message": f"Camera reader status extraction failed for {camera_id}"}
+            logger.error(f"Camera reader status extraction failed for {camera_id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 4. Return success response
+        logger.info(f"Camera reader status extraction  successed | status: {camera_reader_status}")
+        result.data = camera_reader_status
         return result
 
     except HTTPException:
