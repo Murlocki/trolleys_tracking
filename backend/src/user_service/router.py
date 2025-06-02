@@ -349,7 +349,7 @@ async def get_users(
         email: str | None = Query(None, description="Filter by email (partial match)"),
         first_name: str | None = Query(None, description="Filter by first name (partial match)"),
         last_name: str | None = Query(None, description="Filter by last name (partial match)"),
-        user_id: int | None = Query(None, description="Filter by exact user ID"),
+        user_id: int | None = Query(None, description="Filter by user ID (partial match)"),
         role: str | None = Query(None, description="Filter by role (partial match)"),
         created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
         created_to: datetime | None = Query(None, description="Filter by creation date (to)"),

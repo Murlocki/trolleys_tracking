@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from sqlalchemy import select, desc, asc, cast, String, func
+from sqlalchemy import select, desc, asc, cast, String, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import joinedload
 
-from src.camera_service.schemas import CameraGroupSchema, CameraSchema
+from src.camera_service.schemas import CameraGroupSchema, CameraSchema, CameraUserAssociationAdminDTO
 from src.shared.logger_setup import setup_logger
-from src.shared.models import CameraGroup, Camera
+from src.shared.models import CameraGroup, Camera, CameraUserAssociation, User
 
 logger = setup_logger(__name__)
 
@@ -154,11 +154,15 @@ async def count_cameras_with_name(db: AsyncSession, name: str):
     count = db_cameras.scalar_one()
     logger.info(f"Found {count} cameras with name {name}")
     return count
+
+
 async def count_cameras_with_link(db: AsyncSession, camera_link: str):
-    db_cameras = await db.execute(select(func.count()).select_from(Camera).filter(Camera.address_link==camera_link))
+    db_cameras = await db.execute(select(func.count()).select_from(Camera).filter(Camera.address_link == camera_link))
     count = db_cameras.scalar_one()
     logger.info(f"Found {count} cameras with link {camera_link}")
     return count
+
+
 async def create_camera(db: AsyncSession, camera: CameraSchema, camera_group: CameraGroup):
     new_camera = Camera(
         name=camera.name,
@@ -172,6 +176,7 @@ async def create_camera(db: AsyncSession, camera: CameraSchema, camera_group: Ca
     logger.info(f"Created new camera {new_camera.to_dict()}")
     return new_camera
 
+
 async def get_camera_by_id(db: AsyncSession, camera_id: int):
     db_camera = await db.execute(select(Camera).filter(Camera.id == camera_id))
     db_camera = db_camera.scalar_one_or_none()
@@ -180,6 +185,7 @@ async def get_camera_by_id(db: AsyncSession, camera_id: int):
         return None
     logger.info(f"Found camera with id {db_camera.to_dict()}")
     return db_camera
+
 
 async def delete_camera_by_id(db: AsyncSession, camera_id: int):
     db_camera = await db.execute(select(Camera).filter(Camera.id == camera_id))
@@ -202,8 +208,6 @@ async def search_cameras(
         page: int = 1,
         count: int = 10
 ):
-
-    # Начинаем с динамического запроса камер группы
     stmt = select(Camera)
     field_column_map = {
         "id": Camera.id,
@@ -285,3 +289,169 @@ async def update_camera(db: AsyncSession, camera_id: int, camera: CameraSchema):
         await db.rollback()
         logger.error(f"Error updating camera {camera_id}: {str(e)}", exc_info=True)
         raise
+
+
+async def create_user_camera(db: AsyncSession, camera_id: int, user_id: int):
+    try:
+        camera_user = CameraUserAssociation(camera_id=camera_id, user_id=user_id)
+        logger.info(f"New camera sub: {camera_user.to_dict()}")
+        db.add(camera_user)
+        await db.commit()
+        await db.refresh(camera_user)
+        return camera_user
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error creating camera {camera_id}: {str(e)}", exc_info=True)
+        raise
+
+
+async def delete_user_camera(db: AsyncSession, record_id: int):
+    try:
+        camera_user = await db.execute(select(CameraUserAssociation).filter(CameraUserAssociation.id == record_id))
+        camera_user = camera_user.scalar_one_or_none()
+        if not camera_user:
+            logger.error(f"Camera {record_id} not found")
+            return None
+        await db.delete(camera_user)
+        await db.commit()
+        logger.info(f"Camera {record_id} deleted")
+        return camera_user
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error deleting camera {record_id}: {str(e)}", exc_info=True)
+        raise
+
+
+async def get_camera_subscription_record(db: AsyncSession, record_id: int):
+    try:
+        camera_subscription = await db.execute(
+            select(CameraUserAssociation).filter(CameraUserAssociation.id == record_id))
+        camera_subscription = camera_subscription.scalar_one_or_none()
+        if not camera_subscription:
+            logger.error(f"Camera {record_id} not found")
+            return None
+        return camera_subscription
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error getting camera subscription {record_id}: {str(e)}", exc_info=True)
+        raise
+
+
+async def get_camera_subscription_record_by_user_camera(db: AsyncSession, user_id: int, camera_id: int):
+    try:
+        camera_subscription = await db.execute(select(CameraUserAssociation).filter(
+            CameraUserAssociation.user_id == user_id and CameraUserAssociation.camera_id == camera_id))
+        camera_subscription = camera_subscription.scalar_one_or_none()
+        if not camera_subscription:
+            logger.error(f"Camera {camera_id} not found")
+            return None
+        return camera_subscription
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error getting camera subscription {camera_id}|{user_id}: {str(e)}", exc_info=True)
+        raise
+
+
+async def delete_camera_subscription_by_id(db: AsyncSession, record_id: int):
+    try:
+        camera_subscription = await db.execute(
+            select(CameraUserAssociation).filter(CameraUserAssociation.id == record_id))
+        camera_subscription = camera_subscription.scalar_one_or_none()
+        if not camera_subscription:
+            logger.error(f"Camera {record_id} not found")
+            return None
+        await db.delete(camera_subscription)
+        await db.commit()
+        logger.info(f"Camera {record_id} deleted")
+        return camera_subscription
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Error deleting camera subscription {record_id}: {str(e)}", exc_info=True)
+        raise
+
+
+async def search_camera_subscriptions(
+        db: AsyncSession,
+        camera: Camera,
+        filters: dict,
+        sort_by: list[str] = None,
+        sort_order: list[str] = None,
+        page: int = 1,
+        count: int = 10
+):
+    # Базовый запрос с оптимизированной загрузкой
+    stmt = (
+        select(CameraUserAssociation)
+        .options(
+            joinedload(CameraUserAssociation.camera).load_only(Camera.name, Camera.version),
+            joinedload(CameraUserAssociation.user).load_only(User.username)
+        )
+        .where(CameraUserAssociation.camera_id == camera.id)
+    )
+
+    # Маппинг полей для фильтрации
+    filter_field_map = {
+        "id": CameraUserAssociation.id,
+        "user_id": CameraUserAssociation.user_id,
+        "user_name": User.username,
+        "created_at": CameraUserAssociation.created_at,
+        "updated_at": CameraUserAssociation.updated_at,
+    }
+
+    # Применение фильтров
+    conditions = []
+    for field, value in filters.items():
+        if value is None or field not in filter_field_map:
+            continue
+
+        column = filter_field_map[field]
+        if field == "user_name":
+            conditions.append(User.username.ilike(f"%{value}%"))
+        elif field.endswith("_from"):
+            conditions.append(column >= value)
+        elif field.endswith("_to"):
+            conditions.append(column <= value)
+        else:
+            conditions.append(column == value)
+
+    if conditions:
+        stmt = stmt.join(User).where(and_(*conditions))
+
+    # Применение сортировки
+    if sort_by:
+        order_clauses = []
+        for i, field in enumerate(sort_by):
+            if field in filter_field_map:
+                order = sort_order[i] if i < len(sort_order) else "asc"
+                order_clauses.append(
+                    desc(filter_field_map[field]) if order.lower() == "desc"
+                    else asc(filter_field_map[field]))
+
+        if order_clauses:
+            stmt = stmt.order_by(*order_clauses)
+
+    # Пагинация
+    total = await db.scalar(
+        select(func.count())
+        .select_from(stmt.subquery())
+    )
+
+    result = await db.execute(
+        stmt.offset((page - 1) * count).limit(count)
+    )
+
+    # Формирование результата
+    items = []
+    for association in result.unique().scalars().all():
+        items.append(CameraUserAssociationAdminDTO(
+            id = association.id,
+            camera_id= association.camera_id,
+            camera_name= association.camera.name,
+            user_id= association.user_id,
+            user_name= association.user.username,
+            created_at= association.created_at.isoformat() if association.created_at else None,
+            updated_at= association.updated_at.isoformat() if association.updated_at else None,
+        ))
+
+
+    return items

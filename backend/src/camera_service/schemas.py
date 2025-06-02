@@ -54,3 +54,35 @@ class CameraAdminDTO(BaseModel):
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
+class CameraUserAssociationSchema(BaseModel):
+    camera_id: int = Field(validation_alias=AliasChoices('camera_id', 'cameraId'))
+    user_id: int = Field(default=0, validation_alias=AliasChoices('user_id', 'userId'))
+    version: int = Field(alias="version", default=0)
+
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True
+
+class CameraUserAssociationDTO(BaseModel):
+    id: int = Field(alias="id")
+    camera_id: int = Field(validation_alias=AliasChoices('camera_id', 'cameraId'))
+    user_id: int = Field(default=0, validation_alias=AliasChoices('user_id', 'userId'))
+
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True
+
+
+class CameraUserAssociationAdminDTO(BaseModel):
+    id: int = Field(alias="id")
+    camera_id: int = Field(validation_alias=AliasChoices('camera_id', 'cameraId'))
+    camera_name: str = Field(validation_alias=AliasChoices('camera_name', 'cameraName'))
+    user_id: int = Field(default=0, validation_alias=AliasChoices('user_id', 'userId'))
+    user_name: str = Field(validation_alias=AliasChoices('user_name', 'userName'))
+    created_at: str = Field(default="", validation_alias=AliasChoices('created_at', 'createdAt'))
+    updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
+
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True

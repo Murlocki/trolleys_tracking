@@ -8,9 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_service import crud
 from src.camera_service.crud import count_groups_with_name
-from src.camera_service.external_functions import check_auth_from_external_service
+from src.camera_service.external_functions import check_auth_from_external_service, find_user_by_id
 from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO, CameraSchema, \
-    CameraAdminDTO
+    CameraAdminDTO, CameraUserAssociationDTO, CameraUserAssociationSchema, CameraUserAssociationAdminDTO
+from src.shared.common_functions import verify_response
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
@@ -364,7 +365,7 @@ async def delete_camera_group(
         group_id: int,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-)  -> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraGroupDTO]:
     """
     Delete a camera group account after validation checks
 
@@ -450,7 +451,7 @@ async def patch_camera_group(
         camera_update: CameraGroupSchema,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-)-> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraGroupDTO]:
     """
     Update a camera group account after validation checks
 
@@ -489,7 +490,7 @@ async def patch_camera_group(
             )
 
         group_count = await count_groups_with_name(db=db, name=camera_update.name)
-        if not(group_count == 1 and camera_group.name == camera_update.name or group_count == 0):
+        if not (group_count == 1 and camera_group.name == camera_update.name or group_count == 0):
             logger.error(f"Camera group name {camera_update.name} is not available")
             result.data = {"message": f"Camera group name {camera_update.name} is not available"}
             raise HTTPException(
@@ -505,7 +506,7 @@ async def patch_camera_group(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=result.model_dump()
             )
-        camera_update.version +=1
+        camera_update.version += 1
         logger.info(f"Camera group {group_id} new version is {camera_update.version}")
 
         # 3. Perform deletion
@@ -541,8 +542,6 @@ async def patch_camera_group(
         )
 
 
-
-
 @camera_router.post(
     "/camera/crud/groups/{group_id}/cameras",
     response_model=AuthResponse[CameraDTO],
@@ -560,7 +559,7 @@ async def create_camera(
         camera_data: CameraSchema,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-)-> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraGroupDTO]:
     """
     Creates a new camera with validation checks.
 
@@ -599,7 +598,6 @@ async def create_camera(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=result.model_dump()
             )
-
 
         # 3. Check name and link availability
         existing_cameras = await crud.count_cameras_with_name(db=db, name=camera_data.name)
@@ -662,7 +660,7 @@ async def delete_camera(
         camera_id: int,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-)-> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraGroupDTO]:
     """
     Creates a new camera with validation checks.
 
@@ -734,6 +732,7 @@ async def delete_camera(
             detail=result.model_dump()
         )
 
+
 @camera_router.get(
     "/camera/crud/groups/{group_id}/cameras/{camera_id}",
     response_model=AuthResponse[CameraDTO],
@@ -751,7 +750,7 @@ async def get_camera(
         camera_id: int,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-)-> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraGroupDTO]:
     """
     Get a camera with validation checks.
 
@@ -836,7 +835,7 @@ async def get_camera(
     }
 )
 async def get_cameras(
-        group_id: int= Path(..., description="ID of camera group"),
+        group_id: int = Path(..., description="ID of camera group"),
         page: int = Query(1, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         name: str | None = Query(None, description="Filter by name (partial match)"),
@@ -1001,7 +1000,7 @@ async def patch_camera(
         camera_update: CameraSchema,
         db: AsyncSession = Depends(get_db),
         token: str = Depends(get_valid_token)
-)-> AuthResponse[CameraDTO]:
+) -> AuthResponse[CameraDTO]:
     """
     Update a camera group account after validation checks
 
@@ -1051,7 +1050,7 @@ async def patch_camera(
 
         # 2. Check available name and address
         camera_count = await crud.count_cameras_with_name(db=db, name=camera_update.name)
-        if not(camera_count == 1 and camera.name == camera_update.name or camera_count == 0):
+        if not (camera_count == 1 and camera.name == camera_update.name or camera_count == 0):
             logger.error(f"Camera name {camera_update.name} is not available")
             result.data = {"message": f"Camera name {camera_update.name} is not available"}
             raise HTTPException(
@@ -1078,7 +1077,7 @@ async def patch_camera(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=result.model_dump()
             )
-        camera_update.version +=1
+        camera_update.version += 1
         logger.info(f"Camera {camera_id} new version is {camera_update.version}")
 
         # 4. Check exists new camera group
@@ -1117,6 +1116,480 @@ async def patch_camera(
             exc_info=True
         )
         result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.post(
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}/subscribers",
+    response_model=AuthResponse[CameraUserAssociationDTO],
+    responses={
+        200: {"description": "Successful addition"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def create_camera_subscribe(
+        group_id: int,
+        camera_id: int,
+        record_data: CameraUserAssociationSchema,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse[CameraUserAssociationDTO]:
+    """
+    Creates a new camera subscribe record with validation checks.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Check existing camera subscription
+    3. Checks camera id and user id availability
+    4. Creates camera subscription record
+
+    Args:
+        group_id: ID of camera group
+        camera_id: ID of camera
+        record_data: Camera subscription creation data
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with created camera data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"Camera subscription creation attempt | "
+            f"Schema: {record_data} | "
+        )
+
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.error(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera group found | ID: {group_id}")
+
+        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not camera:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera found | ID: {camera_id}")
+
+        response = await find_user_by_id(user_id=record_data.user_id, api_key=settings.api_key)
+        if error := verify_response(response):
+            logger.error(f"User finding error | ID: {record_data.user_id} | Error: {str(error)}")
+            result.data = error['detail']['data']['message']
+            raise HTTPException(
+                status_code=error["status_code"],
+                detail=result.model_dump()
+            )
+        logger.info(f"User found | ID: {record_data.user_id}")
+
+        if camera_id != record_data.camera_id:
+            logger.error(f"Camera ID mismatch | ID: {camera_id} {record_data.camera_id}")
+            result.data = {"message": "Camera ID mismatch"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera ID matches: {camera_id} | ID: {record_data.camera_id}")
+
+        camera_subscription = await crud.get_camera_subscription_record_by_user_camera(db=db,
+                                                                                       user_id=record_data.user_id,
+                                                                                       camera_id=camera_id)
+        if camera_subscription:
+            logger.error(
+                f"Camera subscription record already exists | Camera ID: {camera_id} User: {record_data.user_id} ")
+            result.data = {"message": "Camera subscription already exists"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
+        logger.info(f"Camera subscription record not found | {camera_id} User: {record_data.user_id} ")
+
+        # 2. Create camera subscription
+        new_subscription = await crud.create_user_camera(db=db, user_id=record_data.user_id, camera_id=camera_id)
+        if not new_subscription:
+            logger.error("Camera subscription creation failed")
+            result.data = {"message": "Camera subcription creation failed"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 4. Return success response
+        logger.info(f"Camera subcription created | ID: {new_subscription.id}")
+        subscription_dict = new_subscription.to_dict()
+        result.data = CameraUserAssociationDTO(**subscription_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Camera subscription creation error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.delete(
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}/subscribers/{subscription_id}",
+    response_model=AuthResponse[CameraUserAssociationDTO],
+    responses={
+        200: {"description": "Successful addition"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def delete_camera_subscribe(
+        group_id: int,
+        camera_id: int,
+        subscription_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse[CameraUserAssociationDTO]:
+    """
+    Creates a new camera subscribe record with validation checks.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Check existing camera subscription
+    3. Checks camera id and user id availability
+    4. Creates camera subscription record
+
+    Args:
+        group_id: ID of camera group
+        camera_id: ID of camera
+        subscription_id: ID of camera subscription
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with created camera data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"Camera subscription deletion attempt | "
+            f"ID: {subscription_id} | "
+        )
+
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.error(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not camera:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        subscription = await crud.get_camera_subscription_record(db=db, record_id=subscription_id)
+        if not subscription:
+            logger.error(f"Camera subscription not found | ID: {subscription_id}")
+            result.data = {"message": "Camera subscription not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        camera_subscription = await crud.delete_camera_subscription_by_id(db=db, record_id=subscription_id)
+        if not camera_subscription:
+            logger.error(f"Camera subscription deletion error | ID: {subscription_id}")
+            result.data = {"message": "Camera subscription deletion error"}
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=result.model_dump()
+            )
+
+        # 3. Return success response
+        logger.info(f"Camera subscription was deleted | ID: {camera_subscription.id}")
+        subscription_dict = camera_subscription.to_dict()
+        result.data = CameraUserAssociationDTO(**subscription_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Camera subscription deletion error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.get(
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}/subscribers/{subscription_id}",
+    response_model=AuthResponse[CameraUserAssociationDTO],
+    responses={
+        200: {"description": "Successful extraction"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_camera_subscribe(
+        group_id: int,
+        camera_id: int,
+        subscription_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse[CameraUserAssociationDTO]:
+    """
+    Get a camera subscribe record with validation checks.
+
+    Security Flow:
+    1. Validates authentication token
+    2. Check existing camera subscription
+    4. Get camera subscription record
+
+    Args:
+        group_id: ID of camera group
+        camera_id: ID of camera
+        subscription_id: ID of camera subscription
+        db: Database session
+        token: Validated authentication token
+
+    Returns:
+        AuthResponse with created camera data
+
+    Raises:
+        HTTPException: For any validation or authorization failure
+    """
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(
+            f"Camera subscription deletion attempt | "
+            f"ID: {subscription_id} | "
+        )
+
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.error(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not camera:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        subscription = await crud.get_camera_subscription_record(db=db, record_id=subscription_id)
+        if not subscription:
+            logger.error(f"Camera subscription not found | ID: {subscription_id}")
+            result.data = {"message": "Camera subscription not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        # 3. Return success response
+        logger.info(f"Camera subscription was extracted | ID: {subscription.id}")
+        subscription_dict = subscription.to_dict()
+        result.data = CameraUserAssociationDTO(**subscription_dict)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Camera subscription deletion error: {str(e)}", exc_info=True)
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
+
+
+@camera_router.get(
+    "/camera/crud/groups/{group_id}/cameras/{camera_id}/subscribers",
+    response_model=AuthResponse[PaginatorList[CameraUserAssociationAdminDTO]],
+    responses={
+        200: {"description": "Successful extraction"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_camera_subscribes(
+        group_id: int,
+        camera_id: int,
+        page: int = Query(1, description="Page number"),
+        count: int = Query(10, description="Number of users to return"),
+        username: str | None = Query(None, description="Filter by username (partial match)"),
+        user_id: int | None = Query(None, description="Filter by user ID (partial match)"),
+        id: int | None = Query(None, description="Filter by record ID (partial match)"),
+        created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
+        created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
+        updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
+        updated_to: datetime | None = Query(None, description="Filter by update date (to)"),
+        sort_by: list[str] = Query(
+            ["created_at"],
+            description="Fields to sort by (comma-separated)"
+        ),
+        sort_order: list[str] = Query(
+            ["desc"],
+            description="Sort order for each field (asc/desc)"
+        ),
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse[PaginatorList[CameraUserAssociationAdminDTO]]:
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(f"Camera subscription search attempt")
+        camera_group = await crud.get_camera_group_by_id(db=db, camera_group_id=group_id)
+        if not camera_group:
+            logger.error(f"Camera group not found | ID: {group_id}")
+            result.data = {"message": "Camera group not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not camera:
+            logger.error(f"Camera not found | ID: {camera_id}")
+            result.data = {"message": "Camera not found"}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=result.model_dump()
+            )
+
+        if page < 1:
+            result.data = {"message": "Invalid page number"}
+            logger.error(f"Invalid page number {page}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        if count < 1:
+            result.data = {"message": "Invalid number of users per page"}
+            logger.error(f"Invalid number of users per page number {count}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        # Log the search attempt (mask sensitive parameters)
+        logger.info(
+            "User search initiated",
+            extra={
+                "extra_data": {
+                    "filters": {
+                        "id": id,
+                        "username": username[:3] + "..." if username else None,
+                        "user_id": user_id if user_id else None
+                    },
+                    "sorting": {
+                        "by": sort_by,
+                        "order": sort_order
+                    }
+                }
+            }
+        )
+        if len(sort_by) != len(sort_order):
+            logger.error(f"Sort_by and Sort_order must have same length",
+                         extra={
+                             "extra_data": {
+                                 "sort_by": sort_by,
+                                 "sort_order": sort_order
+                             }
+                         })
+            result.data = {"message": "Sort_by and Sort_order must have same length"}
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
+
+        subscriptions = await crud.search_camera_subscriptions(
+            db=db,
+            filters={
+                "id": id,
+                "user_name": username,
+                "user_id": user_id,
+                "created_from": created_from,
+                "created_to": created_to,
+                "updated_from": updated_from,
+                "updated_to": updated_to
+                },
+                sort_by=sort_by,
+                sort_order=sort_order,
+                page=page,
+                count=count,
+                camera=camera)
+        # Log results
+        logger.info(
+            f"Subscribes search completed. Found {len(subscriptions)} matching records",
+            extra={
+                "extra_data": {
+                    "result_count": len(subscriptions),
+                    "first_sub_id": subscriptions[0].id if subscriptions else None
+                }
+            }
+        )
+        logger.info(subscriptions)
+        result.data = PaginatorList(
+            page=page,
+            page_count=len(subscriptions) // count + 1,
+            items_per_page=count,
+            item_count=len(subscriptions),
+            items=subscriptions
+        )
+        return result
+
+    except HTTPException:
+        logger.warning("User search failed - authorization error")
+        raise
+    except Exception as e:
+        result.data = {"message": "Internal server error"}
+        logger.error(
+            "User search failed unexpectedly",
+            exc_info=True,
+            extra={
+                "extra_data": {
+                    "error": str(e)
+                }
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()

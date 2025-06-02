@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Enum as SQLAlchemyEnum
+from sqlalchemy import UniqueConstraint
 
 from typing import Optional
 
@@ -129,11 +129,11 @@ class User(Base):
         lazy="joined",
     )
 
-    cameras: Mapped[list["Camera"]] = relationship(
-        "Camera",
-        secondary="camera_user_association",
-        back_populates="users",
-        lazy="dynamic",  # Теперь user.cameras — это запрос, который можно фильтровать
+    camera_associations: Mapped[list["CameraUserAssociation"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="CameraUserAssociation.camera_id",
     )
 
     def to_dict(self) -> dict:
@@ -212,7 +212,7 @@ class CameraGroup(Base):
         "Camera",
         back_populates="camera_group",
         cascade="all, delete-orphan",
-        lazy="dynamic",
+        lazy="selectin",
         order_by="Camera.id",
     )
 
@@ -291,11 +291,11 @@ class Camera(Base):
         lazy="joined",
     )
 
-    users: Mapped[list["User"]] = relationship(
-        "User",
-        secondary="camera_user_association",
-        back_populates="cameras",  # Обратная ссылка в User
-        lazy="dynamic",  # или "dynamic", если нужна ленивая загрузка с фильтрацией
+    user_associations: Mapped[list["CameraUserAssociation"]] = relationship(
+        back_populates="camera",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="CameraUserAssociation.user_id",
     )
 
     def __repr__(self):
@@ -314,10 +314,24 @@ class Camera(Base):
             "camera_group": self.camera_group.to_dict() if self.camera_group else None
         }
 
+
 class CameraUserAssociation(Base):
     __tablename__ = 'camera_user_association'
-    camera_id = mapped_column(Integer, ForeignKey('cameras.id'), primary_key=True)
-    user_id = mapped_column(Integer, ForeignKey('users.id'), primary_key=True)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        autoincrement=True,
+        index=True,
+        comment="Суррогатный ключ"
+    )
+    camera_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('cameras.id')
+    )
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('users.id')
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -331,3 +345,32 @@ class CameraUserAssociation(Base):
         nullable=False,
         comment="Дата последнего обновления"
     )
+
+    __table_args__ = (
+        UniqueConstraint('camera_id', 'user_id', name='uq_camera_user'),
+    )
+
+    # Связи
+    camera: Mapped["Camera"] = relationship(
+        back_populates="user_associations",
+        lazy="joined"
+    )
+
+    user: Mapped["User"] = relationship(
+        back_populates="camera_associations",
+        lazy="joined"
+    )
+
+    def __repr__(self):
+        return f"CameraUserAssociation(id={self.id}, camera_id={self.camera_id}, user_id={self.user_id})"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "camera_id": self.camera_id,
+            "user_id": self.user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "camera": self.camera.to_dict() if self.camera else None,
+            "user": self.user.to_dict() if self.user else None
+        }

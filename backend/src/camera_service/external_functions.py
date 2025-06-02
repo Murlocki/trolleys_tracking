@@ -1,5 +1,7 @@
 import httpx
+from httpx import Response
 
+from src.camera_service.endpoints import FIND_USER_BY_ID
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import TokenModelResponse
 from src.user_service.endpoints import CHECK_AUTH
@@ -31,3 +33,22 @@ async def check_auth_from_external_service(access_token: str) -> TokenModelRespo
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
     return None
+
+async def find_user_by_id(user_id: int, api_key: str) -> Response:
+    """
+    Find user by username
+    :param api_key: api key
+    :param user_id: username for finding user
+    :return: response from external service
+    """
+    headers = {
+        "content-type": "application/json",
+        "X-API-Key": api_key,
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            f"{FIND_USER_BY_ID}/{user_id}",
+            headers=headers,
+        )
+        logger.info(f"Find user by user_id: {user_id} with response {response.json()}")
+        return response
