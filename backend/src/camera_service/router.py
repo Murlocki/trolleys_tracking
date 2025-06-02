@@ -1594,3 +1594,68 @@ async def get_camera_subscribes(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=result.model_dump()
         )
+
+@camera_router.get(
+    "/camera/crud/users/{user_id}/subscriptions",
+    response_model=AuthResponse[list[CameraUserAssociationAdminDTO]],
+    responses={
+        200: {"description": "Successful extraction"},
+        400: {"description": "Bad request"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Not found"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
+async def get_user_camera_subscriptions(
+        user_id: int,
+        db: AsyncSession = Depends(get_db),
+        token: str = Depends(get_valid_token)
+) -> AuthResponse[list[CameraUserAssociationAdminDTO]]:
+    result = AuthResponse(token=token)
+
+    try:
+        # 1. Log creation attempt (without sensitive data)
+        logger.info(f"Camera subscription search attempt")
+
+        response = await find_user_by_id(user_id=user_id, api_key=settings.api_key)
+        if error:= verify_response(response):
+            logger.error(f"User finding error| {error['status_code']} {error['detail']['data']['message']}")
+            result.data = {"message": "User finding error"}
+            raise HTTPException(
+                status_code=error['status_code'],
+                detail=result.model_dump()
+            )
+
+        subscriptions = await crud.get_user_subscriptions(db=db, user_id=user_id)
+        # Log results
+        logger.info(
+            f"Subscribes search completed. Found {len(subscriptions)} matching records",
+            extra={
+                "extra_data": {
+                    "result_count": len(subscriptions),
+                    "first_sub_id": subscriptions[0].id if subscriptions else None
+                }
+            }
+        )
+        result.data = subscriptions
+        return result
+
+    except HTTPException:
+        logger.warning("User search failed - authorization error")
+        raise
+    except Exception as e:
+        result.data = {"message": "Internal server error"}
+        logger.error(
+            "User search failed unexpectedly",
+            exc_info=True,
+            extra={
+                "extra_data": {
+                    "error": str(e)
+                }
+            }
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.model_dump()
+        )
