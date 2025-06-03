@@ -7,6 +7,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHea
 
 from src.camera_reader_service.camera_process_management.CameraReaderManager import CameraReaderManager
 from src.camera_reader_service.external_functions import find_camera_by_id
+from src.camera_reader_service.schemas import CameraProcess
 from src.camera_service.external_functions import check_auth_from_external_service
 from src.camera_service.schemas import CameraGroupDTO
 from src.shared.common_functions import verify_response
@@ -42,7 +43,7 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
 @camera_reader_router.post(
     "/camera_reader/groups/{group_id}/cameras/{camera_id}/activate",
     status_code=status.HTTP_200_OK,
-    response_model=AuthResponse[CameraGroupDTO],
+    response_model=AuthResponse[CameraProcess],
     responses={
         201: {"description": "Camera reading activated successfully"},
         400: {"description": "Invalid input data"},
@@ -57,7 +58,7 @@ async def activate_camera_reader(
         group_id: int,
         camera_id: int,
         token: str = Depends(get_valid_token)
-) -> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraProcess]:
     result = AuthResponse(token=token)
 
     try:
@@ -88,7 +89,7 @@ async def activate_camera_reader(
 
         # 4. Return success response
         logger.info(f"Camera activated | ID: {camera.id}")
-        result.data = camera
+        result.data = activate_result
         return result
 
     except HTTPException:
@@ -105,7 +106,7 @@ async def activate_camera_reader(
 @camera_reader_router.post(
     "/camera_reader/groups/{group_id}/cameras/{camera_id}/deactivate",
     status_code=status.HTTP_200_OK,
-    response_model=AuthResponse[CameraGroupDTO],
+    response_model=AuthResponse[CameraProcess],
     responses={
         201: {"description": "Camera reading deactivated successfully"},
         400: {"description": "Invalid input data"},
@@ -120,13 +121,13 @@ async def deactivate_camera_reader(
         group_id: int,
         camera_id: int,
         token: str = Depends(get_valid_token)
-) -> AuthResponse[CameraGroupDTO]:
+) -> AuthResponse[CameraProcess]:
     result = AuthResponse(token=token)
 
     try:
         # 1. Log creation attempt (without sensitive data)
         logger.info(
-            f"Camera activation attempt | "
+            f"Camera deactivation attempt | "
             f"Schema: {group_id} | {camera_id} | "
         )
 
@@ -142,22 +143,22 @@ async def deactivate_camera_reader(
         camera = CameraDTO(**response.json()["data"])
         deactivate_result = await CameraReaderManager.deactivate_camera(camera=camera)
         if not deactivate_result:
-            result.data = {"message": f"Camera activation failed for {camera_id}"}
-            logger.error(f"Camera activation failed for {camera_id}")
+            result.data = {"message": f"Camera deactivation failed for {camera_id}"}
+            logger.error(f"Camera deactivation failed for {camera_id}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=result.model_dump()
             )
 
         # 4. Return success response
-        logger.info(f"Camera activated | ID: {camera.id}")
-        result.data = camera
+        logger.info(f"Camera deactivated | ID: {camera.id}")
+        result.data = deactivate_result
         return result
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Camera activation error: {str(e)}", exc_info=True)
+        logger.error(f"Camera deactivation error: {str(e)}", exc_info=True)
         result.data = {"message": "Internal server error"}
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
