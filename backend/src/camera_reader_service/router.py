@@ -7,7 +7,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHea
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.camera_reader_service.external_functions import find_camera_by_id
-from src.camera_reader_service.process_camera import activate_camera, deactivate_camera, get_camera_status
+from src.camera_reader_service.process_camera import CameraReaderManager
+from src.camera_reader_service.schemas import CameraProcess
 from src.camera_service import crud
 from src.camera_service.crud import count_groups_with_name
 from src.camera_service.external_functions import check_auth_from_external_service, find_user_by_id
@@ -81,7 +82,7 @@ async def activate_camera_reader(
                 detail=result.model_dump()
             )
         camera = CameraDTO(**response.json()["data"])
-        activate_result = await activate_camera(camera=camera)
+        activate_result = await CameraReaderManager.activate_camera(camera=camera)
         if not activate_result:
             result.data = {"message": f"Camera activation failed for {camera_id}"}
             logger.error(f"Camera activation failed for {camera_id}")
@@ -144,7 +145,7 @@ async def deactivate_camera_reader(
                 detail=result.model_dump()
             )
         camera = CameraDTO(**response.json()["data"])
-        deactivate_result = await deactivate_camera(camera=camera)
+        deactivate_result = await CameraReaderManager.deactivate_camera(camera=camera)
         if not deactivate_result:
             result.data = {"message": f"Camera activation failed for {camera_id}"}
             logger.error(f"Camera activation failed for {camera_id}")
@@ -207,7 +208,7 @@ async def get_camera_reader_status(
                 detail=result.model_dump()
             )
         camera = CameraDTO(**response.json()["data"])
-        camera_reader_status = await get_camera_status(camera=camera)
+        camera_reader_status = await CameraReaderManager.get_camera_status(camera=camera)
         if not camera_reader_status:
             result.data = {"message": f"Camera reader status extraction failed for {camera_id}"}
             logger.error(f"Camera reader status extraction failed for {camera_id}")
@@ -218,7 +219,11 @@ async def get_camera_reader_status(
 
         # 4. Return success response
         logger.info(f"Camera reader status extraction  successed | status: {camera_reader_status}")
-        result.data = camera_reader_status
+        result.data = CameraProcess(
+            id=camera_id,
+            address_link=camera.address_link,
+            status=camera_reader_status
+        )
         return result
 
     except HTTPException:
