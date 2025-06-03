@@ -4,9 +4,10 @@ from pydantic.alias_generators import to_camel
 
 class CameraGroupSchema(BaseModel):
     name: str = Field(alias="name", min_length=1)
-    address: str | None= Field(default=None,alias="address", min_length=1)
-    description: str | None= Field(alias="description", default=None)
+    address: str | None = Field(default=None, alias="address", min_length=1)
+    description: str | None = Field(alias="description", default=None)
     version: int = Field(alias="version", default=0)
+
 
 class CameraGroupDTO(BaseModel):
     id: int = Field(alias="id")
@@ -14,6 +15,7 @@ class CameraGroupDTO(BaseModel):
     address: str | None = Field(default=None, alias="address", min_length=1)
     description: str | None = Field(alias="description", default=None)
     version: int = Field(alias="version", default=0)
+
 
 class CameraGroupAdminDTO(BaseModel):
     id: int = Field(alias="id")
@@ -29,16 +31,16 @@ class CameraGroupAdminDTO(BaseModel):
         from_attributes = True
 
 
-
 class CameraSchema(BaseModel):
     name: str = Field(alias="name", min_length=1)
     address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
-    group_id: int = Field(default=0,validation_alias=AliasChoices('group_id', 'groupId'))
+    group_id: int = Field(default=0, validation_alias=AliasChoices('group_id', 'groupId'))
     version: int = Field(alias="version", default=0)
 
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
 
 class CameraAdminDTO(BaseModel):
     id: int = Field(alias="id")
@@ -53,6 +55,7 @@ class CameraAdminDTO(BaseModel):
         alias_generator = to_camel
         from_attributes = True
 
+
 class CameraUserAssociationSchema(BaseModel):
     camera_id: int = Field(validation_alias=AliasChoices('camera_id', 'cameraId'))
     user_id: int = Field(default=0, validation_alias=AliasChoices('user_id', 'userId'))
@@ -61,6 +64,7 @@ class CameraUserAssociationSchema(BaseModel):
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
 
 class CameraUserAssociationDTO(BaseModel):
     id: int = Field(alias="id")

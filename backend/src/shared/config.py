@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     kafka_send_image_topic_name: str = Field("send_image_topic")
     kafka_send_image_topic_partitions_count: int = 2
 
+    camera_process_record_expire_seconds: int = 60
+    camera_process_record_expire_minutes: int = 0
+    camera_process_record_expire_hours: int = 0
 
     api_key: str = ""
     old_access_token_record_expire_seconds: int = 0

@@ -2,23 +2,17 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends, Request, Security, Query, Path
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.camera_reader_service.camera_process_management.CameraReaderManager import CameraReaderManager
 from src.camera_reader_service.external_functions import find_camera_by_id
-from src.camera_reader_service.process_camera import CameraReaderManager
-from src.camera_reader_service.schemas import CameraProcess
-from src.camera_service import crud
-from src.camera_service.crud import count_groups_with_name
-from src.camera_service.external_functions import check_auth_from_external_service, find_user_by_id
-from src.camera_service.schemas import CameraGroupSchema, CameraGroupDTO, CameraGroupAdminDTO, CameraSchema, \
-    CameraAdminDTO, CameraUserAssociationDTO, CameraUserAssociationSchema, CameraUserAssociationAdminDTO
+from src.camera_service.external_functions import check_auth_from_external_service
+from src.camera_service.schemas import CameraGroupDTO
 from src.shared.common_functions import verify_response
 from src.shared.config import settings
-from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
-from src.shared.schemas import PaginatorList, AuthResponse, CameraDTO
+from src.shared.schemas import AuthResponse, CameraDTO
 
 camera_reader_router = APIRouter()
 logger = setup_logger(__name__)
@@ -43,6 +37,7 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
     if not verify_result or not verify_result["token"]:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return verify_result["token"]
+
 
 @camera_reader_router.post(
     "/camera_reader/groups/{group_id}/cameras/{camera_id}/activate",
@@ -74,7 +69,7 @@ async def activate_camera_reader(
 
         # 2. Check name availability
         response = await find_camera_by_id(group_id=group_id, camera_id=camera_id, api_key=settings.api_key)
-        if error:= verify_response(response, 200):
+        if error := verify_response(response, 200):
             logger.warning(f"Camera not found: {error['detail']['data']['message']} with code: {error['status_code']}")
             result.data = {"message": error["detail"]["data"]["message"]}
             raise HTTPException(
@@ -137,7 +132,7 @@ async def deactivate_camera_reader(
 
         # 2. Check name availability
         response = await find_camera_by_id(group_id=group_id, camera_id=camera_id, api_key=settings.api_key)
-        if error:= verify_response(response, 200):
+        if error := verify_response(response, 200):
             logger.warning(f"Camera not found: {error['detail']['data']['message']} with code: {error['status_code']}")
             result.data = {"message": error["detail"]["data"]["message"]}
             raise HTTPException(
@@ -200,7 +195,7 @@ async def get_camera_reader_status(
 
         # 2. Check name availability
         response = await find_camera_by_id(group_id=group_id, camera_id=camera_id, api_key=settings.api_key)
-        if error:= verify_response(response, 200):
+        if error := verify_response(response, 200):
             logger.warning(f"Camera not found: {error['detail']['data']['message']} with code: {error['status_code']}")
             result.data = {"message": error["detail"]["data"]["message"]}
             raise HTTPException(
@@ -219,11 +214,7 @@ async def get_camera_reader_status(
 
         # 4. Return success response
         logger.info(f"Camera reader status extraction  successed | status: {camera_reader_status}")
-        result.data = CameraProcess(
-            id=camera_id,
-            address_link=camera.address_link,
-            status=camera_reader_status
-        )
+        result.data = {"status": camera_reader_status}
         return result
 
     except HTTPException:

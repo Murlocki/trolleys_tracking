@@ -2,7 +2,6 @@ import httpx
 from httpx import Response
 
 from src.camera_reader_service.endpoints import FIND_CAMERA_BY_ID
-from src.camera_service.endpoints import FIND_USER_BY_ID
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import TokenModelResponse
 from src.user_service.endpoints import CHECK_AUTH
@@ -35,7 +34,8 @@ async def check_auth_from_external_service(access_token: str) -> TokenModelRespo
         logger.error(f"Unexpected error: {str(e)}")
     return None
 
-async def find_camera_by_id(group_id: int, camera_id:int, api_key: str) -> Response:
+
+async def find_camera_by_id(group_id: int, camera_id: int, api_key: str) -> Response:
     """
     Find user by username
     :param api_key: api key
@@ -48,7 +48,7 @@ async def find_camera_by_id(group_id: int, camera_id:int, api_key: str) -> Respo
         "X-API-Key": api_key,
     }
     async with httpx.AsyncClient() as client:
-        request_string = FIND_CAMERA_BY_ID.replace("group_id",str(group_id)).replace("camera_id",str(camera_id))
+        request_string = FIND_CAMERA_BY_ID.replace("group_id", str(group_id)).replace("camera_id", str(camera_id))
         response = await client.get(
             request_string,
             headers=headers,

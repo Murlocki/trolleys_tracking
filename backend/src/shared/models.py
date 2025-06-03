@@ -1,11 +1,9 @@
 from datetime import datetime
-
-from sqlalchemy import UniqueConstraint
-
 from typing import Optional
 
 from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy import ForeignKey, String, Integer, Boolean, DateTime
+from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -156,9 +154,6 @@ class User(Base):
 
     def __repr__(self):
         return f"User(id={self.id}, username={self.username}, role={self.role.value})"
-
-
-
 
 
 class CameraGroup(Base):

@@ -1547,12 +1547,12 @@ async def get_camera_subscribes(
                 "created_to": created_to,
                 "updated_from": updated_from,
                 "updated_to": updated_to
-                },
-                sort_by=sort_by,
-                sort_order=sort_order,
-                page=page,
-                count=count,
-                camera=camera)
+            },
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            count=count,
+            camera=camera)
         # Log results
         logger.info(
             f"Subscribes search completed. Found {len(subscriptions)} matching records",
@@ -1592,6 +1592,7 @@ async def get_camera_subscribes(
             detail=result.model_dump()
         )
 
+
 @camera_router.get(
     "/camera/crud/users/{user_id}/subscriptions",
     response_model=AuthResponse[list[CameraUserAssociationAdminDTO]],
@@ -1616,7 +1617,7 @@ async def get_user_camera_subscriptions(
         logger.info(f"Camera subscription search attempt")
 
         response = await find_user_by_id(user_id=user_id, api_key=settings.api_key)
-        if error:= verify_response(response):
+        if error := verify_response(response):
             logger.error(f"User finding error| {error['status_code']} {error['detail']['data']['message']}")
             result.data = {"message": "User finding error"}
             raise HTTPException(

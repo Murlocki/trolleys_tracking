@@ -40,13 +40,14 @@ async def create_user(db: AsyncSession, user: UserCreate):
     await db.refresh(db_user)
     return db_user
 
+
 async def search_users(
-    db: AsyncSession,
-    filters: dict,
-    sort_by: list[str] = None,
-    sort_order: list[str] = None,
-    page: int = 1,
-    count: int = 10
+        db: AsyncSession,
+        filters: dict,
+        sort_by: list[str] = None,
+        sort_order: list[str] = None,
+        page: int = 1,
+        count: int = 10
 ):
     stmt = select(User).outerjoin(User.user_data).options(joinedload(User.user_data))
 
@@ -98,11 +99,8 @@ async def search_users(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt.offset((page-1) * count).limit(count))
+    result = await db.execute(stmt.offset((page - 1) * count).limit(count))
     return result.scalars().all()
-
-
-
 
 
 async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -> User | None:
@@ -137,7 +135,7 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
         logger.info(f"User update user_data {db_user.to_dict()}")
         # Обновляем основные поля пользователя
         for key, value in update_data.items():
-            if hasattr(db_user, key) and key!="user_data":
+            if hasattr(db_user, key) and key != "user_data":
                 setattr(db_user, key, value)
         db_user.updated_at = datetime.now()
         logger.info(f"User updated {db_user.to_dict()}")
@@ -149,6 +147,7 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
         await db.rollback()
         logger.error(f"Error updating user {user_id}: {str(e)}", exc_info=True)
         raise
+
 
 async def update_user_password(db: AsyncSession, user_id: int, password_form: PasswordForm) -> User | None:
     result = await db.execute(
@@ -168,6 +167,7 @@ async def update_user_password(db: AsyncSession, user_id: int, password_form: Pa
     await db.refresh(db_user)
     return db_user
 
+
 async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpdate) -> User | None:
     if user_update.role == Role.SERVICE:
         if db_user.user_data is not None:
@@ -176,7 +176,7 @@ async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpd
             await db.refresh(db_user)
         return db_user
     if db_user.user_data is None:
-        db.add(UserData(user=db_user,**user_update.user_data.model_dump()))
+        db.add(UserData(user=db_user, **user_update.user_data.model_dump()))
         await db.commit()
         await db.refresh(db_user)
         return db_user
@@ -188,6 +188,7 @@ async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpd
     await db.refresh(db_user)
     return db_user
 
+
 async def get_user_by_id(db: AsyncSession, user_id: int):
     async with db.begin():
         db_user = await db.execute(select(User).filter(User.id == user_id))
@@ -197,6 +198,7 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
             return None
         logger.info(f"Found user {db_user.to_dict()}")
         return db_user
+
 
 async def delete_user(db: AsyncSession, user: User):
     async with db.begin():
@@ -209,7 +211,8 @@ async def delete_user(db: AsyncSession, user: User):
         await db.delete(db_user)
     return db_user
 
-async def get_user_count(db: AsyncSession)->int:
+
+async def get_user_count(db: AsyncSession) -> int:
     async with db.begin():
         result = await db.execute(select(func.count(User.id)))
     return result.scalar()
@@ -239,12 +242,14 @@ async def get_user_by_username(db: AsyncSession, username: str):
         logger.info(f"Found user {db_user}")
         return db_user
 
+
 async def count_users_with_username(db: AsyncSession, username: str):
     async with db.begin():
         db_users = await db.execute(select(func.count()).select_from(User).filter(User.username == username))
         count = db_users.scalar_one()
         logger.info(f"Found {count} users with username {username}")
         return count
+
 
 async def get_users(db: AsyncSession):
     async with db as session:

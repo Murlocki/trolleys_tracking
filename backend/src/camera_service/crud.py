@@ -446,26 +446,25 @@ async def search_camera_subscriptions(
     items = []
     for association in result.unique().scalars().all():
         items.append(CameraUserAssociationAdminDTO(
-            id = association.id,
-            camera_id= association.camera_id,
-            camera_name= association.camera.name,
-            user_id= association.user_id,
-            user_name= association.user.username,
-            created_at= association.created_at.isoformat() if association.created_at else None,
-            updated_at= association.updated_at.isoformat() if association.updated_at else None,
+            id=association.id,
+            camera_id=association.camera_id,
+            camera_name=association.camera.name,
+            user_id=association.user_id,
+            user_name=association.user.username,
+            created_at=association.created_at.isoformat() if association.created_at else None,
+            updated_at=association.updated_at.isoformat() if association.updated_at else None,
         ))
-
 
     return items
 
 
 async def get_user_subscriptions(db: AsyncSession, user_id: int):
     result = await db.execute(select(CameraUserAssociation)
-        .options(
-            joinedload(CameraUserAssociation.camera).load_only(Camera.name, Camera.version),
-            joinedload(CameraUserAssociation.user).load_only(User.username)
-        )
-        .where(CameraUserAssociation.user_id == user_id))
+                              .options(
+        joinedload(CameraUserAssociation.camera).load_only(Camera.name, Camera.version),
+        joinedload(CameraUserAssociation.user).load_only(User.username)
+    )
+                              .where(CameraUserAssociation.user_id == user_id))
     # Формирование результата
     items = []
     for association in result.unique().scalars().all():

@@ -34,7 +34,7 @@ async def check_auth_from_external_service(access_token: str) -> TokenModelRespo
     return None
 
 
-async def delete_user_sessions(user_id:int, api_key: str) -> Response:
+async def delete_user_sessions(user_id: int, api_key: str) -> Response:
     """
     Check auth
     :param user_id:

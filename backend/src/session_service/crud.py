@@ -95,6 +95,7 @@ async def delete_session_by_id(session_id: str) -> SessionDTO | None:
             return SessionDTO(**session_data)
     return None
 
+
 async def get_session_by_id(session_id: str) -> SessionDTO | None:
     """
     Get session by ID
@@ -105,6 +106,7 @@ async def get_session_by_id(session_id: str) -> SessionDTO | None:
     if session_data:
         return SessionDTO(**session_data)
     return None
+
 
 async def get_session_by_token(token: str, token_type: str = "access_token") -> SessionDTO | None:
     """

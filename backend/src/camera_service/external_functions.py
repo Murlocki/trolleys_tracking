@@ -34,6 +34,7 @@ async def check_auth_from_external_service(access_token: str) -> TokenModelRespo
         logger.error(f"Unexpected error: {str(e)}")
     return None
 
+
 async def find_user_by_id(user_id: int, api_key: str) -> Response:
     """
     Find user by username

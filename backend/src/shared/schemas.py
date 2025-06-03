@@ -46,23 +46,28 @@ class AccessTokenUpdate(BaseModel):
     old_access_token: str
     new_access_token: str
 
+
 T = TypeVar("T")
+
+
 class AuthResponse(BaseModel, Generic[T]):
     token: Optional[str] = None
     data: Optional[T] = None
 
 
-class PaginatorList(BaseModel,Generic[T]):
+class PaginatorList(BaseModel, Generic[T]):
     page: int = Field(1)
     page_count: int = Field(1)
     items_per_page: int = Field(10)
     item_count: int = Field(1)
-    items: List[T] = Field(default_factory=lambda :list)
+    items: List[T] = Field(default_factory=lambda: list)
+
 
 class UserData(BaseModel):
     first_name: str = Field(validation_alias=AliasChoices('first_name', 'firstName'))
     last_name: str = Field(validation_alias=AliasChoices('last_name', 'lastName'))
     email: EmailStr
+
     class Config:
         alias_generator = to_camel
         from_attributes = True
@@ -78,6 +83,7 @@ class UserDTO(BaseModel):
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
 
 class Role(Enum):
     SERVICE = "service"
@@ -101,9 +107,11 @@ class Role(Enum):
         }
         return levels[self]
 
+
 class UserAuthDTO(BaseModel):
     identifier: str
     password: str
+
 
 class CameraDTO(BaseModel):
     id: int
