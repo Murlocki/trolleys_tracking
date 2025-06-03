@@ -10,11 +10,12 @@ from src.shared.common_functions import decode_token, verify_response
 from src.shared.config import settings
 from src.shared.database import SessionLocal
 from src.shared.logger_setup import setup_logger
+from src.shared.models import User, Role
 from src.shared.schemas import AuthResponse, UserAuthDTO, UserDTO, PaginatorList
 from src.user_service import crud, auth_functions
 from src.user_service.auth_functions import validate_password
+from src.user_service.crud import count_users_with_username
 from src.user_service.external_functions import check_auth_from_external_service, delete_user_sessions
-from src.user_service.models import User, Role
 from src.user_service.schemas import UserCreate, UserUpdate, UserAdminDTO, PasswordForm
 
 user_router = APIRouter()
@@ -164,7 +165,7 @@ async def create_user(
             username=user_dict["username"],
             is_active=user_dict["is_active"],
             role=user_dict["role"],
-            user_data=user_dict.get(user_dict["user_data"], None),
+            user_data=user_dict.get("user_data", None),
         )
         return result
 
@@ -348,7 +349,7 @@ async def get_users(
         email: str | None = Query(None, description="Filter by email (partial match)"),
         first_name: str | None = Query(None, description="Filter by first name (partial match)"),
         last_name: str | None = Query(None, description="Filter by last name (partial match)"),
-        user_id: int | None = Query(None, description="Filter by exact user ID"),
+        user_id: int | None = Query(None, description="Filter by user ID (partial match)"),
         role: str | None = Query(None, description="Filter by role (partial match)"),
         created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
         created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
@@ -363,7 +364,7 @@ async def get_users(
             description="Sort order for each field (asc/desc)"
         ),
         db: AsyncSession = Depends(get_db),
-        token: str = Depends(get_valid_token),
+        token: str = Depends(get_valid_token)
 ) -> AuthResponse[PaginatorList[UserAdminDTO]]:
     """
     Search and filter users with advanced querying capabilities
@@ -376,11 +377,10 @@ async def get_users(
 
     Security:
     - Requires valid authentication token
-    - Returns only non-sensitive user data
 
     Examples:
     - /user/crud?username=john&role=admin
-    - /user/crud?created_from=2023-01-01&sort_by=username&sort_order=asc
+    - /user/crud?created_from=2025-04-03T00:00:00&sort_by=id&sort_by=username&sort_order=desc&sort_order=asc
     """
     result = AuthResponse(token=token, data={})
     logger.info(decode_token(token))
@@ -403,8 +403,11 @@ async def get_users(
                     "filters": {
                         "username": username[:3] + "..." if username else None,
                         "email": email[:3] + "..." if email else None,
-                        "user_id": user_id,
-                        "role": role
+                        "id": user_id,
+                        "role": role,
+                        "first_name": first_name[:3] + "..." if first_name else None,
+                        "last_name": last_name[:3] + "..." if last_name else None,
+
                     },
                     "sorting": {
                         "by": sort_by,
@@ -865,7 +868,7 @@ async def update_user_by_id(
 
         if db_user.version > user.version:
             logger.error(f"User was already updated | ID: {user_id}")
-            result.data = {"message": f"User was already updated | ID: {user_id}"}
+            result.data = {"message": f"User was already updated"}
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=result.model_dump())
         logger.info(f"User version | Version:{user.version}")
         user.version += 1
@@ -875,6 +878,14 @@ async def update_user_by_id(
             result.data = {"message": "Insufficient privileges"}
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=result.model_dump())
 
+        user_count = await count_users_with_username(db=db, username=user.username)
+        if not (user_count == 1 and db_user.username == user.username or user_count == 0):
+            logger.error(f"Username {user.username} is not available")
+            result.data = {"message": f"Username {user.username} is not available"}
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=result.model_dump()
+            )
         # Update user
         db_user = await crud.update_user(db, user_id=user_id, user_update=user)
 

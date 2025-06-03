@@ -1,10 +1,10 @@
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, AliasChoices
+from pydantic import BaseModel, Field, AliasChoices
 from pydantic.alias_generators import to_camel
 
+from src.shared.models import Role
 from src.shared.schemas import UserData
-from src.user_service.models import Role
 
 
 class UserCreate(BaseModel):
@@ -17,15 +17,18 @@ class UserCreate(BaseModel):
         alias_generator = to_camel
         from_attributes = True
 
+
 class UserAdminDTO(BaseModel):
     id: int = Field(default=None)
     username: str = Field(min_length=3, max_length=50)
-    role_display: str = Field(default=Role.get_display_name(Role.SERVICE),validation_alias=AliasChoices('role_display', 'roleDisplay'))
+    role_display: str = Field(default=Role.get_display_name(Role.SERVICE),
+                              validation_alias=AliasChoices('role_display', 'roleDisplay'))
     role: str = Field(default=Role.SERVICE)
-    is_active: bool = Field(default=True,validation_alias=AliasChoices('is_active', 'isActive'))
-    user_data: UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
-    created_at: str = Field(default="",validation_alias=AliasChoices('created_at', 'createdAt'))
+    is_active: bool = Field(default=True, validation_alias=AliasChoices('is_active', 'isActive'))
+    user_data: UserData | None = Field(default=None, validation_alias=AliasChoices('user_data', 'userData'))
+    created_at: str = Field(default="", validation_alias=AliasChoices('created_at', 'createdAt'))
     updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
+
     class Config:
         alias_generator = to_camel
         from_attributes = True
@@ -35,7 +38,7 @@ class UserUpdate(BaseModel):
     username: str
     role: Role = Field(default=Role.SERVICE)
     is_active: bool = Field(default=True, validation_alias=AliasChoices('is_active', 'isActive'))
-    user_data:UserData | None = Field(default=None,validation_alias=AliasChoices('user_data', 'userData'))
+    user_data: UserData | None = Field(default=None, validation_alias=AliasChoices('user_data', 'userData'))
     version: int = Field(0)
 
 
@@ -45,6 +48,7 @@ class AuthForm(BaseModel):
     device: Optional[str] = "unknown"
     ip_address: Optional[str] = "unknown"
     remember_me: Optional[bool] = Field(False)
+
 
 class PasswordForm(BaseModel):
     new_password: str = Field(min_length=8, validation_alias=AliasChoices('new_password', 'newPassword'))

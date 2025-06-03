@@ -1,11 +1,13 @@
 # Crud юзеров
+from datetime import datetime
+
 from sqlalchemy import select, and_, desc, asc, cast, String, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, InstrumentedAttribute
+from sqlalchemy.orm import joinedload
 
 from src.shared import logger_setup
+from src.shared.models import User, Role, UserData
 from src.user_service.auth_functions import get_password_hash, verify_password
-from src.user_service.models import User, Role, UserData
 from src.user_service.schemas import UserCreate, UserUpdate, PasswordForm
 
 logger = logger_setup.setup_logger(__name__)
@@ -38,13 +40,14 @@ async def create_user(db: AsyncSession, user: UserCreate):
     await db.refresh(db_user)
     return db_user
 
+
 async def search_users(
-    db: AsyncSession,
-    filters: dict,
-    sort_by: list[str] = None,
-    sort_order: list[str] = None,
-    page: int = 1,
-    count: int = 10
+        db: AsyncSession,
+        filters: dict,
+        sort_by: list[str] = None,
+        sort_order: list[str] = None,
+        page: int = 1,
+        count: int = 10
 ):
     stmt = select(User).outerjoin(User.user_data).options(joinedload(User.user_data))
 
@@ -73,6 +76,8 @@ async def search_users(
             conditions.append(User.updated_at >= value)
         elif field == "updated_to" and value is not None:
             conditions.append(User.updated_at <= value)
+        elif field == "id":
+            conditions.append(cast(User.id, String).ilike(f"%{value}%"))
         elif field == "role":
             conditions.append(cast(User.role, String).ilike(f"%{value}%"))
         elif field in field_column_map:
@@ -94,11 +99,8 @@ async def search_users(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt.offset((page-1) * count).limit(count))
+    result = await db.execute(stmt.offset((page - 1) * count).limit(count))
     return result.scalars().all()
-
-
-
 
 
 async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -> User | None:
@@ -127,14 +129,15 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
             return None
         logger.info(f"User found {db_user.to_dict()}")
         # Конвертируем Pydantic модель в словарь
-        update_data = user_update.model_dump(exclude_unset=True)
+        update_data = user_update.model_dump()
         logger.info(f"User update data {update_data}")
         db_user = await update_user_data(db=db, db_user=db_user, user_update=user_update)
         logger.info(f"User update user_data {db_user.to_dict()}")
         # Обновляем основные поля пользователя
         for key, value in update_data.items():
-            if hasattr(db_user, key) and key!="user_data":
+            if hasattr(db_user, key) and key != "user_data":
                 setattr(db_user, key, value)
+        db_user.updated_at = datetime.now()
         logger.info(f"User updated {db_user.to_dict()}")
         await db.commit()
         await db.refresh(db_user)
@@ -144,6 +147,7 @@ async def update_user(db: AsyncSession, user_id: int, user_update: UserUpdate) -
         await db.rollback()
         logger.error(f"Error updating user {user_id}: {str(e)}", exc_info=True)
         raise
+
 
 async def update_user_password(db: AsyncSession, user_id: int, password_form: PasswordForm) -> User | None:
     result = await db.execute(
@@ -158,9 +162,11 @@ async def update_user_password(db: AsyncSession, user_id: int, password_form: Pa
         return None
     db_user.hashed_password = get_password_hash(password=password_form.new_password)
     db_user.version = password_form.user_version + 1
+    db_user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
 
 async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpdate) -> User | None:
     if user_update.role == Role.SERVICE:
@@ -170,17 +176,18 @@ async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpd
             await db.refresh(db_user)
         return db_user
     if db_user.user_data is None:
-        db.add(UserData(user=db_user,**user_update.user_data.model_dump(exclude_unset=True)))
+        db.add(UserData(user=db_user, **user_update.user_data.model_dump()))
         await db.commit()
         await db.refresh(db_user)
         return db_user
 
-    for key, value in user_update.user_data.model_dump(exclude_unset=True).items():
+    for key, value in user_update.user_data.model_dump().items():
         if hasattr(db_user.user_data, key):
             setattr(db_user.user_data, key, value)
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
 
 async def get_user_by_id(db: AsyncSession, user_id: int):
     async with db.begin():
@@ -191,6 +198,7 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
             return None
         logger.info(f"Found user {db_user.to_dict()}")
         return db_user
+
 
 async def delete_user(db: AsyncSession, user: User):
     async with db.begin():
@@ -203,7 +211,8 @@ async def delete_user(db: AsyncSession, user: User):
         await db.delete(db_user)
     return db_user
 
-async def get_user_count(db: AsyncSession)->int:
+
+async def get_user_count(db: AsyncSession) -> int:
     async with db.begin():
         result = await db.execute(select(func.count(User.id)))
     return result.scalar()
@@ -232,6 +241,14 @@ async def get_user_by_username(db: AsyncSession, username: str):
         db_user = db_user.scalar_one_or_none()
         logger.info(f"Found user {db_user}")
         return db_user
+
+
+async def count_users_with_username(db: AsyncSession, username: str):
+    async with db.begin():
+        db_users = await db.execute(select(func.count()).select_from(User).filter(User.username == username))
+        count = db_users.scalar_one()
+        logger.info(f"Found {count} users with username {username}")
+        return count
 
 
 async def get_users(db: AsyncSession):

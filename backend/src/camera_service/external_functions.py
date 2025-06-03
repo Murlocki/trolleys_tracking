@@ -1,9 +1,10 @@
 import httpx
 from httpx import Response
 
+from src.camera_service.endpoints import FIND_USER_BY_ID
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import TokenModelResponse
-from src.user_service.endpoints import CHECK_AUTH, DELETE_USER_SESSIONS
+from src.user_service.endpoints import CHECK_AUTH
 
 logger = setup_logger(__name__)
 
@@ -34,19 +35,21 @@ async def check_auth_from_external_service(access_token: str) -> TokenModelRespo
     return None
 
 
-async def delete_user_sessions(user_id: int, api_key: str) -> Response:
+async def find_user_by_id(user_id: int, api_key: str) -> Response:
     """
-    Check auth
-    :param user_id:
-    :param api_key:
-    :return: json - token old or new
+    Find user by username
+    :param api_key: api key
+    :param user_id: username for finding user
+    :return: response from external service
     """
     headers = {
         "content-type": "application/json",
         "X-API-Key": api_key,
     }
-
     async with httpx.AsyncClient() as client:
-        response = await client.delete(f"{DELETE_USER_SESSIONS}/{user_id}", headers=headers)
-        logger.info(f"Deleted user sessions with response {response}")
+        response = await client.get(
+            f"{FIND_USER_BY_ID}/{user_id}",
+            headers=headers,
+        )
+        logger.info(f"Find user by user_id: {user_id} with response {response.json()}")
         return response

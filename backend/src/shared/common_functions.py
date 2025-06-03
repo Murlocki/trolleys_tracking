@@ -17,7 +17,7 @@ def decode_token(token: str, is_refresh: bool = False) -> dict[str, any] | None:
     """
     try:
         if token == settings.api_key:
-            return {"role":Role.SUPER_ADMIN.value,"sub":1}
+            return {"role": Role.SUPER_ADMIN.value, "sub": 1}
         payload = jwt.decode(token, settings.jwt_secret_refresh if is_refresh else settings.jwt_secret,
                              algorithms=settings.jwt_algorithm, options={"verify_exp": False})
         logger.info(f"Token decoded successfully: {payload}")

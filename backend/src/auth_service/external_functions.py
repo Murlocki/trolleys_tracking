@@ -52,7 +52,8 @@ async def get_session_by_token(api_key: str, token: str, token_type: str = "acce
         return response
 
 
-async def update_session_token(api_key: str, session_id: str, user_id:int, access_token_update_data: AccessTokenUpdate) -> Response:
+async def update_session_token(api_key: str, session_id: str, user_id: int,
+                               access_token_update_data: AccessTokenUpdate) -> Response:
     """
     Update session token by forwarding data to external service.
     :param api_key: api key

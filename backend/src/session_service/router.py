@@ -27,7 +27,9 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 bearer = HTTPBearer(auto_error=False)
 api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials | None = Security(bearer), api_key: str | None = Security(api_key_scheme)) -> str:
+
+async def get_valid_token(request: Request, credentials: HTTPAuthorizationCredentials | None = Security(bearer),
+                          api_key: str | None = Security(api_key_scheme)) -> str:
     logger.info(request.headers)
     if api_key == settings.api_key:
         return settings.api_key
@@ -406,10 +408,10 @@ async def get_user_sessions(
         if not sessions:
             logger.info(f"No sessions found for user {user_id}")
             result.data = {
-                    "message": "No sessions found",
-                    "count": 0,
-                    "sessions": []
-                }
+                "message": "No sessions found",
+                "count": 0,
+                "sessions": []
+            }
             return result
 
         # 3. Log and return results
@@ -471,7 +473,6 @@ async def delete_user_sessions(
     result = AuthResponse(token=token, data={"message": ""})
 
     try:
-
 
         # 2. Check if user has any sessions first
         existing_sessions = await crud.get_sessions(user_id=user_id)

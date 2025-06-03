@@ -4,8 +4,9 @@ from datetime import datetime
 from typing import Dict, Any
 
 from fastapi import APIRouter
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import status, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from src.auth_service import auth_functions
 from src.auth_service.auth_functions import verify_and_refresh_access_token, get_old_token_record, \
     check_one_auth_request, set_auth_request, delete_auth_request
@@ -29,9 +30,6 @@ Environment timezone: {os.environ.get('TZ', 'Not set')}
 """)
 
 bearer = HTTPBearer(auto_error=False)
-
-
-
 
 
 @auth_router.post(
@@ -155,7 +153,7 @@ async def login_user(
 @auth_router.post(
     "/auth/logout",
     status_code=status.HTTP_200_OK,
-    response_model=AuthResponse[Dict[str,Any]],
+    response_model=AuthResponse[Dict[str, Any]],
     responses={
         401: {"description": "Invalid or expired token"},
         404: {"description": "Session not found"},
@@ -164,7 +162,7 @@ async def login_user(
 )
 async def logout_user(
         credentials: HTTPAuthorizationCredentials = Depends(bearer),
-) -> AuthResponse[Dict[str,Any]]:
+) -> AuthResponse[Dict[str, Any]]:
     """
     Perform user logout by invalidating the current session.
 
@@ -298,7 +296,7 @@ async def check_auth(
             user_id=int(payload["sub"]),
             api_key=settings.api_key
         )
-        if error:=verify_response(user):
+        if error := verify_response(user):
             logger.warning(f"User not found: {payload['sub']}")
             raise HTTPException(
                 status_code=error["status_code"],
@@ -317,7 +315,7 @@ async def check_auth(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=AuthResponse(
                         token=None,
-                        data={"message":"Old token record is invalid"}
+                        data={"message": "Old token record is invalid"}
                     ).model_dump()
                 )
             token = old_token_record["new_access_token"]
@@ -331,7 +329,7 @@ async def check_auth(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=AuthResponse(
                     token=None,
-                    data={"message":"Invalid token"}
+                    data={"message": "Invalid token"}
                 ).model_dump()
             )
 
