@@ -1,4 +1,6 @@
+import asyncio
 import multiprocessing
+import time
 from datetime import timedelta
 from uuid import uuid4
 
@@ -39,10 +41,26 @@ class CameraReaderManager:
             return None
         process_record.status = Status.not_active.value
         await redis_client.hset(f"camera:{camera.id}", mapping=process_record.model_dump())
+        expire_seconds = int(timedelta(
+            seconds=settings.camera_process_record_expire_seconds,
+            minutes=settings.camera_process_record_expire_minutes,
+            hours=settings.camera_process_record_expire_hours
+        ).total_seconds())
+        await redis_client.expire(f"camera:{camera.id}", expire_seconds)
+
+        timeout = expire_seconds + 5  # немного больше, чем TTL
+        start = time.monotonic()
+
         while True:
             process_record_check = await CameraReaderManager.get_camera_process_record(camera.id)
             if process_record_check is None:
                 break
+
+            if time.monotonic() - start > timeout:
+                logger.warning(f"Camera {camera.id} process record still exists after timeout")
+                break
+
+            await asyncio.sleep(settings.camera_process_record_check_seconds)
         logger.info(f"Camera {camera.id} process was deactivated")
         return process_record
 
