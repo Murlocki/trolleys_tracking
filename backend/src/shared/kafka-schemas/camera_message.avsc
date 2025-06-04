@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "CameraMessage",
+  "fields": [
+    { "name": "camera_id", "type": "int" },
+    { "name": "timestamp", "type": "string" },
+    { "name": "frame_bytes", "type": "bytes" },
+    { "name": "meta", "type": "string" }
+  ]
+}

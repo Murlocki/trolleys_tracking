@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     camera_service_url: str = Field("http://127.0.0.1:8004")
     camera_reader_service_url: str = Field("http://127.0.0.1:8003")
     kafka_broker: str = Field("localhost:9093")
+    kafka_schema_registry: str = Field("localhost:8081")
     kafka_send_image_topic_name: str = Field("send_image_topic")
     kafka_send_image_topic_partitions_count: int = 2
     camera_process_record_expire_seconds: int = 60

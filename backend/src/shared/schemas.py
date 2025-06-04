@@ -123,3 +123,15 @@ class CameraDTO(BaseModel):
     class Config:
         alias_generator = to_camel
         from_attributes = True
+
+
+class DetectionRegime(str,Enum):
+    yoloV8x: str = "yolov8x",
+    yoloV9x: str = "yolov9x",
+
+class ClassificationRegime(str,Enum):
+    yoloV8x: str = "yolov8x"
+    yoloV9x: str = "yolov9x"
+
+class TrackingRegime(str,Enum):
+    deepsort: str = "deepsort"

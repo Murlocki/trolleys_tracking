@@ -2,12 +2,12 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends, Request, Security
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Security, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 
 from src.camera_reader_service.camera_process_management.CameraReaderManager import CameraReaderManager
 from src.camera_reader_service.external_functions import find_camera_by_id
-from src.camera_reader_service.schemas import CameraProcess
+from src.camera_reader_service.schemas import CameraProcess, ActivationProps
 from src.camera_service.external_functions import check_auth_from_external_service
 from src.camera_service.schemas import CameraGroupDTO
 from src.shared.common_functions import verify_response
@@ -55,6 +55,7 @@ async def get_valid_token(request: Request, credentials: HTTPAuthorizationCreden
     }
 )
 async def activate_camera_reader(
+        activation_props: ActivationProps,
         group_id: int,
         camera_id: int,
         token: str = Depends(get_valid_token)
@@ -65,7 +66,7 @@ async def activate_camera_reader(
         # 1. Log creation attempt (without sensitive data)
         logger.info(
             f"Camera activation attempt | "
-            f"Schema: {group_id} | {camera_id} | "
+            f"Schema: {group_id} | {camera_id} | {activation_props}"
         )
 
         # 2. Check name availability
@@ -78,7 +79,7 @@ async def activate_camera_reader(
                 detail=result.model_dump()
             )
         camera = CameraDTO(**response.json()["data"])
-        activate_result = await CameraReaderManager.activate_camera(camera=camera)
+        activate_result = await CameraReaderManager.activate_camera(camera=camera, activation_props = activation_props)
         if not activate_result:
             result.data = {"message": f"Camera activation failed for {camera_id}"}
             logger.error(f"Camera activation failed for {camera_id}")
