@@ -1,10 +1,48 @@
 {
   "type": "record",
   "name": "CameraMessage",
+  "namespace": "camera.messages",
   "fields": [
     { "name": "camera_id", "type": "int" },
-    { "name": "timestamp", "type": "string" },
-    { "name": "frame_bytes", "type": "bytes" },
-    { "name": "meta", "type": "string" }
+    { "name": "timestamp", "type": "long" },
+    { "name": "meta", "type": "string" },
+    { "name": "image", "type": "bytes" },
+
+    {
+      "name": "activation_props",
+      "type": {
+        "type": "record",
+        "name": "ActivationProps",
+        "fields": [
+          {
+            "name": "detection_regime",
+            "type": {
+              "type": "enum",
+              "name": "DetectionRegime",
+              "symbols": ["yoloV8x", "yoloV9x"]
+            },
+            "default": "yoloV8x"
+          },
+          {
+            "name": "classification_regime",
+            "type": {
+              "type": "enum",
+              "name": "ClassificationRegime",
+              "symbols": ["yoloV8x", "yoloV9x"]
+            },
+            "default": "yoloV8x"
+          },
+          {
+            "name": "tracking_regime",
+            "type": {
+              "type": "enum",
+              "name": "TrackingRegime",
+              "symbols": ["deepsort"]
+            },
+            "default": "deepsort"
+          }
+        ]
+      }
+    }
   ]
 }

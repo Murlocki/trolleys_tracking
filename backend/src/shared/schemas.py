@@ -126,12 +126,46 @@ class CameraDTO(BaseModel):
 
 
 class DetectionRegime(str,Enum):
-    yoloV8x: str = "yolov8x",
-    yoloV9x: str = "yolov9x",
+    yoloV8x: str = "yoloV8x",
+    yoloV9x: str = "yoloV9x",
 
 class ClassificationRegime(str,Enum):
-    yoloV8x: str = "yolov8x"
-    yoloV9x: str = "yolov9x"
+    yoloV8x: str = "yoloV8x"
+    yoloV9x: str = "yoloV9x"
 
 class TrackingRegime(str,Enum):
     deepsort: str = "deepsort"
+
+class ActivationProps(BaseModel):
+    detection_regime: DetectionRegime = Field(
+        default=DetectionRegime.yoloV8x,
+        description="Detection regime",
+        validation_alias=AliasChoices('detection_regime', 'detectionRegime')
+    )
+    classification_regime: ClassificationRegime = Field(
+        default=ClassificationRegime.yoloV8x,
+        description = "Classification regime",
+        validation_alias = AliasChoices('classification_regime', 'classificationRegime')
+    )
+    tracking_regime: TrackingRegime = Field(
+        default=TrackingRegime.deepsort,
+        description="Tracking regime",
+        validation_alias=AliasChoices('tracking_regime', 'trackingRegime')
+    )
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True
+        use_enum_values = True
+
+
+class ImageMessage(BaseModel):
+    camera_id: int = Field(..., validation_alias=AliasChoices('camera_id', 'cameraId'))
+    timestamp: int
+    meta: str
+    image: bytes
+    activation_props: ActivationProps = Field(..., validation_alias=AliasChoices('activation_props', 'activationProps'))
+
+    class Config:
+        use_enum_values = True
+        alias_generator = to_camel
+        from_attributes = True
