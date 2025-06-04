@@ -30,7 +30,7 @@ async def create_user(db: AsyncSession, user: UserCreate):
             user_data = UserData(
                 first_name=user.user_data.first_name,
                 last_name=user.user_data.last_name,
-                email=user.user_data.email,
+                email=str(user.user_data.email),
                 user=db_user
             )
             db.add(user_data)

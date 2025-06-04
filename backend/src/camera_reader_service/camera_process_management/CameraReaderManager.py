@@ -1,4 +1,5 @@
 import asyncio
+import json
 import multiprocessing
 import time
 from datetime import timedelta
@@ -114,10 +115,13 @@ class CameraReaderManager:
             logger.error(f"Camera process for {camera_id} not found")
             return None
         logger.info(f"Camera {camera_id} process record {result}")
+        activation_props = result["activation_props"]
+        props_dict = json.loads(activation_props)
+        activation_props = ActivationProps(**props_dict)
         return CameraProcess(
             id = result["id"],
             camera_id = result["camera_id"],
             address_link = result["address_link"],
             status = result["status"],
-            activation_props=result["activation_props"]
+            activation_props=activation_props
         )

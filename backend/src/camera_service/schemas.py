@@ -33,7 +33,7 @@ class CameraGroupAdminDTO(BaseModel):
 
 class CameraSchema(BaseModel):
     name: str = Field(alias="name", min_length=1)
-    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
+    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=1)
     group_id: int = Field(default=0, validation_alias=AliasChoices('group_id', 'groupId'))
     version: int = Field(alias="version", default=0)
 
@@ -45,7 +45,7 @@ class CameraSchema(BaseModel):
 class CameraAdminDTO(BaseModel):
     id: int = Field(alias="id")
     name: str = Field(alias="name")
-    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
+    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=1)
     group_id: int = Field(default=0, validation_alias=AliasChoices('group_id', 'groupId'))
     version: int = Field(alias="version", default=0)
     created_at: str = Field(default="", validation_alias=AliasChoices('created_at', 'createdAt'))

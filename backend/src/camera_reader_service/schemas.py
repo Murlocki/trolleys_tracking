@@ -17,9 +17,9 @@ class Status(str,Enum):
 class CameraProcess(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()), description="Process ID")
     camera_id: int = Field(description="Camera ID", validation_alias=AliasChoices('camera_id', 'cameraID'))
-    address_link: str = Field(..., min_length=15, validation_alias=AliasChoices('address_link', 'addressLink'))
+    address_link: str = Field(..., min_length=1, validation_alias=AliasChoices('address_link', 'addressLink'))
     status: Status = Field(default=Status.not_active)
-    activation_props: ActivationProps = Field(default_factory=ActivationProps)
+    activation_props: ActivationProps = Field(validation_alias=AliasChoices('activation_props', 'activationProps'))
 
     class Config:
         alias_generator = to_camel

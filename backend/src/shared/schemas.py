@@ -116,7 +116,7 @@ class UserAuthDTO(BaseModel):
 class CameraDTO(BaseModel):
     id: int
     name: str = Field(alias="name", min_length=1)
-    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=15)
+    address_link: str = Field(validation_alias=AliasChoices('address_link', 'addressLink'), min_length=1)
     group_id: int = Field(validation_alias=AliasChoices('group_id', 'groupId'))
     version: int = Field(alias="version", default=0)
 
@@ -158,12 +158,21 @@ class ActivationProps(BaseModel):
         use_enum_values = True
 
 
+class BoundingBox(BaseModel):
+    x: float
+    y: float
+    width: float
+    height: float
+    id: Optional[int] = None
+
+
 class ImageMessage(BaseModel):
     camera_id: int = Field(..., validation_alias=AliasChoices('camera_id', 'cameraId'))
     timestamp: int
     meta: str
     image: bytes
     activation_props: ActivationProps = Field(..., validation_alias=AliasChoices('activation_props', 'activationProps'))
+    bounding_boxes: List[BoundingBox] = Field(default_factory=list, validation_alias=AliasChoices('bounding_boxes', 'boundingBoxes'))
 
     class Config:
         use_enum_values = True

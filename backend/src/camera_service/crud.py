@@ -432,11 +432,6 @@ async def search_camera_subscriptions(
         if order_clauses:
             stmt = stmt.order_by(*order_clauses)
 
-    # Пагинация
-    total = await db.scalar(
-        select(func.count())
-        .select_from(stmt.subquery())
-    )
 
     result = await db.execute(
         stmt.offset((page - 1) * count).limit(count)

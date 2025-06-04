@@ -12,7 +12,7 @@ logger = setup_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(application: FastAPI):
     """Управление жизненным циклом приложения"""
     # Запускаем фоновую задачу
     task = asyncio.create_task(listen_expirations())

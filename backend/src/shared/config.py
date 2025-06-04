@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     camera_process_record_expire_minutes: int = 0
     camera_process_record_expire_hours: int = 0
     camera_process_record_check_seconds: int = 5
+    camera_process_frame_skip: int = 5
     api_key: str = ""
     old_access_token_record_expire_seconds: int = 0
 

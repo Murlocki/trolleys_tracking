@@ -129,7 +129,7 @@ async def create_user(
 
             # 4. Check email availability
             if hasattr(user_in.user_data, 'email'):
-                existing_email = await crud.get_user_by_email(db, user_in.user_data.email)
+                existing_email = await crud.get_user_by_email(db, str(user_in.user_data.email))
                 if existing_email:
                     logger.warning(f"Email taken | Email: {user_in.user_data.email[:3]}...")
                     result.data = {"message": "Email already registered"}

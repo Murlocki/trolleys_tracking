@@ -142,6 +142,13 @@ async def deactivate_camera_reader(
                 detail=result.model_dump()
             )
         camera = CameraDTO(**response.json()["data"])
+
+        camera_process = await CameraReaderManager.get_camera_process_record(camera_id=camera_id)
+        if not camera_process:
+            result.data = {"message": f"Camera deactivated for {camera_id}"}
+            logger.info(f"Camera deactivated for {camera_id}")
+            return result
+
         deactivate_result = await CameraReaderManager.deactivate_camera(camera=camera)
         if not deactivate_result:
             result.data = {"message": f"Camera deactivation failed for {camera_id}"}

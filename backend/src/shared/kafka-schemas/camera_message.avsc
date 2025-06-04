@@ -3,19 +3,19 @@
   "name": "CameraMessage",
   "namespace": "camera.messages",
   "fields": [
-    { "name": "camera_id", "type": "int" },
+    { "name": "cameraId", "type": "int" },
     { "name": "timestamp", "type": "long" },
     { "name": "meta", "type": "string" },
     { "name": "image", "type": "bytes" },
 
     {
-      "name": "activation_props",
+      "name": "activationProps",
       "type": {
         "type": "record",
         "name": "ActivationProps",
         "fields": [
           {
-            "name": "detection_regime",
+            "name": "detectionRegime",
             "type": {
               "type": "enum",
               "name": "DetectionRegime",
@@ -24,7 +24,7 @@
             "default": "yoloV8x"
           },
           {
-            "name": "classification_regime",
+            "name": "classificationRegime",
             "type": {
               "type": "enum",
               "name": "ClassificationRegime",
@@ -33,7 +33,7 @@
             "default": "yoloV8x"
           },
           {
-            "name": "tracking_regime",
+            "name": "trackingRegime",
             "type": {
               "type": "enum",
               "name": "TrackingRegime",
@@ -43,6 +43,25 @@
           }
         ]
       }
+    },
+
+    {
+      "name": "boundingBoxes",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "BoundingBox",
+          "fields": [
+            { "name": "x", "type": "float" },
+            { "name": "y", "type": "float" },
+            { "name": "width", "type": "float" },
+            { "name": "height", "type": "float" },
+            { "name": "id", "type": ["null", "int"], "default": null }
+          ]
+        }
+      },
+      "default": []
     }
   ]
 }

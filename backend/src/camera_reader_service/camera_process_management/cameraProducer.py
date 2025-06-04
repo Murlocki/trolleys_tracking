@@ -6,8 +6,11 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 
 from src.shared.config import settings
+from src.shared.logger_setup import setup_logger
+from src.shared.schemas import ImageMessage
 
-# Инициализация клиента Schema Registry и сериализатора (один раз)
+logger = setup_logger(__name__)
+
 schema_registry_conf = {'url': settings.kafka_schema_registry}
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
@@ -20,42 +23,28 @@ producer_conf = {'bootstrap.servers': settings.kafka_broker}
 producer = Producer(producer_conf)
 
 class SerializationContext:
-    def __init__(self, topic):
+    def __init__(self, topic: str):
         self.topic = topic
         self.field = "value"
 
 def delivery_report(err, msg):
     if err is not None:
-        print(f"Delivery failed: {err}")
+        logger.error(f"Delivery failed: {err}")
     else:
-        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+        logger.info(f"Message delivered to {msg.topic()} [{msg.partition()}]")
 
-def produce_sync(message: dict):
+def produce_sync(message: ImageMessage, partition: int | None = None):
     ctx = SerializationContext(settings.kafka_send_image_topic_name)
-    value_bytes = avro_serializer(message, ctx)
-    producer.produce(settings.kafka_send_image_topic_name, value=value_bytes, callback=delivery_report)
+    value_bytes = avro_serializer(message.model_dump(by_alias=True), ctx)
+    producer.produce(
+        topic=settings.kafka_send_image_topic_name,
+        value=value_bytes,
+        partition=partition,
+        callback=delivery_report
+    )
     producer.flush()
 
-async def produce_async(message: dict):
-    """Асинхронный вызов синхронной функции в отдельном потоке"""
+async def produce_async(message: ImageMessage, partition: int | None = None):
     loop = asyncio.get_running_loop()
     with ThreadPoolExecutor() as pool:
-        await loop.run_in_executor(pool, produce_sync, message)
-
-# Пример использования
-async def main():
-    test_message = {
-        "camera_id": 1,
-        "timestamp": 1685923200,
-        "meta": "test metadata",
-        "image": b"\x89PNG\r\n\x1a\n",
-        "activation_props":{
-            "detection_regime": "yoloV8x",
-            "classification_regime": "yoloV8x",
-            "tracking_regime": "deepsort"
-        }
-    }
-    await produce_async(test_message)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        await loop.run_in_executor(pool, produce_sync, message, partition)

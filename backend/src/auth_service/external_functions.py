@@ -97,12 +97,11 @@ async def delete_session_by_id(api_key: str, session_id: str, user_id: int) -> R
         return response
 
 
-async def delete_sessions_by_token(api_key: str, access_token: str, skip_auth: bool = False) -> Response:
+async def delete_sessions_by_token(api_key: str, access_token: str) -> Response:
     """
     Delete session by token
     :param api_key: api key
     :param access_token: token for finding session
-    :param skip_auth: need check auth in method
     :return: response from external service
     """
     headers = {

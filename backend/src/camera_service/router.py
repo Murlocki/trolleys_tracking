@@ -790,17 +790,8 @@ async def get_camera(
                 detail=result.model_dump()
             )
 
-        camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
-        if not camera or camera.group_id != group_id:
-            logger.error(f"Camera not found | ID: {camera_id}")
-            result.data = {"message": "Camera not found"}
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=result.model_dump()
-            )
-
-        get_camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
-        if not get_camera:
+        found_camera = await crud.get_camera_by_id(db=db, camera_id=camera_id)
+        if not found_camera or found_camera.group_id != group_id:
             logger.error(f"Camera not found | ID: {camera_id}")
             result.data = {"message": "Camera not found"}
             raise HTTPException(
@@ -808,8 +799,8 @@ async def get_camera(
                 detail=result.model_dump()
             )
         # 4. Return success response
-        logger.info(f"Camera get | ID: {get_camera.id}")
-        camera_dict = get_camera.to_dict()
+        logger.info(f"Camera get | ID: {found_camera.id}")
+        camera_dict = found_camera.to_dict()
         result.data = CameraDTO(**camera_dict)
         return result
     except HTTPException:
