@@ -19,7 +19,7 @@
             "type": {
               "type": "enum",
               "name": "DetectionRegime",
-              "symbols": ["yoloV8x", "yoloV9x"]
+              "symbols": ["yoloV8x", "yoloV9x", "yoloV11"]
             },
             "default": "yoloV8x"
           },
