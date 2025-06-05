@@ -1,7 +1,4 @@
-import cv2
-import numpy as np
 from ultralytics import YOLO
-import zstandard as zstd
 from ultralytics.engine.results import Results
 
 from src.detection_service.detection_settings import detection_settings

@@ -11,7 +11,7 @@ from src.classification_service.models.classification_models import models_dict
 from src.shared.common_functions import decompress_image, get_partition
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
-from src.shared.schemas import ImageMessage, BoundingBox
+from src.shared.schemas import ImageMessage
 
 logger = setup_logger(__name__)
 
@@ -37,7 +37,7 @@ consumer.subscribe([settings.kafka_classification_topic_name])
 
 
 async def consume_loop():
-    logger.info("Starting consumer")
+    #logger.info("Starting consumer")
     loop = asyncio.get_running_loop()
     while True:
         msg = await loop.run_in_executor(None, consumer.poll, 1.0)
@@ -56,7 +56,7 @@ async def consume_loop():
             logger.error("Failed to deserialize message")
             continue
 
-        logger.info("Received message:")
+        #logger.info("Received message:")
         image_msg = ImageMessage.model_validate(value)
 
         regime = image_msg.activation_props.detection_regime
@@ -64,13 +64,13 @@ async def consume_loop():
         if model is None:
             logger.warning(f"No model for regime {regime}")
             continue
-        logger.info(f"Set classification model: {model}")
+        #logger.info(f"Set classification model: {model}")
         image = decompress_image(image_msg.image, cv2.IMREAD_COLOR_BGR)
         bboxes = model.classify(image,image_msg.bounding_boxes)
         image_msg.bounding_boxes = bboxes or []
 
 
-        logger.info(f"Processed image")
+        #logger.info(f"Processed image")
         await produce_async(
             image_msg,
             get_partition(

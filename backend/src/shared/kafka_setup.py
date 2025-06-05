@@ -1,5 +1,4 @@
 import asyncio
-import json
 from pathlib import Path
 
 from confluent_kafka.admin import AdminClient, NewTopic
@@ -76,6 +75,7 @@ if __name__ == "__main__":
         settings.kafka_send_image_topic_name: settings.kafka_send_image_topic_partitions_count,
         settings.kafka_classification_topic_name: settings.kafka_classification_topic_partitions_count,
         settings.kafka_tracking_topic_name: settings.kafka_tracking_topic_partitions_count,
+        settings.kafka_sending_topic_name: settings.kafka_sending_topic_partitions_count,
     }))
 
     # schema_file_path = "kafka-schemas/camera_message.avsc"

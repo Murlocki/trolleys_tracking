@@ -7,14 +7,15 @@ load_dotenv(verbose=True)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=os.path.join(BASE_DIR, "detection_service/.env"))
-    detection_yolo_11_model_path: str = "detection_service/weights/yolo11.pt"
-    detection_yolo_11_img_sz: int = 640
-    detection_yolo_11_conf: float = 0.25
-    detection_yolo_11_iou: float = 0.7
+    deepsort_max_cosine_distance = 0.2
+    deepsort_max_iou_distance = 0.7
+    deepsort_max_age = 30
+    deepsort_n_init = 3
+    deepsort_nn_budget = 100
 
-    @property
-    def full_model_path(self) -> str:
-        return os.path.join(BASE_DIR, self.detection_yolo_11_model_path)
+    tracking_process_live_seconds = 40
+    tracking_process_live_minutes = 40
+    tracking_process_live_hours = 40
 
 
 detection_settings = Settings()

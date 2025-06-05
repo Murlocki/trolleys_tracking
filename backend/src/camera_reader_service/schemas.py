@@ -4,7 +4,7 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, AliasChoices
 from pydantic.alias_generators import to_camel
 
-from src.shared.schemas import DetectionRegime, ClassificationRegime, TrackingRegime, ActivationProps
+from src.shared.schemas import ActivationProps
 
 
 # Enum for camera active statuses

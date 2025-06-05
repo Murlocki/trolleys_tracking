@@ -79,8 +79,6 @@ class CameraReaderManager:
         existing = await redis_client.hgetall(f"camera:{camera.id}")
         return Status(existing.get("status", Status.not_active.value))
 
-    from json import dumps
-
     @staticmethod
     async def create_camera_process_record(camera: CameraDTO, activation_props: ActivationProps) -> CameraProcess:
         logger.info(f"Creating camera process record {camera} with activation_props {activation_props}")

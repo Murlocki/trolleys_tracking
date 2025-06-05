@@ -1,10 +1,8 @@
 import cv2
-import numpy as np
 from ultralytics import YOLO
 
 from src.classification_service.classification_settings import classification_settings
 from src.classification_service.models.BasicModel import BasicClassificator
-
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import BoundingBox
 

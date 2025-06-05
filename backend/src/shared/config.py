@@ -47,7 +47,8 @@ class Settings(BaseSettings):
     kafka_classification_topic_partitions_count: int = Field(2)
     kafka_tracking_topic_name: str = Field("tracking_images")
     kafka_tracking_topic_partitions_count: int = Field(2)
-
+    kafka_sending_topic_name: str = Field("send_result")
+    kafka_sending_topic_partitions_count: int = Field(1)
 
     camera_process_record_expire_seconds: int = 60
     camera_process_record_expire_minutes: int = 0

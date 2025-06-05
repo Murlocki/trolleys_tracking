@@ -3,7 +3,6 @@ import json
 from datetime import timedelta
 
 import cv2
-import zstandard as zstd
 
 from src.camera_reader_service.camera_process_management.cameraProducer import produce_async
 from src.camera_reader_service.schemas import Status
@@ -11,7 +10,7 @@ from src.shared.common_functions import compress_image, get_partition
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
 from src.shared.redis_base import redis_client
-from src.shared.schemas import ImageMessage, ActivationProps, DetectionRegime, ClassificationRegime, TrackingRegime
+from src.shared.schemas import ImageMessage, ActivationProps
 
 logger = setup_logger(__name__)
 

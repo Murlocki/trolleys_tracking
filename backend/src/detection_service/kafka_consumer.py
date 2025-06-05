@@ -55,7 +55,7 @@ async def consume_loop():
             logger.error("Failed to deserialize message")
             continue
 
-        logger.info("Received message:")
+        #logger.info("Received message:")
         image_msg = ImageMessage.model_validate(value)
 
         regime = image_msg.activation_props.detection_regime
@@ -63,7 +63,7 @@ async def consume_loop():
         if model is None:
             logger.warning(f"No model for regime {regime}")
             continue
-        logger.info(f"Set detection model: {model}")
+        #logger.info(f"Set detection model: {model}")
 
         # TODO: Раскоментить на проде
         image = decompress_image(image_msg.image)
@@ -79,7 +79,7 @@ async def consume_loop():
             )
         ]
 
-        logger.info(f"Processed image")
+        #logger.info(f"Processed image")
         await produce_async(
             image_msg,
             get_partition(

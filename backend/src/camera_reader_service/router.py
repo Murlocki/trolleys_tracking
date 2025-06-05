@@ -2,14 +2,13 @@ import os
 import time
 from datetime import datetime
 
-from fastapi import HTTPException, status, APIRouter, Depends, Request, Security, Query
+from fastapi import HTTPException, status, APIRouter, Depends, Request, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
 
 from src.camera_reader_service.camera_process_management.CameraReaderManager import CameraReaderManager
 from src.camera_reader_service.external_functions import find_camera_by_id
 from src.camera_reader_service.schemas import CameraProcess, ActivationProps
 from src.camera_service.external_functions import check_auth_from_external_service
-from src.camera_service.schemas import CameraGroupDTO
 from src.shared.common_functions import verify_response
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
@@ -145,9 +144,12 @@ async def deactivate_camera_reader(
 
         camera_process = await CameraReaderManager.get_camera_process_record(camera_id=camera_id)
         if not camera_process:
-            result.data = {"message": f"Camera deactivated for {camera_id}"}
+            result.data = {"message": f"Camera already deactivated for {camera_id}"}
             logger.info(f"Camera deactivated for {camera_id}")
-            return result
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.model_dump()
+            )
 
         deactivate_result = await CameraReaderManager.deactivate_camera(camera=camera)
         if not deactivate_result:
