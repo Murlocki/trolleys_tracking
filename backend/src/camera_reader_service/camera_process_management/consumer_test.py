@@ -12,7 +12,7 @@ async def consume():
     schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
     # Название субъекта схемы в Registry (обычно topic-value)
-    subject_name = f"{settings.kafka_send_image_topic_name}-value"
+    subject_name = settings.kafka_image_schema_name
 
     # Получаем последнюю версию схемы из Registry
     schema_metadata = schema_registry_client.get_latest_version(subject_name)

@@ -75,9 +75,9 @@ if __name__ == "__main__":
     asyncio.run(recreate_kafka_topics({
         settings.kafka_send_image_topic_name: settings.kafka_send_image_topic_partitions_count,
         settings.kafka_classification_topic_name: settings.kafka_classification_topic_partitions_count,
+        settings.kafka_tracking_topic_name: settings.kafka_tracking_topic_partitions_count,
     }))
 
-    # Укажи путь к схеме и subject:
-    schema_file_path = "kafka-schemas/camera_message.avsc"
-    schema_subject = f"send-images-value"
-    register_schema(subject=schema_subject, schema_path=schema_file_path)
+    # schema_file_path = "kafka-schemas/camera_message.avsc"
+    # schema_subject = f"send-images-value"
+    # register_schema(subject=schema_subject, schema_path=schema_file_path)

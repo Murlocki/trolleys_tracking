@@ -132,7 +132,8 @@ class DetectionRegime(str,Enum):
 
 class ClassificationRegime(str,Enum):
     yoloV8x: str = "yoloV8x"
-    yoloV9x: str = "yoloV9x"
+    yoloV9x: str = "yoloV9x",
+    yoloV11: str = "yoloV11",
 
 class TrackingRegime(str,Enum):
     deepsort: str = "deepsort"

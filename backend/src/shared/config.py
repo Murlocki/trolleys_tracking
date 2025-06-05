@@ -40,10 +40,14 @@ class Settings(BaseSettings):
 
     kafka_broker: str = Field("localhost:9093")
     kafka_schema_registry: str = Field("localhost:8081")
+    kafka_image_schema_name: str = Field("send-images-value")
     kafka_send_image_topic_name: str = Field("send_image_topic")
     kafka_send_image_topic_partitions_count: int = Field(2)
     kafka_classification_topic_name: str = Field("classify_images")
     kafka_classification_topic_partitions_count: int = Field(2)
+    kafka_tracking_topic_name: str = Field("tracking_images")
+    kafka_tracking_topic_partitions_count: int = Field(2)
+
 
     camera_process_record_expire_seconds: int = 60
     camera_process_record_expire_minutes: int = 0

@@ -28,7 +28,7 @@
             "type": {
               "type": "enum",
               "name": "ClassificationRegime",
-              "symbols": ["yoloV8x", "yoloV9x"]
+              "symbols": ["yoloV8x", "yoloV9x", "yoloV11"]
             },
             "default": "yoloV8x"
           },

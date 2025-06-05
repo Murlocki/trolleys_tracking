@@ -14,7 +14,7 @@ logger = setup_logger(__name__)
 schema_registry_conf = {'url': settings.kafka_schema_registry}
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
-subject_name = settings.kafka_send_image_topic_name + "-value"
+subject_name = settings.kafka_image_schema_name
 schema_info = schema_registry_client.get_latest_version(subject_name)
 schema_str = schema_info.schema.schema_str
 avro_serializer = AvroSerializer(schema_registry_client, schema_str)

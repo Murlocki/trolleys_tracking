@@ -18,7 +18,7 @@ schema_registry_conf = {'url': settings.kafka_schema_registry}
 schema_registry_client = SchemaRegistryClient(schema_registry_conf)
 
 # Название субъекта схемы в Registry (обычно topic-value)
-subject_name = f"send-images-value"
+subject_name = settings.kafka_image_schema_name
 
 # Получаем последнюю версию схемы из Registry
 schema_metadata = schema_registry_client.get_latest_version(subject_name)
