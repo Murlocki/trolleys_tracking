@@ -37,16 +37,20 @@ class Settings(BaseSettings):
     auth_service_url: str = Field("http://127.0.0.1:8000")
     camera_service_url: str = Field("http://127.0.0.1:8004")
     camera_reader_service_url: str = Field("http://127.0.0.1:8003")
+
     kafka_broker: str = Field("localhost:9093")
     kafka_schema_registry: str = Field("localhost:8081")
     kafka_send_image_topic_name: str = Field("send_image_topic")
-    kafka_send_image_topic_partitions_count: int = 2
+    kafka_send_image_topic_partitions_count: int = Field(2)
+    kafka_classification_topic_name: str = Field("classify_images")
+    kafka_classification_topic_partitions_count: int = Field(2)
+
     camera_process_record_expire_seconds: int = 60
     camera_process_record_expire_minutes: int = 0
     camera_process_record_expire_hours: int = 0
     camera_process_record_check_seconds: int = 5
     camera_process_frame_skip: int = 5
-    api_key: str = ""
+    api_key: str = Field(default="api_key")
     old_access_token_record_expire_seconds: int = 0
 
 

@@ -4,7 +4,7 @@ from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import SerializationContext, MessageField
 
-from src.shared.config import settings  # твои настройки
+from src.shared.config import settings
 
 
 async def consume():

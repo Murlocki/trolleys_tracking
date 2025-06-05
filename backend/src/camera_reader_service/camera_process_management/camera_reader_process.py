@@ -7,6 +7,7 @@ import zstandard as zstd
 
 from src.camera_reader_service.camera_process_management.cameraProducer import produce_async
 from src.camera_reader_service.schemas import Status
+from src.shared.common_functions import compress_image, get_partition
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
 from src.shared.redis_base import redis_client
@@ -31,16 +32,6 @@ def test_camera_connection(address_link: str) -> bool:
     logger.info(f"Camera connection result: {result}")
     cap.release()
     return result
-
-
-def compress_frame(frame: bytes) -> bytes:
-    compressor = zstd.ZstdCompressor(level=3)
-    return compressor.compress(frame)
-
-
-def get_partition(camera_id: int, num_partitions: int) -> int:
-    return hash(camera_id) % num_partitions
-
 
 async def read_camera(camera_id: int):
     cap = None
@@ -96,8 +87,7 @@ async def read_camera(camera_id: int):
             await redis_client.expire(redis_key, int(ttl_seconds))
 
             if frame_count % settings.camera_process_frame_skip == 0:
-                _, jpeg = cv2.imencode('.jpg', frame)
-                compressed = compress_frame(jpeg.tobytes())
+                compressed = compress_image(frame)
                 logger.info(f"[{camera_id}] Compressed: {len(compressed)}")
                 message = ImageMessage(
                     camera_id=camera_id,

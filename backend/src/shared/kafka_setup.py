@@ -72,14 +72,12 @@ def register_schema(subject: str, schema_path: str, schema_type: str = "AVRO"):
 
 
 if __name__ == "__main__":
-    topic_name = settings.kafka_send_image_topic_name
-    partitions = int(settings.kafka_send_image_topic_partitions_count)
-
     asyncio.run(recreate_kafka_topics({
-        topic_name: partitions,
+        settings.kafka_send_image_topic_name: settings.kafka_send_image_topic_partitions_count,
+        settings.kafka_classification_topic_name: settings.kafka_classification_topic_partitions_count,
     }))
 
     # Укажи путь к схеме и subject:
     schema_file_path = "kafka-schemas/camera_message.avsc"
-    schema_subject = f"{topic_name}-value"
+    schema_subject = f"send-images-value"
     register_schema(subject=schema_subject, schema_path=schema_file_path)
