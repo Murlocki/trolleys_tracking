@@ -7,9 +7,8 @@ from src.shared.schemas import ImageMessage
 import base64
 logger = setup_logger(__name__)
 
-producer = AIOKafkaProducer(bootstrap_servers=settings.kafka_broker)
 
-async def produce_message(message: ImageMessage):
+async def produce_message(message: ImageMessage, producer: AIOKafkaProducer):
     try:
         logger.info("Started producer")
         message_to_redis = message.model_dump()
