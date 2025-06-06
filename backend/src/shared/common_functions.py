@@ -1,3 +1,5 @@
+import base64
+
 import cv2
 import numpy as np
 import zstandard as zstd
@@ -20,7 +22,7 @@ def decode_token(token: str, is_refresh: bool = False) -> dict[str, any] | None:
     """
     try:
         if token == settings.api_key:
-            return {"role": Role.SUPER_ADMIN.value, "sub": 1}
+            return {"role": Role.SUPER_ADMIN.value, "sub": 12}
         payload = jwt.decode(token, settings.jwt_secret_refresh if is_refresh else settings.jwt_secret,
                              algorithms=settings.jwt_algorithm, options={"verify_exp": False})
         logger.info(f"Token decoded successfully: {payload}")
@@ -49,7 +51,7 @@ def verify_response(response: Response, waited_status_code: int = 200) -> dict[s
 
 
 dctx = zstd.ZstdDecompressor()
-cctx = zstd.ZstdCompressor()
+cctx = zstd.ZstdCompressor(level=3)
 def decompress_image(compressed_bytes: bytes, read_regime = cv2.IMREAD_GRAYSCALE) -> np.ndarray:
     # 1. Decompress
     decompressed = dctx.decompress(compressed_bytes)
@@ -62,6 +64,23 @@ def decompress_image(compressed_bytes: bytes, read_regime = cv2.IMREAD_GRAYSCALE
     if image is None:
         raise ValueError("Failed to decode image")
     return image
+
+
+def decode_base64_image(b64_str: str) -> np.ndarray:
+    try:
+        compressed_bytes = base64.b64decode(b64_str)
+        return decompress_image(compressed_bytes)  # используем твою функцию
+    except Exception as e:
+        logger.error(f"Failed to decode base64 image: {e}")
+        raise
+
+def encode_image_to_base64(image: np.ndarray, format: str = ".jpg") -> str:
+    # encode image to .jpg/.png format in memory
+    success, buffer = cv2.imencode(format, image)
+    if not success:
+        raise ValueError("Failed to encode image to buffer")
+    encoded = base64.b64encode(buffer).decode("utf-8")
+    return encoded
 
 def compress_image(image: 'np.ndarray') -> bytes:
     _, encoded = cv2.imencode('.jpg', image)
