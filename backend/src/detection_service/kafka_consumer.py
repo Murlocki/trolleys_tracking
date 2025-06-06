@@ -72,10 +72,10 @@ async def consume_loop():
         #image_msg.bounding_boxes = bboxes or []
         image_msg.bounding_boxes = [
             BoundingBox(
-                x=1,
-                y=1,
-                width=10,
-                height=11
+                x=40,
+                y=40,
+                width=100,
+                height=110
             )
         ]
 

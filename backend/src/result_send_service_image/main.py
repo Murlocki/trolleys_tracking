@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.result_send_service.websocket_router import sio, socket_app, validate_token_periodically
-from src.result_send_service.kafka_consumer import consume_kafka
+from src.result_send_service_image.websocket_router import sio, socket_app, validate_token_periodically
+from src.result_send_service_image.kafka_consumer import consume_kafka
 
 
 @asynccontextmanager
@@ -19,4 +19,3 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Result WebSocket Service", lifespan=lifespan)
 app.mount("/socket.io", socket_app)
-

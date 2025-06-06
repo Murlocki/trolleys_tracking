@@ -1,6 +1,7 @@
+import cv2
 from aiokafka import AIOKafkaConsumer
 
-from src.result_send_service.websocket_router import sio
+from src.result_send_service_image.websocket_router import sio
 from src.shared.common_functions import decode_base64_image, encode_image_to_base64
 from src.shared.config import settings
 from src.shared.logger_setup import setup_logger
@@ -11,11 +12,23 @@ logger = setup_logger(__name__)
 
 import json
 
+async def draw_boxes_on_frame(frame_data):
+    for obj in frame_data["bounding_boxes"]:
+        (x, y, w, h, obj_id) = obj.values()
+        top_left = (int(x), int(y))
+        bottom_right = (int(x + w), int(y + h))
+        color = (0, 255, 0)  # Зелёный
+        cv2.rectangle(frame_data["image"], top_left, bottom_right, color, 2)
+        cv2.putText(frame_data["image"], f"ID: {obj_id}", (int(x), int(y) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+    return frame_data
+
 async def consume_kafka():
     consumer = AIOKafkaConsumer(
         settings.kafka_sending_topic_name,
         bootstrap_servers=settings.kafka_broker,
-        group_id="socket_broadcast",
+        group_id="socket_broadcast_image",
         auto_offset_reset="latest",
     )
     await consumer.start()
@@ -44,7 +57,8 @@ async def consume_kafka():
                     frame_data = frame  # Если это просто строка/байты, передаём как есть
                 frame_data["image"] = decode_base64_image(frame_data["image"])
 
-
+                logger.info(f"Drawing boxes on frame for camera {camera_id}")
+                frame_data = await draw_boxes_on_frame(frame_data)
 
                 frame_data["image"] = encode_image_to_base64(frame_data["image"])
                 logger.info(f'Encoded and decoded frame data image: {frame_data["image"]}')
