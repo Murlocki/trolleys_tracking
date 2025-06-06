@@ -19,7 +19,4 @@ class DeepsortModel(BasicTracker):
         )
         self.parameters = parameters
 
-
-deepsorter = DeepsortModel(
-    parameters={
-    })
+parameters = {}

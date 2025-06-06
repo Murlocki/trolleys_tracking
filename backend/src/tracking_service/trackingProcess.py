@@ -10,7 +10,8 @@ from src.shared.redis_base import redis_client
 from src.shared.schemas import ImageMessage
 from src.tracking_service.kafka_producer import produce_message
 from src.tracking_service.models.BasicTracker import BasicTracker
-from src.tracking_service.models.tracker_models import models_dict
+from src.tracking_service.models.DeepsortModel import parameters
+from src.tracking_service.models.tracker_models import models_dict, models_params_dict
 from src.tracking_service.tracking_settings import tracking_settings
 
 logger = setup_logger(__name__)
@@ -42,6 +43,28 @@ async def is_camera_alive(camera_id):
 def tracking_loop(camera_id, queue: Queue):
     asyncio.run(async_tracking_loop(camera_id, queue))
 
+class SingletonTracker:
+    _tracker_instance = None
+
+    @staticmethod
+    def get_tracker(tracker_class, *args, **kwargs):
+        """
+        Возвращает единственный экземпляр трекера. Если он ещё не создан — создаёт.
+        :param tracker_class: класс трекера
+        :param args: позиционные аргументы конструктора
+        :param kwargs: именованные аргументы конструктора
+        :return: трекер
+        """
+        if SingletonTracker._tracker_instance is None:
+            SingletonTracker._tracker_instance = tracker_class(*args, **kwargs)
+        return SingletonTracker._tracker_instance
+
+    @staticmethod
+    def reset():
+        """Удаляет текущий экземпляр трекера (если нужно пересоздать вручную)."""
+        SingletonTracker._tracker_instance = None
+
+
 
 async def async_tracking_loop(camera_id, queue: Queue):
     logger.info(f"[TRACKER] Started for camera {camera_id}")
@@ -68,7 +91,11 @@ async def async_tracking_loop(camera_id, queue: Queue):
             logger.info(f"[TRACKER] Processing frame")
 
             image = decompress_image(data.image)
-            model: BasicTracker = models_dict.get(data.activation_props.tracking_regime)
+            model: BasicTracker = SingletonTracker.get_tracker(
+                tracker_class=models_dict.get(data.activation_props.tracking_regime),
+                parameters=models_params_dict.get(data.activation_props.tracking_regime)
+            )
+            logger.info(f"Tracker obtained: f{model}")
             results = model.process_image(image, data.bounding_boxes)
             data.bounding_boxes = results
 
