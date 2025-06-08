@@ -40,7 +40,7 @@ class SessionDTO(BaseModel):
 
 class TokenModelResponse(BaseModel):
     token: str
-    identifier: str
+    identifier: str | None
 
 
 class AccessTokenUpdate(BaseModel):

@@ -6,5 +6,8 @@ export const localUserStorage = defineStore('localUserStorage', () => {
         localStorage.setItem("wewatch-token", newKey)
     }
     const getJwt = computed(() => localStorage.getItem("wewatch-token"))
-    return { setJwtKey, getJwt }
+    const clearJWT = () => {
+        localStorage.removeItem("wewatch-token")
+    }
+    return { setJwtKey, getJwt, clearJWT }
 })

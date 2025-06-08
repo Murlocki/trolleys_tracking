@@ -31,7 +31,6 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
 
     //Выбор хранилища для jwt ключа
     const storageChose = localStorage.getItem('wewatch-storageChose')
-    //localStorage.clear()
     console.log(storageChose)
 
     const choosedStorage = ref(!!storageChose)
@@ -51,8 +50,6 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
             setJwtKey.value = function (newKey) {
                 storage.value.setJwtKey(newKey)
             }
-            console.log(getJwt.value)
-            console.log(setJwtKey.value)
         }
     }
 
@@ -66,21 +63,33 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
         setJwtKey.value = function (newKey) {
             storage.value.setJwtKey(newKey)
         }
+        clearJwt.value = function () {
+            storage.value.clearJWT()
+        }
     }
 
     const isLogged = computed(() => !!getJwt.value)
 
     const getJwt = ref()
     const setJwtKey = ref()
+    const clearJwt = ref()
 
     const userIdentifier = ref('')
     function setUserIdentifier(identifier) {
         userIdentifier.value = identifier
     }
+
+    const loading = ref(false)
+    function setLoading(load) {
+        loading.value = load
+    }
+    const isLoading = computed(() => loading.value)
+
     return {
         storage,
         getJwt,
         setJwtKey,
+        clearJwt,
         initDefaultStorage,
 
         darkModeOn,
@@ -92,6 +101,9 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
 
         isLogged,
         userIdentifier,
-        setUserIdentifier
+        setUserIdentifier,
+
+        isLoading,
+        setLoading
     }
 })

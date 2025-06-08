@@ -8,5 +8,8 @@ export const cookieUserStorage = defineStore('cookieUserStorage', () => {
         console.log('setJwtKey', newKey)
     }
     const getJwt = computed(() => Cookies.get('wewatch-token'))
-    return { setJwtKey, getJwt }
+    const clearJwt = () => {
+        Cookies.remove('wewatch-token')
+    }
+    return { setJwtKey, getJwt, clearJwt }
 })

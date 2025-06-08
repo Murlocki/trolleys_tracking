@@ -29,6 +29,7 @@ import { userSettingsStore } from '@/store/userSettingsStore.js'
 import CommonSidebar from '../CommonSidebar/CommonSidebar.vue'
 
 const store = userSettingsStore()
+store.initDefaultStorage()
 import { ref } from 'vue'
 const visibleLeft = ref(false)
 </script>

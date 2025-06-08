@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
 
 from src.session_service.as_tasks import listen_expirations
 from src.session_service.router import session_router
@@ -31,3 +32,10 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(title="Session Service", lifespan=lifespan)
 app.include_router(session_router)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],                # или ["*"] для всех
+    allow_credentials=True,
+    allow_methods=["*"],                  # GET, POST, OPTIONS, PUT, DELETE, и т.д.
+    allow_headers=["*"],                  # Authorization, X-API-Key и любые другие
+)

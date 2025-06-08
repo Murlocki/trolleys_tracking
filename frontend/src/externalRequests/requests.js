@@ -3,7 +3,8 @@ import {
     logout,
     getMyProfile
 } from "@/externalRequests/endpoints.js";
-
+const apikey = import.meta.env.VITE_API_KEY;
+console.log(apikey)
 
 export async function loginUser(authForm) {
     return await fetch(login, {
@@ -29,9 +30,11 @@ export async function loginOut(token) {
 export async function getUserProfile(token) {
     return await fetch(`${getMyProfile}`, {
         method: 'GET',
+        mode: 'cors',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'X-API-Key': apikey
         }
     })
 }

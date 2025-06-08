@@ -10,12 +10,4 @@
         </div>
     </div>
 </template>
-
-<script setup>
-import {userSettingsStore} from "@/store/userSettingsStore.js";
-
-const store = userSettingsStore()
-store.initDefaultStorage()
-</script>
-
 <style></style>
