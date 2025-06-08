@@ -1,14 +1,14 @@
 [
     {
         "id": 0,
-        "filePath": "src/assets/sliderImages/wemeet_building.png",
-        "title": "Новые встречи",
-        "text": "Wemeet tables позволяет вам назначать и согласовывать встречи из любой точки земного шара"
+        "filePath": "src/assets/sliderImages/wewatch_1.png",
+        "title": "Tracking your carts",
+        "text": "Wewatch gives you the ability to track the activity of your shopping carts in real-time"
     },
     {
         "id": 1,
-        "filePath": "src/assets/sliderImages/wemeet_team.png",
-        "title": "Удобный интерфейс",
-        "text": "Wemeet table предоставляет удобный пользовательский интерфейс"
+        "filePath": "src/assets/sliderImages/wewatch_2.png",
+        "title": "User-friendly interface",
+        "text": "Wewatch provides a user-friendly interface for your goals and tasks, making it easy to navigate and use"
     }
 ]
