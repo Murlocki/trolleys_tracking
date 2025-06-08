@@ -15,6 +15,8 @@
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
     "primevue": "^3.53.1",
+    "ua-parser-js": "^2.0.3",
+    "uaparser": "^0.0.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.1"
   },

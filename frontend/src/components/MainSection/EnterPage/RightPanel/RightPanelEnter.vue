@@ -1,10 +1,10 @@
 <template>
     <div class="p-1 flex flex-column justify-content-center w-10 md:w-4 align-content-center" style="min-height: 604px">
         <transition name="closeRightText">
-            <div v-if="!(loginFormOpen || registerFormOpen)">
+            <div v-if="!loginFormOpen">
                 <RightPanelTitlesVue class="mb-5"></RightPanelTitlesVue>
                 <div class="w-12 flex justify-content-between">
-                    <Button @click="openLoginForm" class="button-text border-round-xl w-5">
+                    <Button @click="openLoginForm" class="button-text border-round-xl w-5" :disabled="store.isLogged">
                         <template #default>
                             <div class="flex w-12 justify-content-between">
                                 <p class="m-0 font-semibold text-sm lg:text-base">Log in</p>
@@ -15,10 +15,10 @@
                 </div>
             </div>
         </transition>
-        <div v-if="loginFormOpen || registerFormOpen" class="flex justify-content-center">
+        <div v-if="loginFormOpen" class="flex justify-content-center">
             <right-panel-log-form
                 v-model:textCl="textClosed"
-                v-model:registerFormOpen="loginFormOpen"
+                v-model:loginFormOpen="loginFormOpen"
                 v-model:createdForm="createdForm"
                 class="justify-content-center mb-4"
             ></right-panel-log-form>
@@ -33,12 +33,11 @@ import Button from 'primevue/button'
 import { ref } from 'vue'
 
 const loginFormOpen = ref(false)
-const registerFormOpen = ref(false)
 const createdForm = ref(false)
 const textClosed = ref(false)
 
 function openForm() {
-    if (loginFormOpen.value || registerFormOpen.value) {
+    if (loginFormOpen.value) {
         setTimeout(() => (textClosed.value = true), 1000)
         setTimeout(() => (createdForm.value = true), 2000)
     }
@@ -50,13 +49,9 @@ function openLoginForm() {
     console.log(loginFormOpen.value)
 }
 
-function openRegisterForm() {
-    registerFormOpen.value = !registerFormOpen.value
-    openForm()
-    console.log(registerFormOpen.value)
-}
 
-import { userSettingsStore } from '../../../../store/userSettingsStore'
+
+import { userSettingsStore } from '@/store/userSettingsStore.js'
 import { computed } from 'vue'
 import { loginButtonIcon, loginButtonIconBlack } from '@assets/index.js'
 import { signUpButtonBlack, signUpButtonWhite } from '@assets/index.js'

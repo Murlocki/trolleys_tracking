@@ -3,7 +3,7 @@
         <Toolbar class="p-0 mx-2 bg-primary-reverse border-0">
             <template #start>
                 <Button
-                    v-if="store.$state.isLoggged"
+                    v-if="store.isLogged"
                     icon="pi pi-bars"
                     severity="secondary"
                     text

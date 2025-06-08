@@ -134,7 +134,7 @@ async def login_user(
         # 5. Return response
         logger.info(f"Successful login for {user.id} from {auth_form.ip_address}")
         await delete_auth_request(auth_form.ip_address)
-        return TokenModelResponse(token=access_token)
+        return TokenModelResponse(token=access_token, identifier=user.username)
 
     except HTTPException:
         # Re-raise handled exceptions

@@ -18,5 +18,5 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Result WebSocket Service", lifespan=lifespan)
-app.mount("/socket.io", socket_app)
+app.mount("/", socket_app)
 

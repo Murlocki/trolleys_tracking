@@ -11,6 +11,11 @@
     </div>
 </template>
 
-<script setup></script>
+<script setup>
+import {userSettingsStore} from "@/store/userSettingsStore.js";
+
+const store = userSettingsStore()
+store.initDefaultStorage()
+</script>
 
 <style></style>

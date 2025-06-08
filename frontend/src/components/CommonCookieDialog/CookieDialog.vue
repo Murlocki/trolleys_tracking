@@ -6,9 +6,9 @@
                 type="button"
                 label="Accept"
                 severity="secondary"
-                @click="setStorate(cookieStorage, 'cookie')"
+                @click="setStorage(cookieStorage, 'cookie')"
             ></Button>
-            <Button type="button" label="Cancel" @click="setStorate(localStore, 'local')"></Button>
+            <Button type="button" label="Cancel" @click="setStorage(localStore, 'local')"></Button>
         </div>
     </Dialog>
 </template>
@@ -16,22 +16,22 @@
 <script setup>
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import { userSettingsStore } from '../../store/userSettingsStore'
+import { userSettingsStore } from '@/store/userSettingsStore.js'
 import { computed } from 'vue'
-import { localUserStorage } from '../../store/localUserStorage'
-import { cookieUserStorage } from '../../store/cookieUserStorage'
+import { localUserStorage } from '@/store/localUserStorage.js'
+import { cookieUserStorage } from '@/store/cookieUserStorage.js'
 const store = userSettingsStore()
 
 const localStore = localUserStorage()
 const cookieStorage = cookieUserStorage()
 
-function setStorate(storage, name) {
+function setStorage(storage, name) {
     console.log(storage)
     store.chooseStorage(storage, name)
     console.log(storage.getJwt)
 }
 
-const showDialog = computed(() => !store.$state.choosedStorage)
+const showDialog = computed(() => !store.isLogged)
 </script>
 
 <style></style>

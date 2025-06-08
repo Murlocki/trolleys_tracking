@@ -3,13 +3,10 @@ import { computed, ref } from 'vue'
 import Cookies from 'js-cookie'
 import { userSettingsStore } from './userSettingsStore'
 export const cookieUserStorage = defineStore('cookieUserStorage', () => {
-    const store = userSettingsStore()
-    const jwtKey = ref('')
     function setJwtKey(newKey) {
-        const currentLogin = store.$state.currentLogin
-        jwtKey.value = newKey
-        Cookies.set(currentLogin, newKey)
+        Cookies.set('wewatch-token', newKey)
+        console.log('setJwtKey', newKey)
     }
-    const getJwt = computed(() => jwtKey.value)
-    return { jwtKey, setJwtKey, getJwt }
+    const getJwt = computed(() => Cookies.get('wewatch-token'))
+    return { setJwtKey, getJwt }
 })

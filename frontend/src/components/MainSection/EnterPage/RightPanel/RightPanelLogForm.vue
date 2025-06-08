@@ -18,7 +18,7 @@
                             style="font-family: 'Helvetica Neue', sans-serif"
                             class="font-bold text-l p-0 m-0 text-center mt-3 mb-2"
                         >
-                            log in
+                            Log in
                         </p>
                         <Button
                             @click="closeTheForm"
@@ -31,8 +31,8 @@
                             <img :src="themeBackIcon" alt="Custom Icon" style="width: 20px; height: 20px" />
                         </Button>
                     </div>
-                    <form @submit.prevent="validateRegisterForm">
-                        <div v-for="item in registerFormEnters" v-bind:key="item.id" class="mx-3">
+                    <form @submit.prevent="validateLoginForm">
+                        <div v-for="item in loginFormEnters" v-bind:key="item.id" class="mx-3">
                             <p class="border-bottom-1 border-primary-reverse w-max pr-1 mb-2 ml-3">
                                 {{ item.title }}
                             </p>
@@ -47,8 +47,14 @@
                             </div>
                             <div class="w-full border-bottom-1 border-primary-reverse w-11 mt-1"></div>
                         </div>
+                      <div class="flex justify-content-center mt-4">
+                        <div class="flex align-items-center">
+                          <Checkbox v-model="remember" :binary="true"/>
+                          <label for="ingredient1" class="ml-2"> Remember me </label>
+                        </div>
+                      </div>
                         <div class="flex justify-content-center mt-4">
-                            <Button class="w-5 bg-primary-reverse" style="border-radius: 20px" type="submit"
+                            <Button class="w-5 bg-primary-reverse" style="border-radius: 20px" type="submit" @click="onSubmit"
                                 ><template #default>
                                     <div class="m-1 w-11 flex justify-content-between">
                                         <p class="m-0 font-medium text-lg">Log in</p>
@@ -62,7 +68,7 @@
                             ></Button>
                         </div>
                         <div class="flex justify-content-center text-center">
-                            <span class="text-xs mx-2 mt-2 text-red-500">{{ errorMessage }}</span>
+                            <span class="text-xs mx-2 mt-2 text-red-500">{{ error }}</span>
                         </div>
                     </form>
                 </div>
@@ -75,10 +81,11 @@
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
-import { userSettingsStore } from '../../../../store/userSettingsStore'
-
+import Checkbox from 'primevue/checkbox';
+import { userSettingsStore } from '@/store/userSettingsStore.js'
 import { ref } from 'vue'
-const formOpen = defineModel('registerFormOpen')
+
+const formOpen = defineModel('loginFormOpen')
 const formCreation = defineModel('createdForm')
 const textCl = defineModel('textCl')
 
@@ -90,12 +97,16 @@ function closeTheForm() {
     setTimeout(() => (formOpen.value = false), 2000)
 }
 //Настройка компонентов формы
-const userLogin = ref('')
-const password1 = ref('')
-const registerFormEnters = [
+const userLogin = ref('test111')
+const password = ref('Test2=test')
+const remember = ref(false)
+const ip= ref("")
+const device = ref("")
+
+const loginFormEnters = [
     {
         id: 1,
-        title: 'userLogin',
+        title: 'Identifier',
         value: userLogin,
         component: InputText,
         attributes: {
@@ -106,7 +117,7 @@ const registerFormEnters = [
     {
         id: 2,
         title: 'Password',
-        value: password1,
+        value: password,
         component: Password,
         attributes: {
             inputClass: 'bg-primary-reverse text-base w-12',
@@ -116,10 +127,13 @@ const registerFormEnters = [
         },
     },
 ]
+
 //Настройка иконок
 import { computed } from 'vue'
 import { loginArrowWhite, loginArrowBlack } from '@assets/index.js'
 import { backArrowBlack, backArrowWhite } from '@assets/index.js'
+import {loginUser} from "@/externalRequests/requests.js";
+import router from "@/router/index.js";
 const themeIcon = computed(() => {
     if (!store.$state.darkModeOn) return loginArrowBlack
     return loginArrowWhite
@@ -130,22 +144,53 @@ const themeBackIcon = computed(() => {
     return backArrowWhite
 })
 
+
 /* Валидация формы */
-const errorMessage = ref('')
-import RegisterAuthService from '../../../../services/RegisterAuthService'
-import { useRouter } from 'vue-router'
-const router = useRouter()
-function validateRegisterForm() {
-    const loginService = RegisterAuthService
-    errorMessage.value = ''
-    store.initDefaultStorage()
-    if (!loginService.loginUser(userLogin.value, password1.value)) {
-        errorMessage.value = 'Incorrect login or password'
+import {UAParser} from 'ua-parser-js';
+import {AuthForm} from "@/models/AuthForm.js"
+
+const error = ref("");
+const loading = ref(false);
+const onSubmit = async () => {
+  loading.value = true;
+  const isValid = !!userLogin.value && !!password.value
+  if (isValid) {
+
+    const responseIp = await fetch('https://api.ipify.org?format=json')
+    if (responseIp.ok) {
+      const res = await responseIp.json()
+      ip.value = res["ip"];
+      console.log('IP пользователя:', ip.value);
     }
-    router.push('/home')
-    return true
+    const parser = new UAParser();
+    device.value = parser.getResult().browser.name;
+    console.log('Информация об устройстве:', device.value);
+
+
+    const authForm = new AuthForm(userLogin.value, password.value, device.value, ip.value, remember.value);
+    const response = await loginUser(authForm);
+    if (response.status === 200) {
+      const response_json = await response.json();
+      store.setJwtKey(response_json["token"]);
+      console.log(store.getJwt.value);
+      store.setUserIdentifier(response_json["identifier"]);
+      closeTheForm()
+      await router.push('/');
+      loading.value = false;
+      return;
+    }
+
+    const response_json = await response.json();
+    error.value = response_json['detail'];
+    //console.log(response_json);
+  } else {
+    error.value = "Please input the password and identifier."
+  }
+  loading.value = false;
 }
 </script>
+
+
 <style>
 .forms-create-enter-active {
     transition: all 1s ease-out;
