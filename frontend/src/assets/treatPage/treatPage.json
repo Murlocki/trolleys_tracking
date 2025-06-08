@@ -1,0 +1,151 @@
+[
+    {
+        "id": 0,
+        "header": "User Agreement",
+        "text": "Welcome to our application! By using our application, you agree to the terms of this User Agreement (hereinafter - 'Agreement'). Please read the text of the Agreement carefully before starting to use the application."
+    },
+    {
+        "id": 1,
+        "header": "General Provisions",
+        "children": [
+            {
+                "id": 1,
+                "text": "This Agreement regulates the relationship between You ('User') and Us ('Company') in connection with the use of the application."
+            },
+            {
+                "id": 2,
+                "text": "The Company provides the User with access to the application on the terms set forth in this Agreement."
+            },
+            {
+                "id": 3,
+                "text": "By using the application, the User confirms that he/she has read, understood, and accepts all the terms of the Agreement."
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "header": "Subject of the Agreement",
+        "children": [
+            {
+                "id": 1,
+                "text": "The Company provides the User with access to the application for personal non-commercial use."
+            },
+            {
+                "id": 2,
+                "text": "The User undertakes to use the application in accordance with its purpose and the terms of this Agreement."
+            }
+        ]
+    },
+    {
+        "id": 3,
+        "header": "Rights and Obligations of the Parties",
+        "children": [
+            {
+                "id": 1,
+                "text": "The Company undertakes to:",
+                "children": [
+                    {
+                        "id": 1,
+                        "text": "Ensure the availability of the application for the User 24 hours a day, 7 days a week, except for the time necessary for maintenance and repair work."
+                    },
+                    {
+                        "id": 2,
+                        "text": "Take measures to protect the User's personal data in accordance with applicable law."
+                    }
+                ]
+            },
+            {
+                "id": 2,
+                "text": "The User undertakes to use the application in accordance with its purpose and the terms of this Agreement.",
+                "children": [
+                    {
+                        "id": 1,
+                        "text": "Use the application only for personal non-commercial purposes."
+                    },
+                    {
+                        "id": 2,
+                        "text": "Not take any actions aimed at hacking, modifying, overloading, or otherwise interfering with the operation of the application."
+                    },
+                    {
+                        "id": 3,
+                        "text": "Not distribute malicious programs or materials that violate the rights of third parties."
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": 4,
+        "header": "Intellectual Property",
+        "children": [
+            {
+                "id": 1,
+                "text": "All intellectual property rights related to the application belong to the Company."
+            },
+            {
+                "id": 2,
+                "text": "The User has no right to copy, modify, distribute, transmit, display, reproduce, or create derivative works based on the application without the prior written consent of the Company."
+            }
+        ]
+    },
+    {
+        "id": 5,
+        "header": "Limitation of Liability",
+        "children": [
+            {
+                "id": 1,
+                "text": "The Company is not responsible for any losses or damages arising from the use of the application."
+            },
+            {
+                "id": 2,
+                "text": "The Company does not guarantee that the application will work without errors or interruptions."
+            },
+            {
+                "id": 3,
+                "text": "The Company is not responsible for the actions or inaction of third parties that have led to a violation of this Agreement."
+            }
+        ]
+    },
+    {
+        "id": 6,
+        "header": "Confidentiality",
+        "children": [
+            {
+                "id": 1,
+                "text": "The Company undertakes to maintain the confidentiality of the User's personal data in accordance with the Privacy Policy."
+            },
+            {
+                "id": 2,
+                "text": "The User agrees to the processing of his/her personal data in accordance with the Privacy Policy."
+            }
+        ]
+    },
+    {
+        "id": 7,
+        "header": "Term and Termination of the Agreement",
+        "children": [
+            {
+                "id": 1,
+                "text": "This Agreement enters into force from the moment the User starts using the application and is valid until its termination."
+            },
+            {
+                "id": 2,
+                "text": "The Company has the right to unilaterally terminate the Agreement in case of the User's violation of its terms."
+            }
+        ]
+    },
+    {
+        "id": 8,
+        "header": "Other Conditions",
+        "children": [
+            {
+                "id": 1,
+                "text": "This Agreement is governed and interpreted in accordance with the laws of the country where the Company is registered."
+            },
+            {
+                "id": 2,
+                "text": "All disputes arising from this Agreement or in connection with it are subject to resolution in court at the location of the Company."
+            }
+        ]
+    }
+]

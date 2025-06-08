@@ -1,0 +1,14 @@
+[
+    {
+        "id": 0,
+        "filePath": "src/assets/sliderImages/wemeet_building.png",
+        "title": "Новые встречи",
+        "text": "Wemeet tables позволяет вам назначать и согласовывать встречи из любой точки земного шара"
+    },
+    {
+        "id": 1,
+        "filePath": "src/assets/sliderImages/wemeet_team.png",
+        "title": "Удобный интерфейс",
+        "text": "Wemeet table предоставляет удобный пользовательский интерфейс"
+    }
+]
