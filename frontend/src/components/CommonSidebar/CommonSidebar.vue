@@ -9,10 +9,10 @@
   >
     <template #container>
       <div class="flex flex-column h-full">
-        <div class="flex align-items-center justify-content-between px-4 pt-3 flex-shrink-0">
+        <Button class="flex align-items-center justify-content-between px-4 pt-3 flex-shrink-0 border-none border-noround" raised text @click="router.push('/')">
           <Image :src="themeIcon" width="60"></Image>
           <span class="ml-2 text-3xl" style="font-family: 'AlbraTRIAL-Black', sans-serif">Wewatch menu</span>
-        </div>
+        </Button>
         <Accordion :multiple="true">
           <AccordionTab v-for="elem in sidebarElements" :key="elem.id" style="height: fit-content">
             <template #header>
@@ -33,7 +33,6 @@
           <hr class="mx-3 border-top-1 border-none surface-border"/>
           <Button
               class="w-12 h-12 border-none border-noround flex justify-content-start"
-              :style="back"
               @click="router.push('/home/settings')"
           >
             <div class="flex align-items-center justify-content-center w-12 mb-2 py-2">
@@ -76,19 +75,19 @@ const themeIcon = computed(() => {
 const sidebarElements = [
   {
     id: 0,
-    title: 'Timetables',
+    title: 'Tables',
     icon: 'pi-table',
     subElements: [
       {
-        title: 'Home',
+        title: 'Your users',
         id: 0,
-        icon: 'pi-home',
-        link: '/home',
+        icon: 'pi-server',
+        link: '/home/timetable',
       },
       {
-        title: 'Your wemeets',
+        title: 'Your cameras',
         id: 1,
-        icon: 'pi-server',
+        icon: 'pi-camera',
         link: '/home/timetable',
       },
     ],
@@ -112,7 +111,7 @@ const sidebarElements = [
       },
       {
         title: 'Terms of use',
-        id: 1,
+        id: 2,
         icon: 'pi-file',
         link: '/treat',
       },

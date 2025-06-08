@@ -6,11 +6,8 @@ import HelpPage from '../components/MainSection/HelpPage/HelpPage.vue'
 import Settings from '../components/SettingsPage/Settings.vue'
 import UserPage from '../components/MainSection/UserPage/UserPage.vue'
 import { userSettingsStore } from '../store/userSettingsStore'
+import TreatPageMain from "@/components/MainSection/TreatPage/TreatPageMain.vue";
 const routes = [
-    {
-        path: '/users/:id',
-        component: UserPage,
-    },
     {
         path: '',
         component: EnterPage,
@@ -26,6 +23,10 @@ const routes = [
             {
                 path: 'help',
                 component: HelpPage,
+            },
+            {
+                path: 'treat',
+                component: TreatPageMain,
             },
         ],
     }
