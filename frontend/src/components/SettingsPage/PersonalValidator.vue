@@ -27,7 +27,7 @@
 import { ref } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import InputOtp from 'primevue/inputotp'
+import InputOtp from 'primevue/inputotp';
 const val = ref(null)
 const vis = defineModel('vis')
 const props = defineProps({

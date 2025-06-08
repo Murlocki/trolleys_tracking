@@ -1,8 +1,8 @@
-import imagePath from './icons/HeaderLogos/logo.svg'
-import wemeetLogoWhite from './icons/HeaderLogos/wemeetWhite.svg'
+import imagePath from './icons/HeaderLogos/wewatch.svg'
+import wemeetLogoWhite from './icons/HeaderLogos/wewatchWhite.svg'
 
-import textLogoPath from './icons/HeaderLogos/wemeetTextLogo.svg'
-import textLogoPathWhite from './icons/HeaderLogos/wemeetTextLogoWhite.svg'
+import textLogoPath from './icons/HeaderLogos/wewatchTextLogo.svg'
+import textLogoPathWhite from './icons/HeaderLogos/wewatchTextLogoWhite.svg'
 
 import sliderImagesJson from './sliderImages/sliderImages.json'
 import aboutUsImagesJson from './aboutUsImages/aboutImages.json'

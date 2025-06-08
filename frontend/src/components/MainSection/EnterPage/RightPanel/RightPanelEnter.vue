@@ -7,16 +7,8 @@
                     <Button @click="openLoginForm" class="button-text border-round-xl w-5">
                         <template #default>
                             <div class="flex w-12 justify-content-between">
-                                <p class="m-0 font-semibold text-sm lg:text-base">log in</p>
+                                <p class="m-0 font-semibold text-sm lg:text-base">Log in</p>
                                 <img :src="themeIcon" alt="Custom Icon" style="width: 20px; height: 20px" />
-                            </div>
-                        </template>
-                    </Button>
-                    <Button @click="openRegisterForm" class="button-text bg-primary-reverse border-round-xl w-5">
-                        <template #default>
-                            <div class="flex w-12 justify-content-between">
-                                <p class="m-0 font-semibold text-sm lg:text-base">sign up</p>
-                                <img :src="themeSignIcon" alt="Custom Icon" style="width: 20px; height: 20px" />
                             </div>
                         </template>
                     </Button>
@@ -24,13 +16,6 @@
             </div>
         </transition>
         <div v-if="loginFormOpen || registerFormOpen" class="flex justify-content-center">
-            <right-panel-register-form
-                v-model:textCl="textClosed"
-                v-model:registerFormOpen="registerFormOpen"
-                v-model:createdForm="createdForm"
-                class="justify-content-center"
-            ></right-panel-register-form>
-
             <right-panel-log-form
                 v-model:textCl="textClosed"
                 v-model:registerFormOpen="loginFormOpen"
@@ -43,7 +28,6 @@
 
 <script setup>
 import RightPanelTitlesVue from './RightPanelTitles.vue'
-import RightPanelRegisterForm from './RightPanelRegisterForm.vue'
 import RightPanelLogForm from './RightPanelLogForm.vue'
 import Button from 'primevue/button'
 import { ref } from 'vue'

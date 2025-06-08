@@ -13,7 +13,7 @@
                 <wemeet-name></wemeet-name>
             </template>
             <template #end>
-                <wemeet-logo></wemeet-logo>
+                <watch-logo></watch-logo>
             </template>
         </Toolbar>
         <CommonSidebar v-model:visible="visibleLeft"></CommonSidebar>
@@ -22,10 +22,10 @@
 
 <script setup>
 import WemeetName from './CommonElements/WemeetName.vue'
-import WemeetLogo from './CommonElements/WemeetLogo.vue'
+import WatchLogo from './CommonElements/WatchLogo.vue'
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
-import { userSettingsStore } from '../../store/userSettingsStore'
+import { userSettingsStore } from '@/store/userSettingsStore.js'
 import CommonSidebar from '../CommonSidebar/CommonSidebar.vue'
 
 const store = userSettingsStore()

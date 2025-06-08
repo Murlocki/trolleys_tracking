@@ -1,7 +1,7 @@
 <template>
     <div class="m-0 ml-2">
-        <Button severity="secondary" text class="p-0" rounded style="width: fit-content" @click="navigateToLink">
-            <Image width="150" :src="themeIcon"> </Image>
+        <Button severity="secondary" text class="p-0" rounded style="width: max-content" @click="navigateToLink">
+            <Image width="150" height="70" :src="themeIcon"> </Image>
         </Button>
     </div>
 </template>
@@ -10,7 +10,7 @@
 import Image from 'primevue/image'
 import Button from 'primevue/button'
 import { textLogoPath, textLogoPathWhite } from '@assets/index.js'
-import { userSettingsStore } from '../../../store/userSettingsStore'
+import { userSettingsStore } from '@/store/userSettingsStore.js'
 import { computed } from 'vue'
 
 const store = userSettingsStore()

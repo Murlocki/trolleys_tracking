@@ -4,13 +4,13 @@
             <p style="font-family: 'AlbraTRIAL-Regular', sans-serif" class="text-lg lg:text-2xl text-primary m-0 -mb-3">
                 make it <span class="font-italic">easy</span> with
             </p>
-            <p class="title-text text-6xl text-primary m-0 p-0">wemeet</p>
-            <p class="title-text text-sm font-medium text-primary m-0 -mt-1">your personal scheduling assistant</p>
+            <p class="title-text text-6xl text-primary m-0 p-0">wewatch</p>
+            <p class="title-text text-sm font-medium text-primary m-0 -mt-1">your shopping cart tracking app</p>
         </div>
         <div class="bottom-text text-md lg:text-xl font-medium text-primary">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
-            dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
-            ea commodo consequat.
+          Welcome to smart solution for tracking shopping carts in real time.
+          Manage camera groups, monitor activity, and switch between light and dark themes with ease.
+          Get started by selecting a camera or activating detection.
         </div>
     </div>
 </template>

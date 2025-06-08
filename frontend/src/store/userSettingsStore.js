@@ -10,6 +10,27 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
         darkModeOn.value = !darkModeOn.value
     }
 
+    function changeTheme(currentTheme, newTheme, callback) {
+        const themeElement = document.getElementById('theme-css');
+
+        if (themeElement) {
+            const newHref = themeElement.getAttribute('href').replace(currentTheme, newTheme);
+            const cloneLink = themeElement.cloneNode(true);
+            cloneLink.setAttribute('href', newHref);
+            cloneLink.setAttribute('id', 'theme-css-clone');
+
+            cloneLink.addEventListener('load', () => {
+                themeElement.remove();
+                cloneLink.setAttribute('id', 'theme-css');
+                if (callback) callback();
+            });
+
+            themeElement.parentNode.insertBefore(cloneLink, themeElement.nextSibling);
+        }
+    }
+
+
+
     //Для логирования
     const currentLogin = ref('')
     const setLoggin = function (value) {
@@ -85,6 +106,7 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
 
         darkModeOn,
         setVisualMode,
+        changeTheme,
 
         choosedStorage,
         chooseStorage,
