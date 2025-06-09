@@ -7,3 +7,6 @@ export const logout = `${authUrl}/auth/logout`;
 export const getMyProfile = `${userUrl}/user/me`
 export const getUsersList = `${userUrl}/user/crud`;
 export const getUserSessions = `${sessionUrl}/session/crud`;
+export const getCameraGroups = `${userUrl}/camera/crud/groups`;
+export const getCameraOfGroup = (groupId) => `${userUrl}/camera/crud/groups/${groupId}/cameras`;
+export const getCameraSubscriptions = (groupId, cameraId) => `${userUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}/subscribers`;

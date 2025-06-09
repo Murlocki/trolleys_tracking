@@ -1,7 +1,7 @@
 import {
     login,
     logout,
-    getMyProfile, getUsersList, getUserSessions
+    getMyProfile, getUsersList, getUserSessions, getCameraGroups, getCameraOfGroup, getCameraSubscriptions
 } from "@/externalRequests/endpoints.js";
 const apikey = import.meta.env.VITE_API_KEY;
 console.log(apikey)
@@ -41,6 +41,44 @@ export async function getUserProfile(token) {
 
 export async function getUserSessionList(token, id) {
     return await fetch(`${getUserSessions}/${id}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-API-Key': apikey
+        }
+    })
+}
+
+export async function getCameraGroupsList(token) {
+    return await fetch(`${getCameraGroups}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-API-Key': apikey
+        }
+    })
+}
+
+
+export async function getCamerasList(token, groupId) {
+    return await fetch(`${getCameraOfGroup(groupId)}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-API-Key': apikey
+        }
+    })
+}
+
+
+export async function getCameraSubscribersList(token, groupId, cameraId) {
+    return await fetch(`${getCameraSubscriptions(groupId, cameraId)}`, {
         method: 'GET',
         mode: 'cors',
         headers: {

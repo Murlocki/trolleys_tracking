@@ -30,7 +30,7 @@ class UserAdminDTO(BaseModel):
     email: str | None = Field(default=None, validation_alias=AliasChoices('email'))
     created_at: str = Field(default="", validation_alias=AliasChoices('created_at', 'createdAt'))
     updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
-
+    version: int = Field(default=0)
     class Config:
         alias_generator = to_camel
         from_attributes = True

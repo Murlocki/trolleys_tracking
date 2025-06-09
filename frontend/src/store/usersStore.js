@@ -23,7 +23,8 @@ export const  usersStore = defineStore("usersStore", {
                 user.updatedAt,
                 user.isActive,
                 user.role,
-                user.roleDisplay
+                user.roleDisplay,
+                user.version
             ));
             this.$state.users.forEach(user => {
                 this.$state.userSessions[user.id] = []

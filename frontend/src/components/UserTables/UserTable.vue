@@ -25,7 +25,20 @@ const columns = [
 
 const itemsPerPageOptions = [10, 15, 20, 30];
 
-const expandedRows = ref([]); // для управления раскрытием строк
+const expandedRows = ref({}); // для управления раскрытием строк
+
+async function onRowClick(event) {
+  const row = event.data;
+  const rowId = row.id;
+
+  if (expandedRows.value[rowId]) {
+    expandedRows.value = {};
+    await onRowCollapse(event);
+  } else {
+    expandedRows.value = { [rowId]: row };
+    await onRowExpand(event);
+  }
+}
 
 onMounted(async () => {
   const token = userSettings.getJwt.value;
@@ -115,9 +128,7 @@ const columnsSession = [
 
         dataKey="id"
         :expandedRows="expandedRows"
-        @row-expand="onRowExpand"
-        @row-collapse="onRowCollapse"
-        rowExpansion
+        @row-click="onRowClick"
     >
       <!-- Колонка для раскрытия -->
       <Column

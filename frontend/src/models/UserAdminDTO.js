@@ -1,14 +1,15 @@
 /**
-    @param {number} id - Идентификатор пользователя
-    @param {string} username - Имя пользователя
-    @param {string} firstName - Имя пользователя
-    @param {string} lastName - Фамилия пользователя
-    @param {string} email - Электронная почта пользователя
-    @param {string} createdAt - Дата создания пользователя
-    @param {string} updatedAt - Дата обновления пользователя
-    @param {boolean} isActive - Активен ли пользователь
-    @param {string} role - Роль пользователя
-    @param {string} roleDisplay - Отображаемая роль пользователя
+ @param {number} id - Идентификатор пользователя
+ @param {string} username - Имя пользователя
+ @param {string} firstName - Имя пользователя
+ @param {string} lastName - Фамилия пользователя
+ @param {string} email - Электронная почта пользователя
+ @param {string} createdAt - Дата создания пользователя
+ @param {string} updatedAt - Дата обновления пользователя
+ @param {boolean} isActive - Активен ли пользователь
+ @param {string} role - Роль пользователя
+ @param {string} roleDisplay - Отображаемая роль пользователя
+ @param {number} version - Версия пользователя
  */
 export class UserAdminDTO {
     /**
@@ -22,8 +23,9 @@ export class UserAdminDTO {
      * @param {boolean} isActive - Активен ли пользователь
      * @param {string} role - Роль пользователя
      * @param {string} roleDisplay - Отображаемая роль пользователя
+     * @param {number} version - Версия пользователя
      */
-    constructor(id, username, firstName, lastName, email, createdAt, updatedAt, isActive, role, roleDisplay) {
+    constructor(id, username, firstName, lastName, email, createdAt, updatedAt, isActive, role, roleDisplay, version) {
         this._createdAt = new Date(createdAt)
         this.email = email
         this.firstName = firstName
@@ -34,7 +36,9 @@ export class UserAdminDTO {
         this.roleDisplay = roleDisplay
         this._updatedAt = new Date(updatedAt)
         this.username = username
+        this.version = version
     }
+
     get createdAt() {
         if (this._createdAt instanceof Date) {
             return this._createdAt.toLocaleString('en-EN', {
@@ -47,6 +51,7 @@ export class UserAdminDTO {
         }
         return null;
     }
+
     get updatedAt() {
         if (this._updatedAt instanceof Date) {
             return this._updatedAt.toLocaleString('en-EN', {

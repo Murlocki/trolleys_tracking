@@ -32,11 +32,11 @@ class SessionDTO(BaseModel):
         created_at: datetime = Field(datetime.now(), validation_alias=AliasChoices('created_at', 'createdAt'))
         expires_at: datetime = Field(datetime.now(), validation_alias=AliasChoices('expires_at', 'expiresAt'))
 
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat(),  # Преобразование datetime в ISO строку
-        }
-        alias_generator = to_camel
+        class Config:
+            json_encoders = {
+                datetime: lambda v: v.isoformat(),  # Преобразование datetime в ISO строку
+            }
+            alias_generator = to_camel
 
 
 class TokenModelResponse(BaseModel):

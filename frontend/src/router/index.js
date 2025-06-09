@@ -5,6 +5,7 @@ import AboutPage from '../components/MainSection/AboutPage/AboutPage.vue'
 import HelpPage from '../components/MainSection/HelpPage/HelpPage.vue'
 import TreatPageMain from "@/components/MainSection/TreatPage/TreatPageMain.vue";
 import UserTable from "@/components/UserTables/UserTable.vue";
+import CameraTable from "@/components/CameraView/CameraTable.vue";
 const routes = [
     {
         path: '',
@@ -38,7 +39,7 @@ const routes = [
             },
             {
                 path: 'cameras',
-                component: AboutPage,
+                component: CameraTable,
             },
         ],
     }
