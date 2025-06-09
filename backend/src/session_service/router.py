@@ -407,18 +407,14 @@ async def get_user_sessions(
 
         if not sessions:
             logger.info(f"No sessions found for user {user_id}")
-            result.data = {
-                "message": "No sessions found",
-                "count": 0,
-                "sessions": []
-            }
+            result.data = []
             return result
 
         # 3. Log and return results
         logger.info(
             f"Retrieved {len(sessions)} sessions for user {user_id}"
         )
-        result.data = [SessionDTO(**session) for session in sessions]
+        result.data = [SessionDTO(**session).model_dump(by_alias=True) for session in sessions]
         return result
 
     except HTTPException:

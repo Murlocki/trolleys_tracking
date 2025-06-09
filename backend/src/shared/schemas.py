@@ -23,19 +23,20 @@ class SessionSchema(BaseModel):
 
 
 class SessionDTO(BaseModel):
-    session_id: str
-    user_id: int
-    access_token: str
-    refresh_token: str | None = None
-    device: str = Field("unknown")
-    ip_address: str = Field("unknown")
-    created_at: datetime = Field(datetime.now())
-    expires_at: datetime = Field(datetime.now())
+        session_id: str = Field(..., description="Unique identifier for the session", validation_alias=AliasChoices('session_id', 'sessionId'))
+        user_id: int = Field(..., description="ID of the user associated with the session", validation_alias=AliasChoices('user_id', 'userId'))
+        access_token: str = Field(..., description="Access token for the session", validation_alias=AliasChoices('access_token', 'accessToken'))
+        refresh_token: str | None = Field(None, description="Refresh token for the session", validation_alias=AliasChoices('refresh_token', 'refreshToken'))
+        device: str = Field("unknown")
+        ip_address: str = Field("unknown", validation_alias=AliasChoices('ip_address', 'ipAddress'))
+        created_at: datetime = Field(datetime.now(), validation_alias=AliasChoices('created_at', 'createdAt'))
+        expires_at: datetime = Field(datetime.now(), validation_alias=AliasChoices('expires_at', 'expiresAt'))
 
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat(),  # Преобразование datetime в ISO строку
         }
+        alias_generator = to_camel
 
 
 class TokenModelResponse(BaseModel):
@@ -58,11 +59,13 @@ class AuthResponse(BaseModel, Generic[T]):
 
 class PaginatorList(BaseModel, Generic[T]):
     page: int = Field(1)
-    page_count: int = Field(1)
-    items_per_page: int = Field(10)
-    item_count: int = Field(1)
+    page_count: int = Field(1, validation_alias=AliasChoices('page_count', 'pageCount'))
+    items_per_page: int = Field(10, validation_alias=AliasChoices('items_per_page', 'itemsPerPage'))
+    item_count: int = Field(1, validation_alias=AliasChoices('item_count', 'itemCount'))
     items: List[T] = Field(default_factory=lambda: list)
-
+    class Config:
+        alias_generator = to_camel
+        from_attributes = True
 
 class UserData(BaseModel):
     first_name: str = Field(validation_alias=AliasChoices('first_name', 'firstName'))

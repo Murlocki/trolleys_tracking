@@ -25,7 +25,9 @@ class UserAdminDTO(BaseModel):
                               validation_alias=AliasChoices('role_display', 'roleDisplay'))
     role: str = Field(default=Role.SERVICE)
     is_active: bool = Field(default=True, validation_alias=AliasChoices('is_active', 'isActive'))
-    user_data: UserData | None = Field(default=None, validation_alias=AliasChoices('user_data', 'userData'))
+    first_name: str | None = Field(default=None, min_length=3, max_length=50, validation_alias=AliasChoices('first_name', 'firstName'))
+    last_name: str | None = Field(default=None, min_length=3, max_length=50, validation_alias=AliasChoices('last_name', 'lastName'))
+    email: str | None = Field(default=None, validation_alias=AliasChoices('email'))
     created_at: str = Field(default="", validation_alias=AliasChoices('created_at', 'createdAt'))
     updated_at: str = Field(default="", validation_alias=AliasChoices('updated_at', 'updatedAt'))
 

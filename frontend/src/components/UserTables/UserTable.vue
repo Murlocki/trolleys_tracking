@@ -1,0 +1,199 @@
+<script setup>
+import {ref, onMounted} from "vue";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Button from "primevue/button";
+
+import {usersStore} from "@/store/usersStore.js";
+import {userSettingsStore} from "@/store/userSettingsStore.js";
+import {getUsers, getUserSessionList} from "@/externalRequests/requests.js";
+
+const store = usersStore();
+const userSettings = userSettingsStore();
+
+const columns = [
+  {field: "id", header: "ID"},
+  {field: "username", header: "User Name"},
+  {field: "roleDisplay", header: "Role"},
+  {field: "isActive", header: "Is active"},
+  {field: "email", header: "Email"},
+  {field: "firstName", header: "First name"},
+  {field: "lastName", header: "Last name"},
+  {field: "createdAt", header: "Created at"},
+  {field: "updatedAt", header: "Updated at"},
+];
+
+const itemsPerPageOptions = [10, 15, 20, 30];
+
+const expandedRows = ref([]); // для управления раскрытием строк
+
+onMounted(async () => {
+  const token = userSettings.getJwt.value;
+  userSettings.setLoading(true);
+
+  const response = await getUsers(token);
+  if (response.status === 200) {
+    const response_json = await response.json();
+    userSettings.setJwtKey(response_json.token);
+    await store.setUsers(response_json.data.items);
+    await store.setPaginator(
+        response_json.data.page,
+        response_json.data.itemsPerPage,
+        response_json.data.pageCount
+    );
+  } else {
+    console.error("Failed to fetch users:", response.statusText);
+  }
+
+  userSettings.setLoading(false);
+});
+
+function onPageChange(event) {
+  store.setPaginator(event.first / event.rows, event.rows, event.pageCount);
+}
+
+async function onRowExpand(event) {
+  const user = event.data;
+  console.log(store.userSessions[user.id]);
+  if (!store.userSessions[user.id] || store.userSessions[user.id].length === 0) {
+    const token = userSettings.getJwt.value;
+    userSettings.setLoading(true);
+
+    const response = await getUserSessionList(token, user.id);
+    if (response.status === 200) {
+      const response_json = await response.json();
+      userSettings.setJwtKey(response_json.token);
+      if (response_json.data.length > 0) {
+        await store.setUserSessions(response_json.data, user.id);
+      }
+    } else {
+      console.error("Failed to fetch sessions:", response.statusText);
+    }
+
+    userSettings.setLoading(false);
+  }
+}
+
+function onRowCollapse(event) {
+  const user = event.data
+  console.log("Строка закрыта:", user.id);
+  store.deleteUserSession(user.id)
+}
+
+const columnsSession = [
+  {field: "sessionId", header: "ID"},
+  {field: "ipAddress", header: "IP-address"},
+  {field: "device", header: "Device"},
+  {field: "createdAt", header: "Created at"},
+  {field: "expiresAt", header: "Updated at"},
+];
+
+</script>
+
+<template>
+  <div class="w-full">
+    <!-- Панель сверху: кнопка Добавить + поиск -->
+    <div class="flex flex-row justify-content-between mb-3">
+      <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
+      <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>
+    </div>
+
+    <DataTable
+        :value="store.$state.users"
+        tableStyle="min-width: 50rem"
+        size="large"
+        :scrollable="true"
+        stripedRows
+        class="w-full mt-4"
+        :paginator="true"
+        :rows="store.$state.pageSize"
+        :totalRecords="store.pageSize * store.totalPages"
+        :lazy="true"
+        @page="onPageChange"
+        :rowsPerPageOptions="itemsPerPageOptions"
+        :showCurrentPageReport="true"
+
+        dataKey="id"
+        :expandedRows="expandedRows"
+        @row-expand="onRowExpand"
+        @row-collapse="onRowCollapse"
+        rowExpansion
+    >
+      <!-- Колонка для раскрытия -->
+      <Column
+          expander
+          style="width: 3em"
+      ></Column>
+
+      <!-- Колонки из вашего массива -->
+      <Column
+          v-for="col in columns"
+          :key="col.field"
+          :field="col.field"
+          :header="col.header"
+      ></Column>
+
+      <Column header="Actions" style="width: 140px">
+        <template #body="slotProps">
+          <div class="flex flex-row">
+            <Button
+                icon="pi pi-pencil"
+                class="p-button-rounded p-button-text p-button-info"
+                @click.stop="onEditUser(slotProps.data)"
+                :aria-label="'Edit ' + slotProps.data.name"
+            />
+            <Button
+                icon="pi pi-trash"
+                class="p-button-rounded p-button-text p-button-danger"
+                @click.stop="onDeleteUser(slotProps.data)"
+                :aria-label="'Delete ' + slotProps.data.name"
+            />
+            <Button
+                icon="pi pi-sign-out"
+                class="p-button-rounded p-button-text p-button-danger"
+                @click.stop="onLogOutUser(slotProps.data)"
+                :aria-label="'Logout ' + slotProps.data.name"
+            />
+          </div>
+        </template>
+      </Column>
+
+      <!-- Раскрывающаяся таблица с сессиями -->
+      <template #expansion="slotProps">
+        <div class="w-full flex justify-content-center" v-if="store.userSessions[slotProps.data.id].length===0">
+          <span class="text-2xl">No sessions</span>
+        </div>
+        <DataTable
+            :value="store.userSessions[slotProps.data.id] || []"
+            size="small"
+            class="w-full"
+            :scrollable="true"
+            stripedRows
+            v-else
+        >
+          <Column
+              v-for="col in columnsSession"
+              :key="col.field"
+              :field="col.field"
+              :header="col.header"
+          ></Column>
+          <Column header="Actions" style="width: 140px">
+            <template #body="slotProps">
+              <div class="w-full flex justify-content-center align-content-center">
+                <Button
+                    icon="pi pi-trash"
+                    class="p-button-rounded p-button-text p-button-danger"
+                    @click.stop="onDeleteSession(slotProps.data)"
+                    :aria-label="'Delete ' + slotProps.data.name"
+                />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </template>
+    </DataTable>
+  </div>
+</template>
+<style scoped>
+
+</style>

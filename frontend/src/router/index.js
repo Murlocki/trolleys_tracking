@@ -3,10 +3,8 @@ import EnterPage from '../components/MainSection/EnterPage/EnterPage.vue'
 import MainContainer from '../components/MainSection/EnterPage/MainContainer.vue'
 import AboutPage from '../components/MainSection/AboutPage/AboutPage.vue'
 import HelpPage from '../components/MainSection/HelpPage/HelpPage.vue'
-import Settings from '../components/SettingsPage/Settings.vue'
-import UserPage from '../components/MainSection/UserPage/UserPage.vue'
-import { userSettingsStore } from '../store/userSettingsStore'
 import TreatPageMain from "@/components/MainSection/TreatPage/TreatPageMain.vue";
+import UserTable from "@/components/UserTables/UserTable.vue";
 const routes = [
     {
         path: '',
@@ -27,6 +25,20 @@ const routes = [
             {
                 path: 'treat',
                 component: TreatPageMain,
+            },
+        ],
+    },
+    {
+        path: '/tables',
+        component: EnterPage,
+        children: [
+            {
+                path: 'users',
+                component: UserTable,
+            },
+            {
+                path: 'cameras',
+                component: AboutPage,
             },
         ],
     }
