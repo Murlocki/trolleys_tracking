@@ -67,19 +67,19 @@ async def consume_loop():
 
         # TODO: Раскоментить на проде
         image = decompress_image(image_msg.image)
-        #results = model.process_image(image)
-        #bboxes = model.process_bounding_box(results)
-        #image_msg.bounding_boxes = bboxes or []
-        image_msg.bounding_boxes = [
-            BoundingBox(
-                x=40,
-                y=40,
-                width=100,
-                height=110
-            )
-        ]
+        results = model.process_image(image)
+        bboxes = model.process_bounding_box(results)
+        image_msg.bounding_boxes = bboxes or []
+        # image_msg.bounding_boxes = [
+        #     BoundingBox(
+        #         x=40,
+        #         y=40,
+        #         width=100,
+        #         height=110
+        #     )
+        # ]
 
-        #logger.info(f"Processed image")
+        logger.info(f"Processed image")
         await produce_async(
             image_msg,
             get_partition(

@@ -22,6 +22,8 @@ import signUpButtonWhite from './icons/loginIcons/signupWhite.svg'
 import helpPageText from './helpPage/helpPageQuestions.json'
 import treatPageText from './treatPage/treatPage.json'
 
+import testCart from './sliderImages/wewatch_2.png'
+
 export {
     treatPageText,
     helpPageText,
@@ -39,4 +41,5 @@ export {
     textLogoPathWhite,
     textLogoPath,
     sliderImagesJson,
+    testCart
 }

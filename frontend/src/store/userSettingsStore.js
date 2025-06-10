@@ -32,9 +32,7 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
     //Выбор хранилища для jwt ключа
     const storageChose = localStorage.getItem('wewatch-storageChose')
     console.log(storageChose)
-
     const choosedStorage = ref(!!storageChose)
-
     //Пусть оно по умолчанию будет локальным,чтобы все работало
     const storage = ref()
     function initDefaultStorage() {
@@ -53,26 +51,29 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
         }
     }
 
+
     function chooseStorage(selectedStorage, name) {
         localStorage.setItem('wewatch-storageChose', name)
         console.log(localStorage.getItem('wewatch-storageChose'))
         choosedStorage.value = true
 
         storage.value = selectedStorage
-        getJwt.value = computed(() => storage.value.getJwt())
+        getJwt.value = computed(() => storage.value.getJwt)
         setJwtKey.value = function (newKey) {
             storage.value.setJwtKey(newKey)
         }
         clearJwt.value = function () {
             storage.value.clearJWT()
         }
+        isLogged.value = computed(() => storage.value.isLoggedIn)
+        console.log(storage.value.isLoggedIn)
     }
 
-    const isLogged = computed(() => !!getJwt.value)
 
     const getJwt = ref()
     const setJwtKey = ref()
     const clearJwt = ref()
+    const isLogged = ref()
 
     const userIdentifier = ref('')
     function setUserIdentifier(identifier) {

@@ -9,9 +9,13 @@ import 'primeflex/primeflex.css'
 import 'primeicons/primeicons.css'
 
 import Tooltip from 'primevue/tooltip'
+import Cookies from "js-cookie";
 
 const pinia = createPinia()
 const app = createApp(App)
+
+
+
 
 app.use(pinia)
 app.use(router)

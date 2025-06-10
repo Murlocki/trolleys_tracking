@@ -37,46 +37,49 @@ consumer.subscribe([settings.kafka_classification_topic_name])
 
 
 async def consume_loop():
-    #logger.info("Starting consumer")
-    loop = asyncio.get_running_loop()
-    while True:
-        msg = await loop.run_in_executor(None, consumer.poll, 1.0)
-        if msg is None:
-            continue
-        if msg.error():
-            if msg.error().code() == KafkaError._PARTITION_EOF:
+    try:
+        logger.info("Starting consumer")
+        loop = asyncio.get_running_loop()
+        while True:
+            msg = await loop.run_in_executor(None, consumer.poll, 1.0)
+            if msg is None:
                 continue
-            else:
-                logger.error(f"Consumer error: {msg.error()}")
+            if msg.error():
+                if msg.error().code() == KafkaError._PARTITION_EOF:
+                    continue
+                else:
+                    logger.error(f"Consumer error: {msg.error()}")
+                    continue
+
+            context = SerializationContext(msg.topic(), MessageField.VALUE)
+            value = avro_deserializer(msg.value(), context)
+            if value is None:
+                logger.error("Failed to deserialize message")
                 continue
 
-        context = SerializationContext(msg.topic(), MessageField.VALUE)
-        value = avro_deserializer(msg.value(), context)
-        if value is None:
-            logger.error("Failed to deserialize message")
-            continue
+            logger.info("Received message:")
+            image_msg = ImageMessage.model_validate(value)
 
-        #logger.info("Received message:")
-        image_msg = ImageMessage.model_validate(value)
-
-        regime = image_msg.activation_props.detection_regime
-        model = models_dict.get(regime)
-        if model is None:
-            logger.warning(f"No model for regime {regime}")
-            continue
-        #logger.info(f"Set classification model: {model}")
-        image = decompress_image(image_msg.image, cv2.IMREAD_COLOR_BGR)
-        bboxes = model.classify(image,image_msg.bounding_boxes)
-        image_msg.bounding_boxes = bboxes or []
+            regime = image_msg.activation_props.detection_regime
+            model = models_dict.get(regime)
+            if model is None:
+                logger.warning(f"No model for regime {regime}")
+                continue
+            logger.info(f"Set classification model: {model}")
+            image = decompress_image(image_msg.image, cv2.IMREAD_COLOR_BGR)
+            bboxes = model.classify(image,image_msg.bounding_boxes)
+            image_msg.bounding_boxes = bboxes or []
 
 
-        #logger.info(f"Processed image")
-        await produce_async(
-            image_msg,
-            get_partition(
-                camera_id=image_msg.camera_id,
-                num_partitions=settings.kafka_tracking_topic_partitions_count
-            ),
-            topic=settings.kafka_tracking_topic_name
-        )
-        logger.info(f"Sent message to tracking")
+            logger.info(f"Processed image")
+            await produce_async(
+                image_msg,
+                get_partition(
+                    camera_id=image_msg.camera_id,
+                    num_partitions=settings.kafka_tracking_topic_partitions_count
+                ),
+                topic=settings.kafka_tracking_topic_name
+            )
+            logger.info(f"Sent message to tracking")
+    except Exception as e:
+        logger.error(f"Error in consume_loop: {e}")

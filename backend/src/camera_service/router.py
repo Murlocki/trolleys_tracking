@@ -205,7 +205,7 @@ async def get_camera_group_by_id(camera_group_id: int, db: AsyncSession = Depend
 
 @camera_router.get(
     "/camera/crud/groups",
-    response_model=AuthResponse[PaginatorList[CameraGroupDTO]],
+    response_model=AuthResponse[PaginatorList[CameraGroupAdminDTO]],
     responses={
         200: {"description": "List of users matching search criteria"},
         400: {"description": "Bad request"},
@@ -214,7 +214,7 @@ async def get_camera_group_by_id(camera_group_id: int, db: AsyncSession = Depend
         500: {"description": "Internal server error"}
     }
 )
-async def get_user_camera_groups(
+async def get_camera_groups(
         page: int = Query(1, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         name: str | None = Query(None, description="Filter by group name (partial match)"),

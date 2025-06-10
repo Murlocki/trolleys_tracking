@@ -15,82 +15,89 @@
 from ultralytics import YOLO
 
 if __name__ == '__main__':
-    model = YOLO(r"C:\Users\kirill\Desktop\diploma\diploma\runs\w\yolov11 на thic tune/weights/epoch20.pt")
-    model.predict(r"C:\Users\kirill\Desktop\diploma\diploma\runs\w\video5341570084945034619.mp4", show=True, conf=0.5, iou=0.4)
-    # import cv2
-    # import numpy as np
-    # from ultralytics import YOLO
-    # from deep_sort_realtime.deepsort_tracker import DeepSort
-    #
-    # # Инициализация
-    # tracker = DeepSort(
-    #     max_age=30,  # Макс. кадров без обновления трека
-    #     n_init=3,  # Кадров для инициализации трека
-    #     nn_budget=100,
-    #     max_iou_distance=0.7,
-    #     max_cosine_distance=0.4,
-    #     override_track_class=None
+    import cv2
+    import numpy as np
+    from ultralytics import YOLO
+    from deep_sort_realtime.deepsort_tracker import DeepSort
+    model = YOLO(r"C:\Users\kirill\Desktop\diploma\diploma\runs\w\yolov8 на конфиге для 9-ой\weights\epoch80.pt")
+    # model.predict(
+    #     r"C:\Users\kirill\Downloads\video5341570084945034619.mp4",
+    #     save=True,
+    #     save_txt=True,
+    #     save_conf=True,
+    #     conf=0.5,
+    #     iou=0.5,
+    #     classes=[0],  # только тележки
+    #     show=True,
+    #     imgsz=640
     # )
-    #
-    # # Открытие видео
-    # video_path = r"C:\Users\kirill\Desktop\diploma\diploma\runs\w\video5341570084945034619.mp4"
-    # cap = cv2.VideoCapture(video_path)
-    #
-    # # Параметры выходного видео
-    # fps = int(cap.get(cv2.CAP_PROP_FPS))
-    # width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    # height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    # out = cv2.VideoWriter('output_video.mp4', fourcc, fps, (width, height))
-    #
-    # # Цвета для визуализации (исправленная строка)
-    # COLORS = np.random.randint(0, 255, size=(200, 3), dtype="uint8")  # 200 треков, 3 канала (BGR)
-    #
-    # while cap.isOpened():
-    #     ret, frame = cap.read()
-    #     if not ret:
-    #         break
-    #
-    #     # Детекция YOLO
-    #     results = model(frame, conf=0.5, classes=[0])  # classes=[0] для тележек
-    #     detections = []
-    #
-    #     for result in results:
-    #         boxes = result.boxes.xyxy.cpu().numpy()
-    #         confs = result.boxes.conf.cpu().numpy()
-    #         clss = result.boxes.cls.cpu().numpy()
-    #
-    #         for box, conf, cls in zip(boxes, confs, clss):
-    #             x1, y1, x2, y2 = map(int, box)
-    #             detections.append(([x1, y1, x2 - x1, y2 - y1], conf, int(cls)))
-    #
-    #     # Трекинг DeepSORT
-    #     tracks = tracker.update_tracks(detections, frame=frame)
-    #
-    #     # Визуализация (исправленная строка)
-    #     for track in tracks:
-    #         if not track.is_confirmed():
-    #             continue
-    #
-    #         track_id = track.track_id
-    #         ltrb = track.to_ltrb()
-    #         x1, y1, x2, y2 = map(int, ltrb)
-    #
-    #         # Рисуем bbox и ID
-    #         cv2.rectangle(frame, (x1, y1), (x2, y2), 2)
-    #         cv2.putText(frame, f"ID: {track_id}", (x1, y1 - 10),
-    #                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
-    #
-    #     # Сохраняем кадр
-    #     out.write(frame)
-    #
-    #     # Показ в реальном времени
-    #     cv2.imshow("Tracking", frame)
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         break
-    #
-    # # Завершение
-    # cap.release()
-    # out.release()
-    # cv2.destroyAllWindows()
-    # print("Обработка завершена. Результат сохранен в output_video.mp4")
+    # Инициализация
+    tracker = DeepSort(
+        max_age=30,  # держим треки дольше
+        n_init=4,  # быстрее инициализируется
+        nn_budget=100,
+        max_iou_distance=0.7,
+        max_cosine_distance=0.4
+    )
+
+    # Открытие видео
+    video_path = r"C:\Users\kirill\Downloads\video5341570084945034619.mp4"
+    cap = cv2.VideoCapture(video_path)
+
+    # Параметры выходного видео
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter('output_video.mp4', fourcc, fps, (width, height))
+
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_3ch = cv2.merge([image, image, image])
+        # Детекция YOLO
+        results = model(gray_3ch, imgsz=640, conf=0.5, iou=0.5, classes=[0])  # classes=[0] для тележек
+        detections = []
+
+        for result in results:
+            boxes = result.boxes.xyxy.cpu().numpy()
+            confs = result.boxes.conf.cpu().numpy()
+            clss = result.boxes.cls.cpu().numpy()
+
+            for box, conf, cls in zip(boxes, confs, clss):
+                x1, y1, x2, y2 = map(int, box)
+                detections.append(([x1, y1, x2 - x1, y2 - y1], 1, int(cls)))
+
+        # Трекинг DeepSORT
+        tracks = tracker.update_tracks(detections, frame=frame)
+
+        # Визуализация (исправленная строка)
+        for track in tracks:
+            if not track.is_confirmed():
+                continue
+
+            track_id = track.track_id
+            ltrb = track.to_ltrb()
+            x1, y1, x2, y2 = map(int, ltrb)
+
+            # Рисуем bbox и ID
+            cv2.rectangle(frame, (x1, y1), (x2, y2), 2)
+            cv2.putText(frame, f"ID: {track_id}", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)
+
+        # Сохраняем кадр
+        out.write(frame)
+
+        # Показ в реальном времени
+        cv2.imshow("Tracking", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Завершение
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+    print("Обработка завершена. Результат сохранен в output_video.mp4")

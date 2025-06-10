@@ -9,5 +9,8 @@ export const localUserStorage = defineStore('localUserStorage', () => {
     const clearJWT = () => {
         localStorage.removeItem("wewatch-token")
     }
-    return { setJwtKey, getJwt, clearJWT }
+    const isLoggedIn = computed(() => {
+        return !!getJwt.value
+    })
+    return { setJwtKey, getJwt, clearJWT, isLoggedIn }
 })

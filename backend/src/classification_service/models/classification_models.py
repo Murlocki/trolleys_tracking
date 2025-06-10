@@ -1,8 +1,6 @@
-from src.classification_service.models.Yolo11Model import yolo11_model
-from src.shared.schemas import DetectionRegime
+from src.classification_service.models.DualResNet import  dual_res_net
+from src.shared.schemas import ClassificationRegime
 
 models_dict = {
-    DetectionRegime.yoloV11: yolo11_model,
-    DetectionRegime.yoloV8x: None,
-    DetectionRegime.yoloV9x: None,
+    ClassificationRegime.yoloV11: dual_res_net
 }

@@ -12,6 +12,7 @@ avro_schema = None
 # kafka-consumer-groups.sh --bootstrap-server localhost:9093 --topic track_images --group tracking_consumer --reset-offsets --to-earliest --execute
 # kafka-consumer-groups.sh  --bootstrap-server localhost:9093 --delete --group tracking_consumer
 # kafka-consumer-groups.sh --bootstrap-server localhost:9093 --topic send_result --group socket_broadcast --reset-offsets --to-earliest --execute
+# kafka-consumer-groups.sh --bootstrap-server localhost:9093 --topic send_images --group camera-image-consumer-group --reset-offsets --to-earliest --execute
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global avro_schema

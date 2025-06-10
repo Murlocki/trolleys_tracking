@@ -50,7 +50,6 @@ function openLoginForm() {
 }
 
 
-
 import { userSettingsStore } from '@/store/userSettingsStore.js'
 import { computed } from 'vue'
 import { loginButtonIcon, loginButtonIconBlack } from '@assets/index.js'
@@ -64,6 +63,9 @@ const themeSignIcon = computed(() => {
     if (!store.$state.darkModeOn) return signUpButtonBlack
     return signUpButtonWhite
 })
+
+console.log(store.getJwt.value)
+console.log(store.isLogged)
 </script>
 
 <style>
