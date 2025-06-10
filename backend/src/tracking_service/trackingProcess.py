@@ -1,6 +1,8 @@
 from datetime import timedelta
 import asyncio
 from multiprocessing import Process, Queue
+
+import cv2
 from aiokafka import AIOKafkaProducer
 
 from src.shared.common_functions import decompress_image
@@ -90,7 +92,7 @@ async def async_tracking_loop(camera_id, queue: Queue):
             await mark_camera_alive(camera_id)
             logger.info(f"[TRACKER] Processing frame")
 
-            image = decompress_image(data.image)
+            image = decompress_image(data.image, cv2.IMREAD_COLOR_BGR)
             model: BasicTracker = SingletonTracker.get_tracker(
                 tracker_class=models_dict.get(data.activation_props.tracking_regime),
                 parameters=models_params_dict.get(data.activation_props.tracking_regime)
