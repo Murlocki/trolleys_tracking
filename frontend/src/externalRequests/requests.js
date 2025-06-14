@@ -28,15 +28,30 @@ export async function loginOut(token) {
 
 
 export async function getUserProfile(token) {
-    return await fetch(`${getMyProfile}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-API-Key': apikey
-        }
-    })
+    try {
+        const response = await fetch(`${getMyProfile}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        });
+
+        // Возвращаем полный объект Response для гибкой обработки в компоненте
+        return response;
+
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 0,
+            statusText: "Network Error"
+        });
+    }
 }
 
 export async function getUserSessionList(token, id) {
@@ -52,15 +67,26 @@ export async function getUserSessionList(token, id) {
 }
 
 export async function getCameraGroupsList(token) {
-    return await fetch(`${getCameraGroups}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-API-Key': apikey
-        }
-    })
+    try {
+        const response = await fetch(`${getCameraGroups}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        });
+
+        return response
+    } catch (error) {
+        return {
+            ok: false,
+            status: 0, // 0 = Network Error
+            statusText: error.message,
+            error: "Server is unreachable. Check your connection."
+        };
+    }
 }
 
 

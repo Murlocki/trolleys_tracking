@@ -1,8 +1,4 @@
-from deep_sort_realtime.deep_sort.detection import Detection
 from deep_sort_realtime.deepsort_tracker import DeepSort
-from ultralytics import YOLO
-
-from src.detection_service.detection_settings import detection_settings
 from src.shared.logger_setup import setup_logger
 from src.shared.schemas import BoundingBox
 from src.tracking_service.models.BasicTracker import BasicTracker

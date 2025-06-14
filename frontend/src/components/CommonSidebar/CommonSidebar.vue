@@ -9,7 +9,9 @@
   >
     <template #container>
       <div class="flex flex-column h-full">
-        <Button class="flex align-items-center justify-content-between px-4 pt-3 flex-shrink-0 border-none border-noround" raised text @click="router.push('/')">
+        <Button
+            class="flex align-items-center justify-content-between px-4 pt-3 flex-shrink-0 border-none border-noround"
+            raised text @click="router.push('/')">
           <Image :src="themeIcon" width="60"></Image>
           <span class="ml-2 text-3xl" style="font-family: 'AlbraTRIAL-Black', sans-serif">Wewatch menu</span>
         </Button>
@@ -121,19 +123,30 @@ const sidebarElements = [
 
 
 onMounted(async () => {
-  if (store.isLogged) {
-    const response = await getUserProfile(store.getJwt.value)
-    store.setLoading(true)
-    console.log(store.isLoading)
-    if (response.status === 200) {
-      const response_json = await response.json()
-      store.setUserIdentifier(response_json.data.username)
-    } else {
-      console.error('Failed to fetch user profile:', response.statusText)
-      store.clearJwt()
-    }
-    store.setLoading(false)
+  if (!store.isLogged) {
+    return;
   }
+  store.setLoading(true);
+  const response = await getUserProfile(store.getJwt.value);
+  console.log(response)
+
+  if (response.status === 401 || response.status === 403) {
+    await store.clearJwt()
+    await router.push('/');
+    console.log("Logged out")
+    store.setLoading(false);
+    return
+  }
+
+
+  const response_json = await response.json()
+  if (response.status === 200) {
+    store.setUserIdentifier(response_json.data.username)
+    console.log("Set user identifier for user identifier.")
+  }
+  store.setJwtKey(response_json.token)
+  store.setLoading(false);
+
 })
 
 </script>

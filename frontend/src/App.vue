@@ -3,11 +3,10 @@ import CookieDialog from './components/CommonCookieDialog/CookieDialog.vue'
 import EnterHeader from './components/Header/EnterHeader.vue'
 import FooterPage from './components/CommonFooter/FooterPage.vue'
 import LoadingScreen from "@/components/LoadingScreen/LoadingScreen.vue";
-import BlockUI from "primevue/blockui";
-import ProgressSpinner from "primevue/progressspinner";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 
 const store = userSettingsStore()
+store.initDefaultStorage()
 </script>
 
 <template>

@@ -11,8 +11,8 @@ export const cookieUserStorage = defineStore('cookieUserStorage', () => {
     const clearJwt = () => {
         Cookies.remove('wewatch-token')
     }
-    const isLoggedIn = computed(() => {
+    const isLogged = computed(() => {
         return !!getJwt.value
     })
-    return { setJwtKey, getJwt, clearJwt, isLoggedIn }
+    return { setJwtKey, getJwt, clearJwt, isLogged }
 })

@@ -1,10 +1,8 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import Cookies from 'js-cookie'
 import { localUserStorage } from './localUserStorage'
 import { cookieUserStorage } from './cookieUserStorage'
 export const userSettingsStore = defineStore('userSettingsStore', () => {
-    //Выбор темы
     const darkModeOn = ref(false)
     function setVisualMode() {
         darkModeOn.value = !darkModeOn.value
@@ -29,32 +27,27 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
         }
     }
 
-    //Выбор хранилища для jwt ключа
     const storageChose = localStorage.getItem('wewatch-storageChose')
     console.log(storageChose)
     const choosedStorage = ref(!!storageChose)
-    //Пусть оно по умолчанию будет локальным,чтобы все работало
     const storage = ref()
     function initDefaultStorage() {
         if (storageChose === 'cookie') {
             storage.value = cookieUserStorage()
-            getJwt.value = computed(() => storage.value.getJwt)
-            setJwtKey.value = function (newKey) {
-                storage.value.setJwtKey(newKey)
-            }
         } else {
             storage.value = localUserStorage()
-            getJwt.value = computed(() => storage.value.getJwt)
-            setJwtKey.value = function (newKey) {
-                storage.value.setJwtKey(newKey)
-            }
         }
+        getJwt.value = computed(() => storage.value.getJwt)
+        setJwtKey.value = function (newKey) {
+            storage.value.setJwtKey(newKey)
+        }
+        isLogged.value = computed(() => storage.value.isLogged)
+        clearJwt.value = storage.value.clearJwt;
     }
 
 
     function chooseStorage(selectedStorage, name) {
         localStorage.setItem('wewatch-storageChose', name)
-        console.log(localStorage.getItem('wewatch-storageChose'))
         choosedStorage.value = true
 
         storage.value = selectedStorage
@@ -66,7 +59,6 @@ export const userSettingsStore = defineStore('userSettingsStore', () => {
             storage.value.clearJWT()
         }
         isLogged.value = computed(() => storage.value.isLoggedIn)
-        console.log(storage.value.isLoggedIn)
     }
 
 

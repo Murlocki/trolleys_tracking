@@ -3,7 +3,7 @@
         <Toolbar class="p-0 mx-2 bg-primary-reverse border-0">
             <template #start>
                 <Button
-                    v-if="store.isLogged"
+                    v-if="store.isLogged.value"
                     icon="pi pi-bars"
                     severity="secondary"
                     text
@@ -25,13 +25,12 @@ import WemeetName from './CommonElements/WemeetName.vue'
 import WatchLogo from './CommonElements/WatchLogo.vue'
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
-import { userSettingsStore } from '@/store/userSettingsStore.js'
 import CommonSidebar from '../CommonSidebar/CommonSidebar.vue'
-
-const store = userSettingsStore()
-store.initDefaultStorage()
 import { ref } from 'vue'
-const visibleLeft = ref(false)
+import {userSettingsStore} from "@/store/userSettingsStore.js";
+
+const store = userSettingsStore();
+const visibleLeft = ref(false);
 </script>
 
 <style></style>

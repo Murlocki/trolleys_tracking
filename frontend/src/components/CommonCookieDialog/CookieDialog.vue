@@ -26,11 +26,8 @@ const localStore = localUserStorage()
 const cookieStorage = cookieUserStorage()
 
 function setStorage(storage, name) {
-    console.log(storage)
     store.chooseStorage(storage, name)
-    console.log(storage.getJwt)
 }
-
 const showDialog = computed(() => !store.isLogged)
 </script>
 
