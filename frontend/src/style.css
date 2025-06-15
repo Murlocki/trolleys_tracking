@@ -53,3 +53,10 @@ body {
         background-color: #ffffff;
     }
 }
+.nested-table {
+    margin-left: 20px;
+    border-left: 2px solid #bbb;
+    padding-left: 10px;
+    background-color: #fafafa;
+    border-radius: 4px;
+}

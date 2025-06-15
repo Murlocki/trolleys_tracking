@@ -177,7 +177,7 @@ const columnsSession = [
         <DataTable
             :value="store.userSessions[slotProps.data.id] || []"
             size="small"
-            class="w-full"
+            class="w-full nested-table"
             :scrollable="true"
             stripedRows
             v-else
@@ -205,6 +205,3 @@ const columnsSession = [
     </DataTable>
   </div>
 </template>
-<style scoped>
-
-</style>

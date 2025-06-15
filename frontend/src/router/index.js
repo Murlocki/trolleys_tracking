@@ -4,7 +4,7 @@ import MainContainer from '../components/MainSection/EnterPage/MainContainer.vue
 import AboutPage from '../components/MainSection/AboutPage/AboutPage.vue'
 import HelpPage from '../components/MainSection/HelpPage/HelpPage.vue'
 import TreatPageMain from "@/components/MainSection/TreatPage/TreatPageMain.vue";
-import UserTable from "@/components/UserTables/UserTable.vue";
+import UserView from "@/components/UserView/UserView.vue";
 import CameraTable from "@/components/CameraView/CameraTable.vue";
 const routes = [
     {
@@ -35,7 +35,7 @@ const routes = [
         children: [
             {
                 path: 'users',
-                component: UserTable,
+                component: UserView,
             },
             {
                 path: 'cameras',
