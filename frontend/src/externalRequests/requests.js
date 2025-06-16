@@ -1,8 +1,14 @@
 import {
+    getCameraGroups,
+    getCameraOfGroup,
+    getCameraSubscriptions,
+    getMyProfile,
+    getUserSessions,
+    getUsersList,
     login,
-    logout,
-    getMyProfile, getUsersList, getUserSessions, getCameraGroups, getCameraOfGroup, getCameraSubscriptions
+    logout
 } from "@/externalRequests/endpoints.js";
+
 const apikey = import.meta.env.VITE_API_KEY;
 console.log(apikey)
 
@@ -29,7 +35,8 @@ export async function loginOut(token) {
 
 export async function getUserProfile(token) {
     try {
-        const response = await fetch(`${getMyProfile}`, {
+        // Возвращаем полный объект Response для гибкой обработки в компоненте
+        return await fetch(`${getMyProfile}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -39,16 +46,13 @@ export async function getUserProfile(token) {
             }
         });
 
-        // Возвращаем полный объект Response для гибкой обработки в компоненте
-        return response;
-
     } catch (error) {
         // Создаём искусственный Response для сетевых ошибок
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
         }), {
-            status: 0,
+            status: 503,
             statusText: "Network Error"
         });
     }
@@ -122,38 +126,50 @@ export async function getCameraSubscribersList(token, groupId, cameraId) {
  * @param {Object} [params={}] - Параметры запроса
  */
 export async function getUsers(token, params = {}) {
-    const queryParams = new URLSearchParams();
+    try {
+        const queryParams = new URLSearchParams();
 
-    // Обычные фильтры
-    if (params.page !== undefined) queryParams.append('page', params.page);
-    if (params.count !== undefined) queryParams.append('count', params.count);
-    if (params.username) queryParams.append('username', params.username);
-    if (params.email) queryParams.append('email', params.email);
-    if (params.firstName) queryParams.append('firstName', params.firstName);
-    if (params.lastName) queryParams.append('lastName', params.lastName);
-    if (params.userId) queryParams.append('userId', params.userId);
-    if (params.role) queryParams.append('role', params.role);
-    if (params.createdFrom) queryParams.append('createdFrom', params.createdFrom.toISOString());
-    if (params.createdTo) queryParams.append('createdTo', params.createdTo.toISOString());
-    if (params.updatedFrom) queryParams.append('updatedFrom', params.updatedFrom.toISOString());
-    if (params.updatedTo) queryParams.append('updatedTo', params.updatedTo.toISOString());
+        // Обычные фильтры
+        if (params.page !== undefined) queryParams.append('page', 0);
+        if (params.count !== undefined) queryParams.append('count', params.count);
+        if (params.username) queryParams.append('username', params.username);
+        if (params.email) queryParams.append('email', params.email);
+        if (params.firstName) queryParams.append('firstName', params.firstName);
+        if (params.lastName) queryParams.append('lastName', params.lastName);
+        if (params.userId) queryParams.append('userId', params.userId);
+        if (params.role) queryParams.append('role', params.role);
+        if (params.createdFrom) queryParams.append('createdFrom', params.createdFrom.toISOString());
+        if (params.createdTo) queryParams.append('createdTo', params.createdTo.toISOString());
+        if (params.updatedFrom) queryParams.append('updatedFrom', params.updatedFrom.toISOString());
+        if (params.updatedTo) queryParams.append('updatedTo', params.updatedTo.toISOString());
+        queryParams.append("page",0)
+        // Повторяющиеся поля
+        if (Array.isArray(params.sort_by)) {
+            params.sort_by.forEach(field => queryParams.append('sort_by', field));
+        }
+        if (Array.isArray(params.sort_order)) {
+            params.sort_order.forEach(order => queryParams.append('sort_order', order));
+        }
 
-    // Повторяющиеся поля
-    if (Array.isArray(params.sort_by)) {
-        params.sort_by.forEach(field => queryParams.append('sort_by', field));
+        const url = `${getUsersList}?${queryParams.toString()}`;
+
+        return await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey,
+            },
+        });
     }
-    if (Array.isArray(params.sort_order)) {
-        params.sort_order.forEach(order => queryParams.append('sort_order', order));
+    catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            statusText: "Network Error"
+        });
     }
-
-    const url = `${getUsersList}?${queryParams.toString()}`;
-
-    return await fetch(url, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-API-Key': apikey,
-        },
-    });
 }

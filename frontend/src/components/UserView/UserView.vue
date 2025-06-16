@@ -7,6 +7,8 @@ import Button from "primevue/button";
 import {usersStore} from "@/store/usersStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import {getUsers, getUserSessionList} from "@/externalRequests/requests.js";
+import router from "@/router/index.js";
+import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -27,6 +29,7 @@ const itemsPerPageOptions = [10, 15, 20, 30];
 
 const expandedRows = ref({}); // для управления раскрытием строк
 
+// Обработка клика по строке
 async function onRowClick(event) {
   const row = event.data;
   const rowId = row.id;
@@ -40,31 +43,7 @@ async function onRowClick(event) {
   }
 }
 
-onMounted(async () => {
-  const token = userSettings.getJwt.value;
-  userSettings.setLoading(true);
-
-  const response = await getUsers(token);
-  if (response.status === 200) {
-    const response_json = await response.json();
-    userSettings.setJwtKey(response_json.token);
-    await store.setUsers(response_json.data.items);
-    await store.setPaginator(
-        response_json.data.page,
-        response_json.data.itemsPerPage,
-        response_json.data.pageCount
-    );
-  } else {
-    console.error("Failed to fetch users:", response.statusText);
-  }
-
-  userSettings.setLoading(false);
-});
-
-function onPageChange(event) {
-  store.setPaginator(event.first / event.rows, event.rows, event.pageCount);
-}
-
+// Обработка открытия строки
 async function onRowExpand(event) {
   const user = event.data;
   console.log(store.userSessions[user.id]);
@@ -87,11 +66,70 @@ async function onRowExpand(event) {
   }
 }
 
-function onRowCollapse(event) {
+// Обработка коллапса строки
+async function onRowCollapse(event) {
   const user = event.data
+  await store.deleteUserSession(user.id)
   console.log("Строка закрыта:", user.id);
-  store.deleteUserSession(user.id)
 }
+
+
+
+const error = ref(false)
+const errorTitle = ref("ERROR")
+const errorCode = ref(0)
+
+onMounted(async () => {
+  const token = userSettings.getJwt.value;
+  userSettings.setLoading(true);
+  error.value = false;
+  const response = await getUsers(token);
+
+  if (response.status === 401 || response.status === 403) {
+    userSettings.clearJwt()
+    await router.push("/")
+    userSettings.setLoading(false);
+    return;
+  }
+
+
+  const response_json = await response.json();
+  if (response.status === 200) {
+    await store.setUsers(response_json.data.items);
+    await store.setPaginator(
+        response_json.data.page,
+        response_json.data.itemsPerPage,
+        response_json.data.pageCount
+    );
+    userSettings.setJwtKey(response_json.token);
+    userSettings.setLoading(false);
+    return;
+  }
+
+  if (response.status === 0) {
+    error.value = response.error;
+    console.log(response.error);
+    userSettings.setLoading(false);
+    return;
+  }
+
+  const details = response_json.detail;
+  userSettings.setJwtKey(details.token);
+  error.value = true;
+  errorCode.value = response.status;
+  errorTitle.value = details.data.message;
+  console.log(error.value);
+  userSettings.setLoading(false);
+
+});
+
+function onPageChange(event) {
+  store.setPaginator(event.first / event.rows, event.rows, event.pageCount);
+}
+
+
+
+
 
 const columnsSession = [
   {field: "sessionId", header: "ID"},
@@ -110,8 +148,9 @@ const columnsSession = [
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>
     </div>
-
+    <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <DataTable
+        v-else
         :value="store.$state.users"
         tableStyle="min-width: 50rem"
         size="large"

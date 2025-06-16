@@ -24,6 +24,9 @@ import treatPageText from './treatPage/treatPage.json'
 
 import testCart from './sliderImages/wewatch_2.png'
 
+import error from './errorPage/error.svg'
+import errorWhite from './errorPage/error_white.svg'
+
 export {
     treatPageText,
     helpPageText,
@@ -41,5 +44,7 @@ export {
     textLogoPathWhite,
     textLogoPath,
     sliderImagesJson,
-    testCart
+    testCart,
+    error,
+    errorWhite,
 }
