@@ -7,6 +7,7 @@ export const login = `${authUrl}/auth/login`;
 export const logout = `${authUrl}/auth/logout`;
 export const getMyProfile = `${userUrl}/user/me`
 export const getUsersList = `${userUrl}/user/crud`;
+export const deleteUser = (userId) => `${userUrl}/user/crud/${userId}`;
 export const getUserSessions = `${sessionUrl}/session/crud`;
 export const deleteUserSessions = (userId) => `${sessionUrl}/session/crud/${userId}`;
 export const deleteUserSessionById = (userId, sessionId) => `${sessionUrl}/session/crud/${userId}/${sessionId}`;

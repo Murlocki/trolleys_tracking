@@ -59,7 +59,7 @@ const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
 
-async function loadUsers(){
+async function loadUsers() {
   const token = userSettings.getJwt.value;
   userSettings.setLoading(true);
   const response = await store.fetchUsers(token);
@@ -67,7 +67,7 @@ async function loadUsers(){
   userSettings.setLoading(false);
 }
 
-onMounted(async ()=>{
+onMounted(async () => {
   await loadUsers();
 });
 
@@ -78,7 +78,23 @@ async function onPageChange(event) {
   await loadUsers();
 }
 
-function onDeleteUser() {
+async function onDeleteUser(event) {
+  userSettings.setLoading(true);
+  const userId = event.id;
+  const response = await store.deleteUserRecordById(userId);
+  userSettings.setJwtKey(response.token);
+  if (response.status !== 200) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.message}`,
+      life: 3000
+    });
+    userSettings.setLoading(false);
+    return;
+  }
+  await loadUsers();
+
 }
 
 function onEditUser() {
@@ -96,11 +112,15 @@ async function onLogOutUser(event) {
     return;
   }
   const responseJson = await response.json();
-  console.log(responseJson);
   userSettings.setJwtKey(responseJson.token);
   if (response.status !== 200) {
     userSettings.setLoading(false);
-    toast.add({ severity: 'error', summary: 'Error', detail: `${responseJson.status}: ${responseJson.message}`, life: 3000 });
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${responseJson.status}: ${responseJson.message}`,
+      life: 3000
+    });
     return;
   }
   if (sessions.userId === userId) {
@@ -123,7 +143,7 @@ function onSearch() {
 
 <template>
   <div class="w-full">
-    <Toast />
+    <Toast/>
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>

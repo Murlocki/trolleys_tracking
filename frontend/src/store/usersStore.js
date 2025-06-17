@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {getUsers} from "@/externalRequests/requests.js";
+import {deleteUserById, getUsers} from "@/externalRequests/requests.js";
 import {UserAdminDTO} from "@/models/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
 import {logOutUser} from "@/validators/accessValidators.js";
@@ -39,7 +39,32 @@ export const usersStore = defineStore("usersStore", {
                 return {token, status: 503, message: "Network Error"};
             }
         },
+        async deleteUserRecordById(token, userId) {
+            try {
+                const response = await deleteUserById(token, userId);
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+                // Handle network error
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
 
+
+                // Process successful response
+                const responseJson = await response.json();
+                console.log(responseJson);
+                if (response.ok) {
+                    return {token: responseJson.token, status: response.status};
+                }
+                const details = responseJson.detail
+                return {token: details.token, status: response.status, message: details.message};
+            } catch (error) {
+                console.error(error);
+                return {token, status: 503, message: "Network Error"};
+            }
+        },
         async setUsers(users) {
             this.users = users.map(user => new UserAdminDTO(
                 user.id,
