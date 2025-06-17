@@ -6,8 +6,6 @@ import Button from "primevue/button";
 
 import {usersStore} from "@/store/usersStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {getUsers, getUserSessionList} from "@/externalRequests/requests.js";
-import router from "@/router/index.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SessionTable from "@/components/UserView/SessionTable.vue";
 import {sessionsStore} from "@/store/sessionsStore.js";
@@ -39,77 +37,58 @@ async function onRowClick(event) {
   if (expandedRows.value[rowId]) {
     expandedRows.value = {};
   } else {
-    expandedRows.value = { [rowId]: row };
+    expandedRows.value = {[rowId]: row};
     await onRowExpand(event);
   }
 }
 
 // Обработка открытия строки
 const sessions = sessionsStore()
+
 async function onRowExpand(event) {
   const user = event.data;
   await sessions.setUserId(user.id);
 }
 
 
-
 const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
 
-onMounted(async () => {
+async function loadUsers(){
   const token = userSettings.getJwt.value;
   userSettings.setLoading(true);
-  error.value = false;
-  const response = await getUsers(token);
-
-  if (response.status === 401 || response.status === 403) {
-    userSettings.clearJwt()
-    await router.push("/")
-    userSettings.setLoading(false);
-    return;
-  }
-
-
-  const response_json = await response.json();
-  if (response.status === 200) {
-    await store.setUsers(response_json.data.items);
-    await store.setPaginator(
-        response_json.data.page,
-        response_json.data.itemsPerPage,
-        response_json.data.pageCount
-    );
-    userSettings.setJwtKey(response_json.token);
-    userSettings.setLoading(false);
-    return;
-  }
-
-  if (response.status === 0) {
-    error.value = response.error;
-    console.log(response.error);
-    userSettings.setLoading(false);
-    return;
-  }
-
-  const details = response_json.detail;
-  userSettings.setJwtKey(details.token);
-  error.value = true;
-  errorCode.value = response.status;
-  errorTitle.value = details.data.message;
-  console.log(error.value);
+  const response = await store.fetchUsers(token);
+  userSettings.setJwtKey(response.token);
   userSettings.setLoading(false);
-
-});
-
-function onPageChange(event) {
-  store.setPaginator(event.first / event.rows, event.rows, event.pageCount);
 }
 
-function onDeleteUser(){}
-function onEditUser(){}
-function onLogOutUser(){}
-function onAddUser(){}
-function onSearch(){}
+onMounted(async ()=>{
+  await loadUsers();
+  console.log("Mounted");
+});
+
+
+async function onPageChange(event) {
+  console.log(event);
+  store.setPaginator(event.page, event.rows, event.pageCount);
+  await loadUsers();
+}
+
+function onDeleteUser() {
+}
+
+function onEditUser() {
+}
+
+function onLogOutUser() {
+}
+
+function onAddUser() {
+}
+
+function onSearch() {
+}
 
 </script>
 
@@ -130,8 +109,8 @@ function onSearch(){}
         stripedRows
         class="w-full mt-4"
         :paginator="true"
-        :rows="store.$state.pageSize"
-        :totalRecords="store.pageSize * store.totalPages"
+        :rows="store.pageSize"
+        :totalRecords="store.totalRecords"
         :lazy="true"
         @page="onPageChange"
         :rowsPerPageOptions="itemsPerPageOptions"
@@ -181,7 +160,7 @@ function onSearch(){}
       </Column>
 
       <!-- Раскрывающаяся таблица с сессиями -->
-      <template #expansion="slotProps">
+      <template #expansion>
         <SessionTable
         />
       </template>

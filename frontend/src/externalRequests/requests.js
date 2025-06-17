@@ -174,7 +174,7 @@ export async function getUsers(token, params = {}) {
         const queryParams = new URLSearchParams();
 
         // Обычные фильтры
-        if (params.page !== undefined) queryParams.append('page', 0);
+        if (params.page !== undefined) queryParams.append('page', params.page);
         if (params.count !== undefined) queryParams.append('count', params.count);
         if (params.username) queryParams.append('username', params.username);
         if (params.email) queryParams.append('email', params.email);
@@ -186,7 +186,7 @@ export async function getUsers(token, params = {}) {
         if (params.createdTo) queryParams.append('createdTo', params.createdTo.toISOString());
         if (params.updatedFrom) queryParams.append('updatedFrom', params.updatedFrom.toISOString());
         if (params.updatedTo) queryParams.append('updatedTo', params.updatedTo.toISOString());
-        //queryParams.append("page",0)
+        console.log(queryParams);
         // Повторяющиеся поля
         if (Array.isArray(params.sort_by)) {
             params.sort_by.forEach(field => queryParams.append('sort_by', field));
