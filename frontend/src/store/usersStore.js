@@ -29,22 +29,6 @@ export const  usersStore = defineStore("usersStore", {
             console.log(this.$state.users);
             console.log(this.$state.userSessions);
         },
-        async setUserSessions(sessions) {
-            this.$state.userSessions = sessions.map(session => new SessionDTO(
-                session.sessionId,
-                session.userId,
-                session.accessToken,
-                session.refreshToken,
-                session.device,
-                session.ipAddress,
-                session.createdAt,
-                session.expiresAt
-            ));
-            console.log(this.$state.userSessions);
-        },
-        async deleteUserSession() {
-            this.$state.userSessions=[]
-        },
         clearUsers() {
             this.users = [];
             this.page = 1;

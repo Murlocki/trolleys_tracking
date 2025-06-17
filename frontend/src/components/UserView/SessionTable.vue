@@ -3,14 +3,15 @@
 import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
-import {usersStore} from "@/store/usersStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {deleteUserSession, getUserSessionList} from "@/externalRequests/requests.js";
+import {deleteUserSession} from "@/externalRequests/requests.js";
 import router from "@/router/index.js";
-import {onMounted, watch} from "vue";
+import {ref, watch} from "vue";
+import {sessionsStore} from "@/store/sessionsStore.js";
+import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 
 
-const store = usersStore();
+const store = sessionsStore();
 const columnsSession = [
   {field: "sessionId", header: "ID"},
   {field: "ipAddress", header: "IP-address"},
@@ -25,27 +26,32 @@ const props = defineProps({
 
 
 const settings = userSettingsStore();
+const error = ref(false)
+const errorCode = ref(0)
+const errorTitle = ref("")
+async function setSessions(userId) {
+  error.value = false;
+  errorCode.value = 0;
+  errorTitle.value = "";
 
-async function setSessions() {
   const token = settings.getJwt.value;
   settings.setLoading(true);
 
-  const response = await getUserSessionList(token, props.userId);
-  if (response.status === 200) {
-    const response_json = await response.json();
-    settings.setJwtKey(response_json.token);
-    await store.setUserSessions(response_json.data, props.userId);
-  } else {
-    console.error("Failed to fetch sessions:", response.statusText);
+  await store.deleteUserSession()
+  const response = await store.fetchSessions(token, userId);
+  settings.setJwtKey(response.token);
+  if (response.status !== 200) {
+    error.value = true;
+    errorCode.value = response.status;
+    errorTitle.value = response.message;
   }
-
   settings.setLoading(false);
 }
 
 
-watch(() => props.userId, async (newVal) => {
+watch(() => store.$state.userId, async (newVal) => {
   if (newVal) {
-    await setSessions();
+    await setSessions(newVal);
   }
 }, {immediate: true});
 
@@ -76,13 +82,17 @@ async function onDeleteSession(data) {
 </script>
 
 <template>
+  <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
+  <div class="w-full flex justify-content-center" v-else-if="store.sessions.length===0">
+    <span class="text-2xl">No sessions</span>
+  </div>
   <DataTable
-      :value="store.userSessions || []"
+      :value="store.sessions || []"
       size="small"
       class="w-full nested-table"
       :scrollable="true"
       stripedRows
-
+      v-else
   >
     <Column
         v-for="col in columnsSession"

@@ -60,15 +60,30 @@ export async function getUserProfile(token) {
 }
 
 export async function getUserSessionList(token, id) {
-    return await fetch(`${getUserSessions}/${id}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-API-Key': apikey
-        }
-    })
+    try {
+        return await fetch(`${getUserSessions}/${id}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data:{
+                    message:"Network Error"
+                }
+            }
+        });
+    }
 }
 
 export async function deleteUserSession(token, userId, sessionId) {
@@ -174,8 +189,7 @@ export async function getUsers(token, params = {}) {
                 'X-API-Key': apikey,
             },
         });
-    }
-    catch (error) {
+    } catch (error) {
         // Создаём искусственный Response для сетевых ошибок
         return new Response(JSON.stringify({
             error: "Network request failed",

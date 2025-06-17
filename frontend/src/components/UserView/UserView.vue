@@ -10,6 +10,7 @@ import {getUsers, getUserSessionList} from "@/externalRequests/requests.js";
 import router from "@/router/index.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SessionTable from "@/components/UserView/SessionTable.vue";
+import {sessionsStore} from "@/store/sessionsStore.js";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -44,13 +45,10 @@ async function onRowClick(event) {
 }
 
 // Обработка открытия строки
-const userId = ref(-1);
+const sessions = sessionsStore()
 async function onRowExpand(event) {
   const user = event.data;
-  await store.deleteUserSession()
-  console.log(store.userSessions);
-  userId.value = user.id;
-  console.log(userId.value);
+  await sessions.setUserId(user.id);
 }
 
 
@@ -185,7 +183,6 @@ function onSearch(){}
       <!-- Раскрывающаяся таблица с сессиями -->
       <template #expansion="slotProps">
         <SessionTable
-            :user-id="userId"
         />
       </template>
 
