@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from datetime import datetime
@@ -343,7 +344,7 @@ async def auth_user(
     }
 )
 async def get_users(
-        page: int = Query(1, description="Page number"),
+        page: int = Query(0, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         username: str | None = Query(None, description="Filter by username (partial match)"),
         email: str | None = Query(None, description="Filter by email (partial match)"),
@@ -385,7 +386,7 @@ async def get_users(
     result = AuthResponse(token=token, data={})
     logger.info(decode_token(token))
     try:
-        if page < 1:
+        if page < 0:
             result.data = {"message": "Invalid page number"}
             logger.error(f"Invalid page number {page}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
@@ -428,7 +429,7 @@ async def get_users(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
         # Execute the search
-        users = await crud.search_users(
+        users, total_count = await crud.search_users(
             db=db,
             filters={
                 "username": username,
@@ -459,7 +460,7 @@ async def get_users(
         logger.info([user.to_dict() for user in users])
         result.data = PaginatorList(
             page=page,
-            page_count=len(users) // count + 1,
+            page_count=math.ceil(total_count / count),
             items_per_page=count,
             item_count=len(users),
             items=[UserAdminDTO(**user.to_dict()) for user in users]

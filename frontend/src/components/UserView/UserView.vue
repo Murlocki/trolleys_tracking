@@ -65,13 +65,12 @@ async function loadUsers(){
 
 onMounted(async ()=>{
   await loadUsers();
-  console.log("Mounted");
 });
 
 
 async function onPageChange(event) {
-  console.log(event);
   store.setPaginator(event.page, event.rows, event.pageCount);
+  expandedRows.value = {};
   await loadUsers();
 }
 
