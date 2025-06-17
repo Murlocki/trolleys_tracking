@@ -9,6 +9,10 @@ import {userSettingsStore} from "@/store/userSettingsStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SessionTable from "@/components/UserView/SessionTable.vue";
 import {sessionsStore} from "@/store/sessionsStore.js";
+import {deleteUserSessionList} from "@/externalRequests/requests.js";
+import {logOutUser} from "@/validators/accessValidators.js";
+import Toast from "primevue/toast";
+import {useToast} from "primevue/usetoast";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -80,7 +84,33 @@ function onDeleteUser() {
 function onEditUser() {
 }
 
-function onLogOutUser() {
+const toast = useToast();
+
+async function onLogOutUser(event) {
+  const token = userSettings.getJwt.value;
+  userSettings.setLoading(true);
+  const userId = event.id;
+  const response = await deleteUserSessionList(token, userId);
+  if (response.status === 401) {
+    await logOutUser(response);
+    return;
+  }
+  const responseJson = await response.json();
+  console.log(responseJson);
+  userSettings.setJwtKey(responseJson.token);
+  if (response.status !== 200) {
+    userSettings.setLoading(false);
+    toast.add({ severity: 'error', summary: 'Error', detail: `${responseJson.status}: ${responseJson.message}`, life: 3000 });
+    return;
+  }
+  if (sessions.userId === userId) {
+    sessions.userId = null;
+    await sessions.clearUserSessions()
+    sessions.userId = userId;
+    return;
+  }
+  userSettings.setLoading(false);
+  return;
 }
 
 function onAddUser() {
@@ -93,7 +123,7 @@ function onSearch() {
 
 <template>
   <div class="w-full">
-    <!-- Панель сверху: кнопка Добавить + поиск -->
+    <Toast />
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>

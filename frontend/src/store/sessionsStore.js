@@ -19,7 +19,9 @@ export const sessionsStore = defineStore("sessionsStore", {
          */
         async fetchSessions(token, userId) {
             try {
-
+                if (!userId) {
+                    return;
+                }
                 const response = await getUserSessionList(token, userId);
 
                 // Handle unauthorized access
@@ -104,7 +106,6 @@ export const sessionsStore = defineStore("sessionsStore", {
 
         /** Clears all sessions and resets userId. */
         async clearUserSessions() {
-            this.$state.userId = null
             this.$state.sessions = []
         },
 

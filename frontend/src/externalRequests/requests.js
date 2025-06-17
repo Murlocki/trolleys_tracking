@@ -1,5 +1,5 @@
 import {
-    deleteUserSessionById,
+    deleteUserSessionById, deleteUserSessions,
     getCameraGroups,
     getCameraOfGroup,
     getCameraSubscriptions,
@@ -114,6 +114,35 @@ export async function deleteUserSession(token, userId, sessionId) {
     }
 }
 
+export async function deleteUserSessionList(token, userId) {
+    try {
+        return await fetch(`${deleteUserSessions(userId)}`, {
+            method: 'DELETE',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+
 export async function getCameraGroupsList(token) {
     try {
         const response = await fetch(`${getCameraGroups}`, {
@@ -216,3 +245,5 @@ export async function getUsers(token, params = {}) {
         });
     }
 }
+
+

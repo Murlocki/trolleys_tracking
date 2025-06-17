@@ -475,10 +475,7 @@ async def delete_user_sessions(
         if not existing_sessions:
             logger.warning(f"No sessions found for user {user_id}")
             result.data = []
-            raise HTTPException(
-                status_code=status.HTTP_200_OK,
-                detail=result.model_dump()
-            )
+            return result
 
         # 3. Perform deletion
         deleted_sessions = await crud.delete_sessions_by_user_id(user_id)
