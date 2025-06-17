@@ -10,6 +10,7 @@ import 'primeicons/primeicons.css'
 
 import Tooltip from 'primevue/tooltip'
 import Cookies from "js-cookie";
+import ToastService from "primevue/toastservice";
 
 const pinia = createPinia()
 const app = createApp(App)
@@ -20,5 +21,6 @@ const app = createApp(App)
 app.use(pinia)
 app.use(router)
 app.use(PrimeVue, { ripple: true })
+app.use(ToastService);
 app.directive('tooltip', Tooltip)
 app.mount('#app')

@@ -1,40 +1,95 @@
 import {defineStore} from "pinia";
-import {getUsers, getUserSessionList} from "@/externalRequests/requests.js";
+import {deleteUserSession, getUsers, getUserSessionList} from "@/externalRequests/requests.js";
 import {UserAdminDTO} from "@/models/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
 import router from "@/router/index.js";
 import {logOutUser, processUnauthorized} from "@/validators/accessValidators.js";
 
-export const  sessionsStore = defineStore("sessionsStore", {
+export const sessionsStore = defineStore("sessionsStore", {
     state: () => ({
         sessions: [],
         userId: null,
     }),
     actions: {
+        /**
+         * Fetches user sessions from the server.
+         * @param {string} token - JWT token for authentication.
+         * @param {number} userId - ID of the user whose sessions are fetched.
+         * @returns {Promise<{token: string, status: number, message?: string}>} - Response data.
+         */
         async fetchSessions(token, userId) {
-            const response = await getUserSessionList(token, userId);
-            if (response.status === 401) {
-                return await logOutUser(response);
-            }
+            try {
 
-            if (response.status === 503) {
-                return {token: token, status:503, message: "Network Error"};
-            }
+                const response = await getUserSessionList(token, userId);
 
-            const responseJson = await response.json();
-            if (response.ok){
-                await this.setUserSessions(responseJson.data, userId);
-                console.log(this.$state.sessions);
-                return {token: responseJson.token, status: response.status};
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+
+                // Handle network errors
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+
+                // Process successful response
+                const responseJson = await response.json();
+                if (response.ok) {
+                    await this.setUserSessions(responseJson.data, userId);
+                    console.log(this.$state.sessions);
+                    return {token: responseJson.token, status: response.status};
+                }
+
+                // Process rest of error statuses
+                const details = responseJson.detail
+                return {token: details.token, status: response.status, message: details.message};
+            } catch (error) {
+                return {token, status: 503, message: "Network Error"};
             }
-            const details = responseJson.detail
-            console.log(responseJson)
-            return {token: details.token, status: response.status, message: details.message};
         },
 
+        /**
+         * Deletes a user session by ID.
+         * @param {string} token - JWT token.
+         * @param {number} userId - User ID.
+         * @param {string} sessionId - Session ID to delete.
+         * @returns {Promise<{token: string, status: number, message?: string}>} - Response data.
+         */
+        async deleteUserSessionById(token, userId, sessionId) {
+            try {
 
+                const response = await deleteUserSession(token, userId, sessionId);
+
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+
+                // Handle network error
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+
+                // Handle success request
+                const responseJson = await response.json();
+                if (response.ok) {
+                    return {token: responseJson.token, status: response.status};
+                }
+
+                // Handle other errors
+                const details = responseJson.detail
+                console.log(responseJson)
+                return {token: details.token, status: response.status, message: details.message};
+            } catch (error) {
+                return {token, status: 503, message: "Network Error"};
+            }
+        },
+        /**
+         * Updates the store with fetched sessions.
+         * @param {Array} sessions - Raw session data from the API.
+         */
         async setUserSessions(sessions) {
-            this.$state.sessions = await sessions.map(session => new SessionDTO(
+            this.$state.sessions = sessions.map(session => new SessionDTO(
                 session.sessionId,
                 session.userId,
                 session.accessToken,
@@ -46,11 +101,14 @@ export const  sessionsStore = defineStore("sessionsStore", {
             ));
             console.log(this.$state.sessions);
         },
-        async deleteUserSession() {
+
+        /** Clears all sessions and resets userId. */
+        async clearUserSessions() {
             this.$state.userId = null
-            this.$state.sessions=[]
+            this.$state.sessions = []
         },
 
+        /** Sets the current user ID. */
         async setUserId(userId) {
             this.$state.userId = userId;
             console.log(this.$state.userId);

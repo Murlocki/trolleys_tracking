@@ -4,11 +4,11 @@ import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {deleteUserSession} from "@/externalRequests/requests.js";
-import router from "@/router/index.js";
+import Toast from "primevue/toast";
 import {ref, watch} from "vue";
 import {sessionsStore} from "@/store/sessionsStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
+import {useToast} from "primevue/usetoast";
 
 
 const store = sessionsStore();
@@ -20,9 +20,6 @@ const columnsSession = [
   {field: "expiresAt", header: "Updated at"},
 ];
 
-const props = defineProps({
-  userId: Number,
-})
 
 
 const settings = userSettingsStore();
@@ -37,7 +34,7 @@ async function setSessions(userId) {
   const token = settings.getJwt.value;
   settings.setLoading(true);
 
-  await store.deleteUserSession()
+  await store.clearUserSessions()
   const response = await store.fetchSessions(token, userId);
   settings.setJwtKey(response.token);
   if (response.status !== 200) {
@@ -55,33 +52,26 @@ watch(() => store.$state.userId, async (newVal) => {
   }
 }, {immediate: true});
 
+
+const toast = useToast();
 async function onDeleteSession(data) {
   settings.setLoading(true);
   console.log(data.sessionId);
-  const response = await deleteUserSession(settings.getJwt.value, data.userId, data.sessionId);
-
-  if (response.status === 401 || response.status === 403) {
-    await settings.clearJwt()
-    await router.push('/');
-    console.log("Logged out")
+  const response = await store.deleteUserSessionById(settings.getJwt.value, data.userId, data.sessionId);
+  console.log(response);
+  settings.setJwtKey(response.token);
+  if (response.status !== 200) {
     settings.setLoading(false);
-    return
-  }
-
-
-  const response_json = await response.json();
-  if (response.status === 200) {
-    settings.setJwtKey(response_json.token)
-    await setSessions()
-    settings.setLoading(false);
+    toast.add({ severity: 'error', summary: 'Error', detail: `${response.status}: ${response.message}`, life: 3000 });
     return;
   }
-  settings.setJwtKey(response_json.token)
+  await setSessions(data.userId);
 }
 
 </script>
 
 <template>
+  <Toast />
   <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
   <div class="w-full flex justify-content-center" v-else-if="store.sessions.length===0">
     <span class="text-2xl">No sessions</span>
