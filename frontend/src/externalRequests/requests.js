@@ -1,4 +1,5 @@
 import {
+    deleteUserSessionById,
     getCameraGroups,
     getCameraOfGroup,
     getCameraSubscriptions,
@@ -61,6 +62,18 @@ export async function getUserProfile(token) {
 export async function getUserSessionList(token, id) {
     return await fetch(`${getUserSessions}/${id}`, {
         method: 'GET',
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'X-API-Key': apikey
+        }
+    })
+}
+
+export async function deleteUserSession(token, userId, sessionId) {
+    return await fetch(`${deleteUserSessionById(userId, sessionId)}`, {
+        method: 'DELETE',
         mode: 'cors',
         headers: {
             'Content-Type': 'application/json',
@@ -142,7 +155,7 @@ export async function getUsers(token, params = {}) {
         if (params.createdTo) queryParams.append('createdTo', params.createdTo.toISOString());
         if (params.updatedFrom) queryParams.append('updatedFrom', params.updatedFrom.toISOString());
         if (params.updatedTo) queryParams.append('updatedTo', params.updatedTo.toISOString());
-        queryParams.append("page",0)
+        //queryParams.append("page",0)
         // Повторяющиеся поля
         if (Array.isArray(params.sort_by)) {
             params.sort_by.forEach(field => queryParams.append('sort_by', field));

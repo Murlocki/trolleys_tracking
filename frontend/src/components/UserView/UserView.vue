@@ -9,6 +9,7 @@ import {userSettingsStore} from "@/store/userSettingsStore.js";
 import {getUsers, getUserSessionList} from "@/externalRequests/requests.js";
 import router from "@/router/index.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
+import SessionTable from "@/components/UserView/SessionTable.vue";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -36,7 +37,6 @@ async function onRowClick(event) {
 
   if (expandedRows.value[rowId]) {
     expandedRows.value = {};
-    await onRowCollapse(event);
   } else {
     expandedRows.value = { [rowId]: row };
     await onRowExpand(event);
@@ -44,33 +44,13 @@ async function onRowClick(event) {
 }
 
 // Обработка открытия строки
+const userId = ref(-1);
 async function onRowExpand(event) {
   const user = event.data;
-  console.log(store.userSessions[user.id]);
-  if (!store.userSessions[user.id] || store.userSessions[user.id].length === 0) {
-    const token = userSettings.getJwt.value;
-    userSettings.setLoading(true);
-
-    const response = await getUserSessionList(token, user.id);
-    if (response.status === 200) {
-      const response_json = await response.json();
-      userSettings.setJwtKey(response_json.token);
-      if (response_json.data.length > 0) {
-        await store.setUserSessions(response_json.data, user.id);
-      }
-    } else {
-      console.error("Failed to fetch sessions:", response.statusText);
-    }
-
-    userSettings.setLoading(false);
-  }
-}
-
-// Обработка коллапса строки
-async function onRowCollapse(event) {
-  const user = event.data
-  await store.deleteUserSession(user.id)
-  console.log("Строка закрыта:", user.id);
+  await store.deleteUserSession()
+  console.log(store.userSessions);
+  userId.value = user.id;
+  console.log(userId.value);
 }
 
 
@@ -127,17 +107,11 @@ function onPageChange(event) {
   store.setPaginator(event.first / event.rows, event.rows, event.pageCount);
 }
 
-
-
-
-
-const columnsSession = [
-  {field: "sessionId", header: "ID"},
-  {field: "ipAddress", header: "IP-address"},
-  {field: "device", header: "Device"},
-  {field: "createdAt", header: "Created at"},
-  {field: "expiresAt", header: "Updated at"},
-];
+function onDeleteUser(){}
+function onEditUser(){}
+function onLogOutUser(){}
+function onAddUser(){}
+function onSearch(){}
 
 </script>
 
@@ -210,37 +184,11 @@ const columnsSession = [
 
       <!-- Раскрывающаяся таблица с сессиями -->
       <template #expansion="slotProps">
-        <div class="w-full flex justify-content-center" v-if="store.userSessions[slotProps.data.id].length===0">
-          <span class="text-2xl">No sessions</span>
-        </div>
-        <DataTable
-            :value="store.userSessions[slotProps.data.id] || []"
-            size="small"
-            class="w-full nested-table"
-            :scrollable="true"
-            stripedRows
-            v-else
-        >
-          <Column
-              v-for="col in columnsSession"
-              :key="col.field"
-              :field="col.field"
-              :header="col.header"
-          ></Column>
-          <Column header="Actions" style="width: 140px">
-            <template #body="slotProps">
-              <div class="w-full flex justify-content-center align-content-center">
-                <Button
-                    icon="pi pi-trash"
-                    class="p-button-rounded p-button-text p-button-danger"
-                    @click.stop="onDeleteSession(slotProps.data)"
-                    :aria-label="'Delete ' + slotProps.data.name"
-                />
-              </div>
-            </template>
-          </Column>
-        </DataTable>
+        <SessionTable
+            :user-id="userId"
+        />
       </template>
+
     </DataTable>
   </div>
 </template>

@@ -8,6 +8,7 @@ export const logout = `${authUrl}/auth/logout`;
 export const getMyProfile = `${userUrl}/user/me`
 export const getUsersList = `${userUrl}/user/crud`;
 export const getUserSessions = `${sessionUrl}/session/crud`;
+export const deleteUserSessionById = (userId, sessionId) => `${sessionUrl}/session/crud/${userId}/${sessionId}`;
 export const getCameraGroups = `${cameraUrl}/camera/crud/groups`;
 export const getCameraOfGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras`;
 export const getCameraSubscriptions = (groupId, cameraId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}/subscribers`;
