@@ -148,7 +148,7 @@ class User(Base):
         }
 
         if self.user_data:
-            data.update(self.user_data.to_dict())
+            data["user_data"] = self.user_data.to_dict()
 
         return data
 

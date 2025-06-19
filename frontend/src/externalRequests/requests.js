@@ -1,10 +1,11 @@
 import {
+    createUser,
     deleteUser,
     deleteUserSessionById, deleteUserSessions,
     getCameraGroups,
     getCameraOfGroup,
     getCameraSubscriptions,
-    getMyProfile,
+    getMyProfile, getUser, getUserRoles,
     getUserSessions,
     getUsersList,
     login,
@@ -252,6 +253,91 @@ export async function deleteUserById(token, userId) {
     try {
         return await fetch(`${deleteUser(token, userId)}`, {
             method: 'DELETE',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+export async function getUserById(token, userId) {
+    try {
+        return await fetch(`${getUser(userId)}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+export async function createUserRecord(token, user) {
+    try {
+        return await fetch(`${createUser}`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            },
+            body: JSON.stringify(user)
+        })
+
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+export async function getUserRoleList(token) {
+    try {
+        return await fetch(`${getUserRoles}`, {
+            method: 'GET',
             mode: 'cors',
             headers: {
                 'Content-Type': 'application/json',

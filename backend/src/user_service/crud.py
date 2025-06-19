@@ -192,7 +192,7 @@ async def update_user_data(db: AsyncSession, db_user: User, user_update: UserUpd
 
 async def get_user_by_id(db: AsyncSession, user_id: int):
     async with db.begin():
-        db_user = await db.execute(select(User).filter(User.id == user_id))
+        db_user = await db.execute(select(User).outerjoin(User.user_data).options(joinedload(User.user_data)).filter(User.id == user_id))
         db_user = db_user.scalar()
         if db_user is None:
             logger.error(f"User {user_id} not found.")

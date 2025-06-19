@@ -69,9 +69,9 @@ export const usersStore = defineStore("usersStore", {
             this.users = users.map(user => new UserAdminDTO(
                 user.id,
                 user.username,
-                user.firstName,
-                user.lastName,
-                user.email,
+                user.userData? user.userData.firstName : null,
+                user.userData? user.userData.lastName : null,
+                user.userData? user.userData.email : null,
                 user.createdAt,
                 user.updatedAt,
                 user.isActive,

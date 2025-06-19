@@ -13,6 +13,8 @@ import {deleteUserSessionList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/accessValidators.js";
 import Toast from "primevue/toast";
 import {useToast} from "primevue/usetoast";
+import {userFormStore} from "@/store/userFormStore.js";
+import UserFormView from "@/components/UserView/UserFormView.vue";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -64,6 +66,11 @@ async function loadUsers() {
   userSettings.setLoading(true);
   const response = await store.fetchUsers(token);
   userSettings.setJwtKey(response.token);
+  if (response.status !== 200) {
+    error.value = true;
+    errorCode.value = response.status;
+    errorTitle.value = response.message;
+  }
   userSettings.setLoading(false);
 }
 
@@ -133,7 +140,12 @@ async function onLogOutUser(event) {
   return;
 }
 
+const userForm = userFormStore();
 function onAddUser() {
+  userForm.setCreatingUser(true);
+  userForm.setVisible(true);
+
+  console.log(userForm.visible);
 }
 
 function onSearch() {
@@ -144,6 +156,7 @@ function onSearch() {
 <template>
   <div class="w-full">
     <Toast/>
+    <UserFormView v-if="userForm.visible"/>
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>

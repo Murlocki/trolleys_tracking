@@ -813,6 +813,28 @@ async def update_password(
         )
 
 
+@user_router.get("/user/roles",
+                 response_model=AuthResponse[list[dict[str,str|Role]]],
+                 status_code=status.HTTP_200_OK,
+                 responses={
+                     200: {"description": "Successful extraction of roles list"},
+                     401: {"description": "Unauthorized - invalid token"},
+                     403: {"description": "Forbidden - insufficient privileges"},
+                     500: {"description": "Internal server error"}
+                 }
+                 )
+async def get_roles_list(token: str = Depends(get_valid_token)) -> AuthResponse[list[dict[str,str|Role]]]:
+    result = AuthResponse(token=token)
+    try:
+        logger.info(f"Role list extraction")
+        result.data = [{"option":role, "name":Role.get_display_name(role)} for role in Role]
+        logger.info(f"Role list extraction done: {result.data}")
+        return result
+    except Exception as ex:
+        logger.error(f"Role list extraction failed: {str(ex)}")
+        result.data = {"message": "Internal server error"}
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=result.model_dump())
+
 @user_router.patch(
     "/user/crud/{user_id}",
     response_model=AuthResponse[UserDTO],
