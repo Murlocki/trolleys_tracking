@@ -27,35 +27,59 @@ onMounted(async () => {
     return;
   }
   const responseJson = await response.json();
-  if (response.status === 200) {
-    roleOptions.value = responseJson.data;
-    userForm.role = roleOptions.value[0].option
-    userSettings.setJwtKey(responseJson.token);
+  if (response.status !== 200) {
+    userSettings.setJwtKey(response.status === 503 ? token : responseJson.token);
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.status === 503 ? responseJson.message : responseJson.detail.data.message}`,
+      life: 3000
+    });
     userSettings.setLoading(false);
-    return;
+    await userForm.setVisible(false);
   }
-  userSettings.setJwtKey(response.status === 503 ? token : responseJson.token);
-  toast.add({
-    severity: 'error',
-    summary: 'Error',
-    detail: `${response.status}: ${response.status === 503 ? responseJson.message : responseJson.detail.data.message}`,
-    life: 3000
-  });
+
+  roleOptions.value = responseJson.data;
+  userForm.role = roleOptions.value[0].option
+  userSettings.setJwtKey(responseJson.token);
+
+  if (!userForm.creatingUser) {
+    const userResponse = await userForm.fetchUserData(responseJson.token, userForm.id);
+    console.log(userResponse);
+    if (userResponse.status !== 200) {
+      userSettings.setJwtKey(userResponse.status === 503 ? token : userResponse.token);
+      toast.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: `${userResponse.status}: ${userResponse.status === 503 ? userResponse.message : responseJson.detail.data.message}`,
+        life: 3000
+      });
+      userSettings.setLoading(false);
+      await userForm.setVisible(false);
+    }
+    userSettings.setJwtKey(userResponse.token);
+  }
+
+
   userSettings.setLoading(false);
-  await userForm.setVisible(false);
+
+
 })
 
 async function onClose() {
   userForm.clearData()
   await userForm.setVisible(false);
 }
+
 const emit = defineEmits(["reload"])
 
 async function onAccept() {
   userSettings.setLoading(true);
   const token = userSettings.getJwt.value;
-  const response = await userForm.createUserRecord(token);
-  if (response.status !== 201) {
+
+  const response = userForm.creatingUser ? await userForm.createUserRecord(token) : await userForm.updateUserRecord(token);
+
+  if (!(response.status === 201 || response.status === 200)) {
     toast.add({
       severity: 'error',
       summary: 'Error',
@@ -65,10 +89,10 @@ async function onAccept() {
     userSettings.setLoading(false);
     return;
   }
+  userSettings.setJwtKey(response.token);
   userSettings.setLoading(false);
   emit("reload");
   await userForm.setVisible(false);
-
 }
 
 </script>

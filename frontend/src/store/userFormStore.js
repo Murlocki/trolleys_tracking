@@ -1,10 +1,17 @@
 import {defineStore} from "pinia";
-import {createUserRecord, deleteUserById, getUserById, getUsers} from "@/externalRequests/requests.js";
-import {UserAdminDTO} from "@/models/UserAdminDTO.js";
+import {
+    createUserRecord,
+    deleteUserById,
+    getUserById,
+    getUsers,
+    updateUserRecord
+} from "@/externalRequests/requests.js";
+import {UserAdminDTO} from "@/models/user/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
 import {logOutUser, unprocessableEntity} from "@/validators/validators.js";
-import {UserData, UserDTO} from "@/models/UserDTO.js";
-import {UserCreate} from "@/models/UserCreate.js";
+import {UserData, UserDTO} from "@/models/user/UserDTO.js";
+import {UserCreate} from "@/models/user/UserCreate.js";
+import {UserUpdate} from "@/models/user/UserUpdate.js";
 
 export const userFormStore = defineStore("userFormStore", {
     state: () => ({
@@ -22,6 +29,9 @@ export const userFormStore = defineStore("userFormStore", {
         creatingUser: false,
     }),
     actions: {
+        async setUserId(userId){
+            this.$state.id = userId;
+        },
         async fetchUserData(token, userId) {
             try {
                 const response = await getUserById(token, userId);
@@ -40,7 +50,8 @@ export const userFormStore = defineStore("userFormStore", {
                 console.log(responseJson);
                 if (response.ok) {
                     await this.setUser(responseJson.data);
-                    console.log(this.$state.users);
+                    console.log(this.$state.user);
+                    await this.setUserFields(this.$state.user);
                     return {token: responseJson.token, status: response.status};
                 }
                 const details = responseJson.detail
@@ -55,11 +66,8 @@ export const userFormStore = defineStore("userFormStore", {
                 user.id,
                 user.username,
                 user.userData,
-                user.createdAt,
-                user.updatedAt,
                 user.isActive,
                 user.role,
-                user.roleDisplay,
                 user.version,
             )
 
@@ -73,9 +81,11 @@ export const userFormStore = defineStore("userFormStore", {
         async setUserFields(user) {
             this.$state.id = user.id;
             this.$state.username = user.username;
-            this.$state.firstName = user.firstName;
-            this.$state.lastName = user.lastName;
-            this.$state.email = user.email;
+            if(user.userData) {
+                this.$state.firstName = user.userData.firstName;
+                this.$state.lastName = user.userData.lastName;
+                this.$state.email = user.userData.email;
+            }
             this.$state.isActive = user.isActive;
             this.$state.role = user.role;
             this.$state.version = user.version;
@@ -121,7 +131,6 @@ export const userFormStore = defineStore("userFormStore", {
                         this.$state.lastName,
                         this.$state.email,
                     ) : null,
-                    this.$state.isActive,
                     this.$state.role,
                 );
                 const response = await createUserRecord(token, user);
@@ -154,7 +163,52 @@ export const userFormStore = defineStore("userFormStore", {
                 return {token, status: 503, message: "Network Error"};
             }
 
+        },
+        async updateUserRecord(token) {
+            try {
+                const user = new UserUpdate(
+                    this.$state.username,
+                    this.$state.role !== "service" ? new UserData(
+                        this.$state.firstName,
+                        this.$state.lastName,
+                        this.$state.email,
+                    ) : null,
+                    this.$state.isActive,
+                    this.$state.role,
+                    this.$state.version,
+                );
+                const response = await updateUserRecord(token, this.$state.id, user);
+                console.log(response);
+                //Handle incorrect form data
+                if (response.status === 422) {
+                    const unprocessResponse = await unprocessableEntity(response);
+                    const unprocessResponseJson = await unprocessResponse.json();
+                    return {token: token, status: response.status, message: unprocessResponseJson.message};
+                }
+
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+                // Handle network error
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+                // Process successful response
+                const responseJson = await response.json();
+                console.log(responseJson);
+                if (response.ok) {
+                    return {token: responseJson.token, status: response.status};
+                }
+                const details = responseJson.detail
+                return {token: details.token, status: response.status, message: details.data.message};
+            } catch (error) {
+                console.error(error);
+                return {token, status: 503, message: "Network Error"};
+            }
+
         }
+
     },
     getters: {
         getUsersCount: (state) => state.users.length,

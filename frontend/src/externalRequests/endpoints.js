@@ -10,6 +10,7 @@ export const getUsersList = `${userUrl}/user/crud`;
 export const createUser = `${userUrl}/user/crud`;
 export const deleteUser = (userId) => `${userUrl}/user/crud/${userId}`;
 export const getUser = (userId) => `${userUrl}/user/crud/${userId}`;
+export const updateUser = (userId) => `${userUrl}/user/crud/${userId}`;
 export const getUserRoles = `${userUrl}/user/roles`
 export const getUserSessions = `${sessionUrl}/session/crud`;
 export const deleteUserSessions = (userId) => `${sessionUrl}/session/crud/${userId}`;

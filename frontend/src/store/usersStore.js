@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {deleteUserById, getUsers} from "@/externalRequests/requests.js";
-import {UserAdminDTO} from "@/models/UserAdminDTO.js";
+import {UserAdminDTO} from "@/models/user/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
 import {logOutUser} from "@/validators/validators.js";
 

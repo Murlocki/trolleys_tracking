@@ -83,7 +83,7 @@ class UserDTO(BaseModel):
     is_active: bool = Field(False, validation_alias=AliasChoices('is_active', 'isActive'))
     role: str = Field("service", validation_alias=AliasChoices('role'))
     user_data: UserData | None = Field(None, validation_alias=AliasChoices('user_data', 'userData'))
-
+    version: int = Field(0, validation_alias=AliasChoices('version'))
     class Config:
         alias_generator = to_camel
         from_attributes = True

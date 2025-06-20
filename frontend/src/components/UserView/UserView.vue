@@ -105,7 +105,10 @@ async function onDeleteUser(event) {
 
 }
 
-function onEditUser() {
+function onEditUser(event) {
+  userForm.setCreatingUser(false);
+  userForm.setVisible(true);
+  userForm.setUserId(event.id);
 }
 
 const toast = useToast();
@@ -145,8 +148,6 @@ const userForm = userFormStore();
 function onAddUser() {
   userForm.setCreatingUser(true);
   userForm.setVisible(true);
-
-  console.log(userForm.visible);
 }
 
 function onSearch() {

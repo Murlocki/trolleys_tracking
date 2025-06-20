@@ -167,6 +167,7 @@ async def create_user(
             is_active=user_dict["is_active"],
             role=user_dict["role"],
             user_data=user_dict.get("user_data", None),
+            version=user_dict["version"],
         )
         return result
 
@@ -240,6 +241,7 @@ async def find_user_by_id(
             is_active=user_dict["is_active"],
             role=user_dict["role"],
             user_data=user_dict.get("user_data", None),
+            version=user_dict["version"],
         )
         return result
 

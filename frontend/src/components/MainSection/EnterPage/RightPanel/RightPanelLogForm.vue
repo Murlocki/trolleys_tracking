@@ -147,7 +147,7 @@ const themeBackIcon = computed(() => {
 
 /* Валидация формы */
 import {UAParser} from 'ua-parser-js';
-import {AuthForm} from "@/models/AuthForm.js"
+import {AuthForm} from "@/models/user/AuthForm.js"
 
 const error = ref("");
 const loading = ref(false);
