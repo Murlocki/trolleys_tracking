@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {deleteUserById, getUsers} from "@/externalRequests/requests.js";
 import {UserAdminDTO} from "@/models/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
-import {logOutUser} from "@/validators/accessValidators.js";
+import {logOutUser} from "@/validators/validators.js";
 
 export const usersStore = defineStore("usersStore", {
     state: () => ({
@@ -33,7 +33,7 @@ export const usersStore = defineStore("usersStore", {
                     return {token: responseJson.token, status: response.status};
                 }
                 const details = responseJson.detail
-                return {token: details.token, status: response.status, message: details.message};
+                return {token: details.token, status: response.status, message: details.data.message};
             } catch (error) {
                 console.error(error);
                 return {token, status: 503, message: "Network Error"};
@@ -59,7 +59,7 @@ export const usersStore = defineStore("usersStore", {
                     return {token: responseJson.token, status: response.status};
                 }
                 const details = responseJson.detail
-                return {token: details.token, status: response.status, message: details.message};
+                return {token: details.token, status: response.status, message: details.data.message};
             } catch (error) {
                 console.error(error);
                 return {token, status: 503, message: "Network Error"};

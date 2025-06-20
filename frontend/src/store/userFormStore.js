@@ -1,22 +1,23 @@
 import {defineStore} from "pinia";
-import {deleteUserById, getUserById, getUsers} from "@/externalRequests/requests.js";
+import {createUserRecord, deleteUserById, getUserById, getUsers} from "@/externalRequests/requests.js";
 import {UserAdminDTO} from "@/models/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
-import {logOutUser} from "@/validators/accessValidators.js";
-import {UserDTO} from "@/models/UserDTO.js";
+import {logOutUser, unprocessableEntity} from "@/validators/validators.js";
+import {UserData, UserDTO} from "@/models/UserDTO.js";
+import {UserCreate} from "@/models/UserCreate.js";
 
 export const userFormStore = defineStore("userFormStore", {
     state: () => ({
         user: null,
-        id:null,
-        username:"",
-        password:"",
-        firstName:"",
-        lastName:"",
-        email:"",
-        isActive:false,
-        role:"",
-        version:0,
+        id: null,
+        username: null,
+        password: null,
+        firstName: null,
+        lastName: null,
+        email: null,
+        isActive: false,
+        role: null,
+        version: 0,
         visible: false,
         creatingUser: false,
     }),
@@ -80,7 +81,7 @@ export const userFormStore = defineStore("userFormStore", {
             this.$state.version = user.version;
         },
         restoreFields() {
-            if(this.$state.user){
+            if (this.$state.user) {
                 this.$state.id = this.$state.user.id;
                 this.$state.username = this.$state.user.username;
                 this.$state.firstName = this.$state.user.firstName;
@@ -88,8 +89,7 @@ export const userFormStore = defineStore("userFormStore", {
                 this.$state.email = this.$state.user.email;
                 this.$state.isActive = this.$state.user.isActive;
                 this.$state.role = this.$state.user.role;
-            }
-            else {
+            } else {
                 this.$state.id = null;
                 this.$state.username = "";
                 this.$state.firstName = "";
@@ -100,7 +100,7 @@ export const userFormStore = defineStore("userFormStore", {
                 this.$state.password = "";
             }
         },
-        clearData(){
+        clearData() {
             this.$state.id = null;
             this.$state.username = "";
             this.$state.firstName = "";
@@ -110,6 +110,50 @@ export const userFormStore = defineStore("userFormStore", {
             this.$state.role = "";
             this.$state.version = 0;
             this.$state.user = null;
+        },
+        async createUserRecord(token) {
+            try {
+                const user = new UserCreate(
+                    this.$state.username,
+                    this.$state.password,
+                    this.$state.role !== "service" ? new UserData(
+                        this.$state.firstName,
+                        this.$state.lastName,
+                        this.$state.email,
+                    ) : null,
+                    this.$state.isActive,
+                    this.$state.role,
+                );
+                const response = await createUserRecord(token, user);
+                console.log(response);
+                //Handle incorrect form data
+                if (response.status === 422) {
+                    const unprocessResponse = await unprocessableEntity(response);
+                    const unprocessResponseJson = await unprocessResponse.json();
+                    return {token: token, status: response.status, message: unprocessResponseJson.message};
+                }
+
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+                // Handle network error
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+                // Process successful response
+                const responseJson = await response.json();
+                console.log(responseJson);
+                if (response.ok) {
+                    return {token: responseJson.token, status: response.status};
+                }
+                const details = responseJson.detail
+                return {token: details.token, status: response.status, message: details.data.message};
+            } catch (error) {
+                console.error(error);
+                return {token, status: 503, message: "Network Error"};
+            }
+
         }
     },
     getters: {

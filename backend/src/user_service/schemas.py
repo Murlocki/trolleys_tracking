@@ -11,7 +11,7 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     password: str = Field(min_length=8)
     role: Role = Field(default=Role.SERVICE)
-    user_data: UserData = Field(default=None, validation_alias=AliasChoices('user_data', 'userData'))
+    user_data: UserData | None = Field(default=None, validation_alias=AliasChoices('user_data', 'userData'))
 
     class Config:
         alias_generator = to_camel

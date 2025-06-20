@@ -1,4 +1,4 @@
-class UserData{
+export class UserData {
     /**
      *
      * @param {string} firstName
@@ -6,12 +6,11 @@ class UserData{
      * @param {string} email
      */
     constructor(firstName, lastName, email) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
+        this.firstName = firstName || null;
+        this.lastName = lastName || null;
+        this.email = email || null;
     }
 }
-
 
 
 /**
@@ -50,17 +49,17 @@ export class UserDTO {
     }
 
     get firstName() {
-        return this.userData? this.userData.firstName : null
+        return this.userData ? this.userData.firstName : null
     }
 
 
     get lastName() {
-        return this.userData? this.userData.lastName : null
+        return this.userData ? this.userData.lastName : null
     }
 
 
     get email() {
-        return this.userData? this.userData.email : null
+        return this.userData ? this.userData.email : null
     }
 
     get createdAt() {

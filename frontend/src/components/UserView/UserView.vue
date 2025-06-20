@@ -10,7 +10,7 @@ import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SessionTable from "@/components/UserView/SessionTable.vue";
 import {sessionsStore} from "@/store/sessionsStore.js";
 import {deleteUserSessionList} from "@/externalRequests/requests.js";
-import {logOutUser} from "@/validators/accessValidators.js";
+import {logOutUser} from "@/validators/validators.js";
 import Toast from "primevue/toast";
 import {useToast} from "primevue/usetoast";
 import {userFormStore} from "@/store/userFormStore.js";
@@ -60,6 +60,7 @@ async function onRowExpand(event) {
 const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
+
 
 async function loadUsers() {
   const token = userSettings.getJwt.value;
@@ -156,7 +157,7 @@ function onSearch() {
 <template>
   <div class="w-full">
     <Toast/>
-    <UserFormView v-if="userForm.visible"/>
+    <UserFormView v-if="userForm.visible" @reload="loadUsers"/>
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>

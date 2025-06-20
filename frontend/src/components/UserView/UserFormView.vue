@@ -6,12 +6,13 @@ import Dropdown from "primevue/dropdown";
 import Checkbox from "primevue/checkbox";
 import Password from "primevue/password";
 import {userFormStore} from "@/store/userFormStore.js";
-import {onMounted, ref} from "vue";
+import {onMounted, ref, defineEmits} from "vue";
 import {getUserRoleList} from "@/externalRequests/requests.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {logOutUser} from "@/validators/accessValidators.js";
+import {logOutUser} from "@/validators/validators.js";
 import Toast from "primevue/toast";
 import {useToast} from "primevue/usetoast";
+
 
 const userForm = userFormStore();
 const userSettings = userSettingsStore()
@@ -37,7 +38,7 @@ onMounted(async () => {
   toast.add({
     severity: 'error',
     summary: 'Error',
-    detail: `${response.status}: ${response.status === 503 ? responseJson.message: responseJson.detail.data.message}`,
+    detail: `${response.status}: ${response.status === 503 ? responseJson.message : responseJson.detail.data.message}`,
     life: 3000
   });
   userSettings.setLoading(false);
@@ -48,8 +49,26 @@ async function onClose() {
   userForm.clearData()
   await userForm.setVisible(false);
 }
+const emit = defineEmits(["reload"])
 
 async function onAccept() {
+  userSettings.setLoading(true);
+  const token = userSettings.getJwt.value;
+  const response = await userForm.createUserRecord(token);
+  if (response.status !== 201) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.message}`,
+      life: 3000
+    });
+    userSettings.setLoading(false);
+    return;
+  }
+  userSettings.setLoading(false);
+  emit("reload");
+  await userForm.setVisible(false);
+
 }
 
 </script>

@@ -3,7 +3,7 @@ import {deleteUserSession, getUsers, getUserSessionList} from "@/externalRequest
 import {UserAdminDTO} from "@/models/UserAdminDTO.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
 import router from "@/router/index.js";
-import {logOutUser, processUnauthorized} from "@/validators/accessValidators.js";
+import {logOutUser, processUnauthorized} from "@/validators/validators.js";
 
 export const sessionsStore = defineStore("sessionsStore", {
     state: () => ({
