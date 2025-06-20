@@ -7,7 +7,33 @@ import {logOutUser} from "@/validators/validators.js";
 export const usersStore = defineStore("usersStore", {
     state: () => ({
         users: [],
-        params: {page: 0, count: 10, totalPages: 1},
+        params: {
+            page: 0,
+            count: 10,
+            totalPages: 1,
+            id: "",
+            username: "",
+            firstName: "",
+            lastName: "",
+            email: "",
+            isActive: null,
+            createdFrom: null,
+            createdTo: null,
+            updatedFrom: null,
+            updatedTo: null,
+            role: [],
+            sortBy: {
+                id: null,
+                email:null,
+                username: null,
+                firstName: null,
+                lastName: null,
+                role: null,
+                isActive: null,
+                createdAt: "desc",
+                updatedAt: null,
+            }
+        },
     }),
     actions: {
         async fetchUsers(token) {
@@ -29,7 +55,7 @@ export const usersStore = defineStore("usersStore", {
                 if (response.ok) {
                     await this.setUsers(responseJson.data.items);
                     console.log(this.$state.users);
-                    await this.setPaginator(responseJson.data.page, responseJson.data.itemsPerPage,responseJson.data.pageCount);
+                    await this.setPaginator(responseJson.data.page, responseJson.data.itemsPerPage, responseJson.data.pageCount);
                     return {token: responseJson.token, status: response.status};
                 }
                 const details = responseJson.detail
@@ -69,9 +95,9 @@ export const usersStore = defineStore("usersStore", {
             this.users = users.map(user => new UserAdminDTO(
                 user.id,
                 user.username,
-                user.userData? user.userData.firstName : null,
-                user.userData? user.userData.lastName : null,
-                user.userData? user.userData.email : null,
+                user.userData ? user.userData.firstName : null,
+                user.userData ? user.userData.lastName : null,
+                user.userData ? user.userData.email : null,
                 user.createdAt,
                 user.updatedAt,
                 user.isActive,
@@ -83,7 +109,33 @@ export const usersStore = defineStore("usersStore", {
         },
         clearUsers() {
             this.users = [];
-            this.params = {page: 0, count: 10, totalPages: 1}
+            this.params = {
+                page: 0,
+                count: 10,
+                totalPages: 1,
+                id: "",
+                username: "",
+                firstName: "",
+                lastName: "",
+                email: "",
+                isActive: null,
+                createdFrom: null,
+                createdTo: null,
+                updatedFrom: null,
+                updatedTo: null,
+                role: "",
+                sortBy: {
+                    createdAt: "desc",
+                    updatedAt: null,
+                    id: null,
+                    username: null,
+                    firstName: null,
+                    lastName: null,
+                    email: null,
+                    role: null,
+                    isActive: null,
+                }
+            }
         },
         setPaginator(page, pageSize, totalPages) {
             this.params.page = page;
@@ -92,7 +144,8 @@ export const usersStore = defineStore("usersStore", {
             console.log(`Page: ${this.page}, Page Size: ${this.pageSize}, Total Pages: ${this.totalPages}, Total Records: ${this.totalRecords}`);
         },
         setFilters(filters) {
-            this.params = {...this.params, filters};
+            this.params = {...this.params, ...filters};
+            console.log(this.$state.params);
         }
     },
     getters: {

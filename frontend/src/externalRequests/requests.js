@@ -11,6 +11,7 @@ import {
     login,
     logout, updateUser, updateUserPassword
 } from "@/externalRequests/endpoints.js";
+import {camelToSnake} from "@/validators/validators.js";
 
 const apikey = import.meta.env.VITE_API_KEY;
 console.log(apikey)
@@ -209,22 +210,27 @@ export async function getUsers(token, params = {}) {
         if (params.count !== undefined) queryParams.append('count', params.count);
         if (params.username) queryParams.append('username', params.username);
         if (params.email) queryParams.append('email', params.email);
-        if (params.firstName) queryParams.append('firstName', params.firstName);
-        if (params.lastName) queryParams.append('lastName', params.lastName);
-        if (params.userId) queryParams.append('userId', params.userId);
-        if (params.role) queryParams.append('role', params.role);
-        if (params.createdFrom) queryParams.append('createdFrom', params.createdFrom.toISOString());
-        if (params.createdTo) queryParams.append('createdTo', params.createdTo.toISOString());
-        if (params.updatedFrom) queryParams.append('updatedFrom', params.updatedFrom.toISOString());
-        if (params.updatedTo) queryParams.append('updatedTo', params.updatedTo.toISOString());
-        console.log(queryParams);
-        // Повторяющиеся поля
-        if (Array.isArray(params.sort_by)) {
-            params.sort_by.forEach(field => queryParams.append('sort_by', field));
+        if (params.firstName) queryParams.append('first_name', params.firstName);
+        if (params.lastName) queryParams.append('last_name', params.lastName);
+        if (params.id) queryParams.append('id', params.id);
+        if (params.role) {
+            for (const role of params.role) {
+                queryParams.append('role', role);
+            }
         }
-        if (Array.isArray(params.sort_order)) {
-            params.sort_order.forEach(order => queryParams.append('sort_order', order));
+        if (params.isActive!==null) queryParams.append("is_active", params.isActive);
+        if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
+        if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
+        if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());
+        if (params.updatedTo) queryParams.append('updated_to', params.updatedTo.toISOString());
+
+        for(const val in params.sortBy) {
+            if(params.sortBy[val]!==null){
+                queryParams.append('sort_by', camelToSnake(val));
+                queryParams.append('sort_order', params.sortBy[val]);
+            }
         }
+        console.log(queryParams.toString());
 
         const url = `${getUsersList}?${queryParams.toString()}`;
 

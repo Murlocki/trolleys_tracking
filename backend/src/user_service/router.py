@@ -350,10 +350,11 @@ async def get_users(
         count: int = Query(10, description="Number of users to return"),
         username: str | None = Query(None, description="Filter by username (partial match)"),
         email: str | None = Query(None, description="Filter by email (partial match)"),
+        is_active: bool | None = Query(None, description="Filter by is_active (active)"),
         first_name: str | None = Query(None, description="Filter by first name (partial match)"),
         last_name: str | None = Query(None, description="Filter by last name (partial match)"),
-        user_id: int | None = Query(None, description="Filter by user ID (partial match)"),
-        role: str | None = Query(None, description="Filter by role (partial match)"),
+        id: int | None = Query(None, description="Filter by user ID (partial match)"),
+        role: list[str] | None = Query(None, description="Filter by role"),
         created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
         created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
         updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
@@ -404,12 +405,17 @@ async def get_users(
             extra={
                 "extra_data": {
                     "filters": {
+                        "id": id,
                         "username": username[:3] + "..." if username else None,
                         "email": email[:3] + "..." if email else None,
-                        "id": user_id,
-                        "role": role,
                         "first_name": first_name[:3] + "..." if first_name else None,
                         "last_name": last_name[:3] + "..." if last_name else None,
+                        "role": role,
+                        "created_from": created_from if created_from else None,
+                        "created_to": created_to if created_to else None,
+                        "updated_from": updated_from if updated_from else None,
+                        "updated_to": updated_to if updated_to else None,
+                        "is_active": is_active if is_active else None,
 
                     },
                     "sorting": {
@@ -438,7 +444,8 @@ async def get_users(
                 "email": email,
                 "first_name": first_name,
                 "last_name": last_name,
-                "id": user_id,
+                "id": id,
+                "is_active": is_active,
                 "role": role,
                 "created_from": created_from,
                 "created_to": created_to,

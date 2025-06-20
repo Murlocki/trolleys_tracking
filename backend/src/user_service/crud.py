@@ -1,7 +1,7 @@
 # Crud юзеров
 from datetime import datetime
 
-from sqlalchemy import select, and_, desc, asc, cast, String, func
+from sqlalchemy import select, and_, desc, asc, cast, String, func, Boolean
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -58,6 +58,7 @@ async def search_users(
         "last_name": UserData.last_name,
         "role": User.role,
         "id": User.id,
+        "is_active": User.is_active,
         "created_at": User.created_at,
         "updated_at": User.updated_at,
     }
@@ -79,7 +80,10 @@ async def search_users(
         elif field == "id":
             conditions.append(cast(User.id, String).ilike(f"%{value}%"))
         elif field == "role":
-            conditions.append(cast(User.role, String).ilike(f"%{value}%"))
+            role_list = [Role(val) for val in value]
+            conditions.append(User.role.in_(role_list))
+        elif field == "is_active" and value is not None:
+            conditions.append(cast(User.is_active, Boolean) == value)
         elif field in field_column_map:
             column = field_column_map[field]
             conditions.append(column.ilike(f"%{value}%"))
