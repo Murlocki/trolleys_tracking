@@ -100,14 +100,7 @@ export const userFormStore = defineStore("userFormStore", {
                 this.$state.isActive = this.$state.user.isActive;
                 this.$state.role = this.$state.user.role;
             } else {
-                this.$state.id = null;
-                this.$state.username = "";
-                this.$state.firstName = "";
-                this.$state.lastName = "";
-                this.$state.email = "";
-                this.$state.isActive = false;
-                this.$state.role = "";
-                this.$state.password = "";
+                this.clearData()
             }
         },
         clearData() {
@@ -117,6 +110,7 @@ export const userFormStore = defineStore("userFormStore", {
             this.$state.lastName = "";
             this.$state.email = "";
             this.$state.isActive = false;
+            this.$state.password = "";
             this.$state.role = "";
             this.$state.version = 0;
             this.$state.user = null;
@@ -209,13 +203,5 @@ export const userFormStore = defineStore("userFormStore", {
 
         }
 
-    },
-    getters: {
-        getUsersCount: (state) => state.users.length,
-        getCurrentUserName: (state) => state.currentUser ? state.currentUser.name : '',
-        page: (state) => state.params.page,
-        totalPages: (state) => state.params.totalPages,
-        pageSize: (state) => state.params.count,
-        totalRecords: (state) => state.params.totalPages * state.params.count,
     }
 })

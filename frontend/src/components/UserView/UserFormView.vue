@@ -5,7 +5,7 @@ import InputText from "primevue/inputtext";
 import Dropdown from "primevue/dropdown";
 import Checkbox from "primevue/checkbox";
 import Password from "primevue/password";
-import {userFormStore} from "@/store/userFormStore.js";
+import {userFormStore} from "@/store/users/userFormStore.js";
 import {onMounted, ref, defineEmits} from "vue";
 import {getUserRoleList} from "@/externalRequests/requests.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";

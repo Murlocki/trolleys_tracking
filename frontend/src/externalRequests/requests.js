@@ -9,7 +9,7 @@ import {
     getUserSessions,
     getUsersList,
     login,
-    logout, updateUser
+    logout, updateUser, updateUserPassword
 } from "@/externalRequests/endpoints.js";
 
 const apikey = import.meta.env.VITE_API_KEY;
@@ -363,6 +363,34 @@ export async function updateUserRecord(token, userId, user) {
     }
 }
 
+export async function updateUserPasswordRecord(token, userId, passwordForm) {
+    try {
+        return await fetch(`${updateUserPassword(userId)}`, {
+            method: 'PATCH',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            },
+            body: JSON.stringify(passwordForm)
+        })
+
+    } catch (error) {
+        // Создаём искусственный Response для сетевых ошибок
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
 
 export async function getUserRoleList(token) {
     try {

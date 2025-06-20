@@ -3,18 +3,19 @@ import {ref, onMounted} from "vue";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
-
-import {usersStore} from "@/store/usersStore.js";
+import {usersStore} from "@/store/users/usersStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SessionTable from "@/components/UserView/SessionTable.vue";
-import {sessionsStore} from "@/store/sessionsStore.js";
+import {sessionsStore} from "@/store/users/sessionsStore.js";
 import {deleteUserSessionList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
 import Toast from "primevue/toast";
 import {useToast} from "primevue/usetoast";
-import {userFormStore} from "@/store/userFormStore.js";
+import {userFormStore} from "@/store/users/userFormStore.js";
 import UserFormView from "@/components/UserView/UserFormView.vue";
+import UserPasswordFormView from "@/components/UserView/UserPasswordFormView.vue";
+import {userPasswordFormStore} from "@/store/users/userPasswordFormStore.js";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -149,6 +150,11 @@ function onAddUser() {
   userForm.setCreatingUser(true);
   userForm.setVisible(true);
 }
+const userPasswordForm = userPasswordFormStore();
+function onEditUserPassword(event){
+  userPasswordForm.setVisible(true);
+  userPasswordForm.setUserId(event.id);
+}
 
 function onSearch() {
 }
@@ -159,6 +165,7 @@ function onSearch() {
   <div class="w-full">
     <Toast/>
     <UserFormView v-if="userForm.visible" @reload="loadUsers"/>
+    <UserPasswordFormView v-if="userPasswordForm.visible" @reload="loadUsers"/>
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>
@@ -202,22 +209,32 @@ function onSearch() {
         <template #body="slotProps">
           <div class="flex flex-row">
             <Button
+                icon="pi pi-key"
+                class="p-button-rounded p-button-text p-button-info"
+                @click.stop="onEditUserPassword(slotProps.data)"
+                :aria-label="`Edit password`"
+                v-tooltip="`Edit password`"
+            />
+            <Button
                 icon="pi pi-pencil"
                 class="p-button-rounded p-button-text p-button-info"
                 @click.stop="onEditUser(slotProps.data)"
-                :aria-label="'Edit ' + slotProps.data.name"
+                :aria-label="'Edit user'"
+                v-tooltip="'Edit user'"
             />
             <Button
                 icon="pi pi-trash"
                 class="p-button-rounded p-button-text p-button-danger"
                 @click.stop="onDeleteUser(slotProps.data)"
-                :aria-label="'Delete ' + slotProps.data.name"
+                :aria-label="'Delete user'"
+                v-tooltip="'Delete user'"
             />
             <Button
                 icon="pi pi-sign-out"
                 class="p-button-rounded p-button-text p-button-danger"
                 @click.stop="onLogOutUser(slotProps.data)"
-                :aria-label="'Logout ' + slotProps.data.name"
+                :aria-label="'Logout user'"
+                v-tooltip="'Logout user'"
             />
           </div>
         </template>

@@ -6,7 +6,7 @@ import Column from "primevue/column";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import Toast from "primevue/toast";
 import {ref, watch} from "vue";
-import {sessionsStore} from "@/store/sessionsStore.js";
+import {sessionsStore} from "@/store/users/sessionsStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import {useToast} from "primevue/usetoast";
 
