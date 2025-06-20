@@ -1,9 +1,6 @@
 /**
- * @param {string} identifier - Идентификатор пользователя
- * @param {string} password - Пароль пользователя
- * @param {string} device - Устройство пользователя
- * @param {string} ip_address - Адрес устройства пользователя
- * @param {boolean} remember_me - Нужно ли запоминать сессиию пользователя
+ * Data Transfer Object for user auth information
+ * @class
  */
 export class AuthForm {
     /**

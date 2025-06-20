@@ -169,19 +169,18 @@ const onSubmit = async () => {
 
     const authForm = new AuthForm(userLogin.value, password.value, device.value, ip.value, remember.value);
     const response = await loginUser(authForm);
+    const responseJson = await response.json();
     if (response.status === 200) {
-      const response_json = await response.json();
-      store.setJwtKey(response_json["token"]);
+      store.setJwtKey(responseJson["token"]);
       console.log(store.getJwt.value);
-      store.setUserIdentifier(response_json["identifier"]);
+      store.setUserIdentifier(responseJson["identifier"]);
       closeTheForm()
       await router.push('/');
       loading.value = false;
       return;
     }
 
-    const response_json = await response.json();
-    error.value = response_json['detail'];
+    error.value = response.status === 503? responseJson.message : responseJson['detail'];
     //console.log(response_json);
   } else {
     error.value = "Please input the password and identifier."

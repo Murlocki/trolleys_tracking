@@ -16,30 +16,65 @@ import {camelToSnake} from "@/validators/validators.js";
 const apikey = import.meta.env.VITE_API_KEY;
 console.log(apikey)
 
+/**
+ * Calls login api
+ * @param {AuthForm} authForm - User auth data
+ * @returns {Promise<Response>} - new access token
+ */
 export async function loginUser(authForm) {
-    return await fetch(login, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(authForm)
-    })
+    try {
+        return await fetch(login, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(authForm)
+        })
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            statusText: "Network Error"
+        });
+    }
 }
 
+/**
+ * Call login out api
+ * @param {string} token - Auth token
+ * @returns {Promise<Response>} - result of login out
+ */
 export async function loginOut(token) {
-    return await fetch(logout, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-        }
-    })
+    try {
+        return await fetch(logout, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        })
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            statusText: "Network Error"
+        });
+    }
 }
 
-
+/**
+ * Extracts user profile info
+ * @param {string} token - Auth token
+ * @returns {Promise<Response>} - user profile data
+ */
 export async function getUserProfile(token) {
     try {
-        // Возвращаем полный объект Response для гибкой обработки в компоненте
         return await fetch(`${getMyProfile}`, {
             method: 'GET',
             mode: 'cors',
@@ -51,7 +86,7 @@ export async function getUserProfile(token) {
         });
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -62,6 +97,12 @@ export async function getUserProfile(token) {
     }
 }
 
+/**
+ * Extracts list of user active sessions
+ * @param {string} token - Auth token
+ * @param {number} id - User id
+ * @returns {Promise<Response>} - list of user active sessions
+ */
 export async function getUserSessionList(token, id) {
     try {
         return await fetch(`${getUserSessions}/${id}`, {
@@ -74,7 +115,7 @@ export async function getUserSessionList(token, id) {
             }
         })
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -89,6 +130,13 @@ export async function getUserSessionList(token, id) {
     }
 }
 
+/**
+ * Delete user session by ID
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ * @param {string} sessionId - Session ID
+ * @returns {Promise<Response>} - deleted session info
+ */
 export async function deleteUserSession(token, userId, sessionId) {
     try {
         return await fetch(`${deleteUserSessionById(userId, sessionId)}`, {
@@ -102,7 +150,7 @@ export async function deleteUserSession(token, userId, sessionId) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -117,6 +165,12 @@ export async function deleteUserSession(token, userId, sessionId) {
     }
 }
 
+/**
+ * Delete all user sessions
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ * @returns {Promise<Response>} - List of deleted sessions
+ */
 export async function deleteUserSessionList(token, userId) {
     try {
         return await fetch(`${deleteUserSessions(userId)}`, {
@@ -130,7 +184,7 @@ export async function deleteUserSessionList(token, userId) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -197,15 +251,16 @@ export async function getCameraSubscribersList(token, groupId, cameraId) {
 
 
 /**
- * Получение списка пользователей с фильтрами и сортировкой
- * @param {string} token - JWT токен
- * @param {Object} [params={}] - Параметры запроса
+ * Get filtered sorted user list
+ * @param {string} token - Auth token
+ * @param {Object} [params={}] - Filter and sort parameters
+ * @return {Promise<Response>} - Extracted user list
  */
 export async function getUsers(token, params = {}) {
     try {
         const queryParams = new URLSearchParams();
 
-        // Обычные фильтры
+        // Adding filter info to query
         if (params.page !== undefined) queryParams.append('page', params.page);
         if (params.count !== undefined) queryParams.append('count', params.count);
         if (params.username) queryParams.append('username', params.username);
@@ -218,14 +273,15 @@ export async function getUsers(token, params = {}) {
                 queryParams.append('role', role);
             }
         }
-        if (params.isActive!==null) queryParams.append("is_active", params.isActive);
+        if (params.isActive !== null) queryParams.append("is_active", params.isActive);
         if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
         if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
         if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());
         if (params.updatedTo) queryParams.append('updated_to', params.updatedTo.toISOString());
 
-        for(const val in params.sortBy) {
-            if(params.sortBy[val]!==null){
+        // Adding sorting parameters to query
+        for (const val in params.sortBy) {
+            if (params.sortBy[val] !== null) {
                 queryParams.append('sort_by', camelToSnake(val));
                 queryParams.append('sort_order', params.sortBy[val]);
             }
@@ -234,6 +290,7 @@ export async function getUsers(token, params = {}) {
 
         const url = `${getUsersList}?${queryParams.toString()}`;
 
+        // Creating request
         return await fetch(url, {
             method: 'GET',
             headers: {
@@ -243,7 +300,7 @@ export async function getUsers(token, params = {}) {
             },
         });
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -254,7 +311,12 @@ export async function getUsers(token, params = {}) {
     }
 }
 
-
+/**
+ * Delete user by ID
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ * @returns {Promise<Response>} - Deleted user info
+ */
 export async function deleteUserById(token, userId) {
     try {
         return await fetch(`${deleteUser(token, userId)}`, {
@@ -268,7 +330,7 @@ export async function deleteUserById(token, userId) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -283,6 +345,12 @@ export async function deleteUserById(token, userId) {
     }
 }
 
+/**
+ * Extract user by ID
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ * @returns {Promise<Response>} - Extracted user info
+ */
 export async function getUserById(token, userId) {
     try {
         return await fetch(`${getUser(userId)}`, {
@@ -296,7 +364,7 @@ export async function getUserById(token, userId) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -311,6 +379,12 @@ export async function getUserById(token, userId) {
     }
 }
 
+/**
+ * Create new user Record
+ * @param {string} token - Auth token
+ * @param {UserCreate} user - User create info
+ * @returns {Promise<Response>} - Created user info
+ */
 export async function createUserRecord(token, user) {
     try {
         return await fetch(`${createUser}`, {
@@ -325,7 +399,7 @@ export async function createUserRecord(token, user) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -340,6 +414,13 @@ export async function createUserRecord(token, user) {
     }
 }
 
+/**
+ * Update user record
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ * @param {UserUpdate} user - User update info
+ * @returns {Promise<Response>} - Updated user info
+ */
 export async function updateUserRecord(token, userId, user) {
     try {
         return await fetch(`${updateUser(userId)}`, {
@@ -354,7 +435,7 @@ export async function updateUserRecord(token, userId, user) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -369,6 +450,13 @@ export async function updateUserRecord(token, userId, user) {
     }
 }
 
+/**
+ * Update user password
+ * @param {string} token - Auth token
+ * @param {number} userId - User ID
+ * @param {PasswordDTO} passwordForm - Password update inf0
+ * @returns {Promise<Response>} - Updated user info
+ */
 export async function updateUserPasswordRecord(token, userId, passwordForm) {
     try {
         return await fetch(`${updateUserPassword(userId)}`, {
@@ -383,7 +471,7 @@ export async function updateUserPasswordRecord(token, userId, passwordForm) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message
@@ -398,6 +486,11 @@ export async function updateUserPasswordRecord(token, userId, passwordForm) {
     }
 }
 
+/**
+ * Extract list of all existing roles
+ * @param {string} token - Auth token
+ * @returns {Promise<Response>} - List of all existing roles
+ */
 export async function getUserRoleList(token) {
     try {
         return await fetch(`${getUserRoles}`, {
@@ -411,7 +504,7 @@ export async function getUserRoleList(token) {
         })
 
     } catch (error) {
-        // Создаём искусственный Response для сетевых ошибок
+        // Create response for network errors
         return new Response(JSON.stringify({
             error: "Network request failed",
             message: error.message

@@ -1,29 +1,22 @@
 /**
- @param {number} id - Идентификатор пользователя
- @param {string} username - Имя пользователя
- @param {string} firstName - Имя пользователя
- @param {string} lastName - Фамилия пользователя
- @param {string} email - Электронная почта пользователя
- @param {string} createdAt - Дата создания пользователя
- @param {string} updatedAt - Дата обновления пользователя
- @param {boolean} isActive - Активен ли пользователь
- @param {string} role - Роль пользователя
- @param {string} roleDisplay - Отображаемая роль пользователя
- @param {number} version - Версия пользователя
+ * Data Transfer Object (DTO) for user administration
+ * @class
  */
 export class UserAdminDTO {
     /**
-     * @param {number} id - Идентификатор пользователя
-     * @param {string} username - Имя пользователя
-     * @param {string} firstName - Имя пользователя
-     * @param {string} lastName - Фамилия пользователя
-     * @param {string} email - Электронная почта пользователя
-     * @param {string} createdAt - Дата создания пользователя
-     * @param {string} updatedAt - Дата обновления пользователя
-     * @param {boolean} isActive - Активен ли пользователь
-     * @param {string} role - Роль пользователя
-     * @param {string} roleDisplay - Отображаемая роль пользователя
-     * @param {number} version - Версия пользователя
+     * Create a UserAdminDTO instance
+     * @constructor
+     * @param {number} id - User's unique identifier
+     * @param {string} username - User's login name
+     * @param {string} firstName - User's first name
+     * @param {string} lastName - User's last name
+     * @param {string} email - User's email address
+     * @param {string} createdAt - User creation timestamp (ISO string)
+     * @param {string} updatedAt - User last update timestamp (ISO string)
+     * @param {boolean} isActive - Whether the user account is active
+     * @param {string} role - User's system role (enum value)
+     * @param {string} roleDisplay - Human-readable role name
+     * @param {number} version - Data version for optimistic locking
      */
     constructor(id, username, firstName, lastName, email, createdAt, updatedAt, isActive, role, roleDisplay, version) {
         this._createdAt = new Date(createdAt)
@@ -39,6 +32,10 @@ export class UserAdminDTO {
         this.version = version
     }
 
+    /**
+     * Gets formatted creation date string
+     * @returns {string|null} Formatted date string (e.g., "January 15, 2023, 02:30 PM") or null if invalid
+     */
     get createdAt() {
         if (this._createdAt instanceof Date) {
             return this._createdAt.toLocaleString('en-EN', {
@@ -52,6 +49,10 @@ export class UserAdminDTO {
         return null;
     }
 
+    /**
+     * Gets formatted update date string
+     * @returns {string|null} Formatted date string (e.g., "January 15, 2023, 02:30 PM") or null if invalid
+     */
     get updatedAt() {
         if (this._updatedAt instanceof Date) {
             return this._updatedAt.toLocaleString('en-EN', {

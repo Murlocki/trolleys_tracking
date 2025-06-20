@@ -1,11 +1,8 @@
 import {UserData} from "@/models/user/UserDTO.js";
 
 /**
- @param {string} username - Имя пользователя
- @param {UserData} userData - Данные пользователя - человека
- @param {boolean} isActive - Активен ли пользователь
- @param {string} role - Роль пользователя
- @param {number} version - Версия пользователя
+ * Data Transfer Object for update user information
+ * @class
  */
 export class UserUpdate {
     /**

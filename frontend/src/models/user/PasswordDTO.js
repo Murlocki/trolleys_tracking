@@ -1,6 +1,6 @@
 /**
- * @param {string} newPassword - Новый пароль пользователя
- * @param {number} userVersion - Версия пользователя
+ * Data Transfer Object for user password information
+ * @class
  */
 export class PasswordDTO{
     /**
