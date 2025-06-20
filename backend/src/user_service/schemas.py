@@ -52,4 +52,4 @@ class AuthForm(BaseModel):
 
 class PasswordForm(BaseModel):
     new_password: str = Field(min_length=8, validation_alias=AliasChoices('new_password', 'newPassword'))
-    user_version: int = Field(default=0)
+    user_version: int = Field(default=0, validation_alias=AliasChoices('user_version', 'userVersion'))

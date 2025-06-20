@@ -16,6 +16,8 @@ import {userFormStore} from "@/store/users/userFormStore.js";
 import UserFormView from "@/components/UserView/UserFormView.vue";
 import UserPasswordFormView from "@/components/UserView/UserPasswordFormView.vue";
 import {userPasswordFormStore} from "@/store/users/userPasswordFormStore.js";
+import UserTableSearchForm from "@/components/UserView/UserTableSearchForm.vue";
+import {userSearchFormStore} from "@/store/users/userSearchFormStore.js";
 
 const store = usersStore();
 const userSettings = userSettingsStore();
@@ -156,7 +158,9 @@ function onEditUserPassword(event){
   userPasswordForm.setUserId(event.id);
 }
 
+const userSearchForm = userSearchFormStore();
 function onSearch() {
+  userSearchForm.setVisible(true);
 }
 
 </script>
@@ -166,9 +170,10 @@ function onSearch() {
     <Toast/>
     <UserFormView v-if="userForm.visible" @reload="loadUsers"/>
     <UserPasswordFormView v-if="userPasswordForm.visible" @reload="loadUsers"/>
+    <UserTableSearchForm v-if="userSearchForm.visible" @reload="loadUsers"/>
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
-      <Button label="Search" severity="contrast" icon="pi pi-search" @input="onSearch"/>
+      <Button label="Search" severity="contrast" icon="pi pi-search" @click="onSearch"/>
     </div>
     <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <DataTable
