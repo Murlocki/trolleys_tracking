@@ -394,7 +394,7 @@ async def get_users(
             logger.error(f"Invalid page number {page}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
-        if count < 1:
+        if count < 0:
             result.data = {"message": "Invalid number of users per page"}
             logger.error(f"Invalid number of users per page number {count}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
@@ -404,6 +404,10 @@ async def get_users(
             "User search initiated",
             extra={
                 "extra_data": {
+                    "pages": {
+                        "count": count,
+                        "page": page,
+                    },
                     "filters": {
                         "id": id,
                         "username": username[:3] + "..." if username else None,
@@ -467,10 +471,14 @@ async def get_users(
             }
         )
         logger.info([user.to_dict() for user in users])
+        if count == 0:
+            page_count = 1
+        else:
+            page_count = math.ceil(total_count / count)
         result.data = PaginatorList(
             page=page,
-            page_count=math.ceil(total_count / count),
-            items_per_page=count,
+            page_count=page_count,
+            items_per_page=len(users) if count == 0 else count,
             item_count=len(users),
             items=[UserAdminDTO(**user.to_dict()) for user in users]
         )

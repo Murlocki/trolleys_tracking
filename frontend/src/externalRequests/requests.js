@@ -1,4 +1,5 @@
 import {
+    createCameraSubscription,
     createUser, deleteCameraSubscription,
     deleteUser,
     deleteUserSessionById,
@@ -340,6 +341,42 @@ export async function deleteSubscriptionById(token, groupID, cameraID, subscript
     }
 }
 
+/**
+ * Delete subscription by ID
+ * @param {string} token - Auth token
+ * @param {number} groupID - Group ID
+ * @param {number} cameraID - Group ID
+ * @param {SubscriptionCreateDTO} subscription - Subscription create data
+ * @returns {Promise<Response>} - Created subscription info
+ */
+export async function createSubscription(token, groupID, cameraID, subscription) {
+    try {
+        return await fetch(`${createCameraSubscription(groupID, cameraID)}`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            },
+            body: JSON.stringify(subscription)
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
 
 /**
  * Get filtered sorted user list
@@ -364,7 +401,7 @@ export async function getUsers(token, params = {}) {
                 queryParams.append('role', role);
             }
         }
-        if (params.isActive !== null) queryParams.append("is_active", params.isActive);
+        if (params.isActive === true || params.isActive === false) queryParams.append("is_active", params.isActive);
         if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
         if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
         if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());

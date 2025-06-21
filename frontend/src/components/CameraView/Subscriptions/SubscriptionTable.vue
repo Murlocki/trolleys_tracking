@@ -4,8 +4,10 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {subscriptionStore} from "@/store/cameras/subscriptionStore.js";
+import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
+import {subscriptionFormStore} from "@/store/subscriptions/subscriptionFormStore.js";
+import SubscriptionFormView from "@/components/CameraView/Subscriptions/SubscriptionFormView.vue";
 
 const settings = userSettingsStore();
 
@@ -15,6 +17,7 @@ const store = subscriptionStore()
 const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
+
 
 async function setSubscriptions(groupId, cameraId) {
   error.value = false;
@@ -54,7 +57,10 @@ const columns = [
   {field: "updatedAt", header: "Updated at"},
 ];
 
+const subscriptionForm = subscriptionFormStore();
 function onAddSubscription(event) {
+  subscriptionForm.setVisible(true);
+  subscriptionForm.setCamera(store.cameraId, store.groupId)
 }
 
 async function onDeleteSubscription(event) {
@@ -96,6 +102,10 @@ async function onPageSubscriptionChange(event) {
 
 <template>
   <div>
+    <SubscriptionFormView
+        v-if="subscriptionForm.visible"
+        @reload="setSubscriptions(store.groupId, store.cameraId)"
+    />
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddSubscription"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @click="onSubscriptionSearch"/>

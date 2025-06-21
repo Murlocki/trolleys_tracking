@@ -14,10 +14,10 @@ import {
   getCameraSubscribersList,
 } from "@/externalRequests/requests.js";
 import {camerasStore} from "@/store/cameras/cameraStore.js";
-import {subscriptionStore} from "@/store/cameras/subscriptionStore.js";
+import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
 import {imagePath, testCart} from "@assets";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
-import SubscriptionTable from "@/components/CameraView/SubscriptionTable.vue";
+import SubscriptionTable from "@/components/CameraView/Subscriptions/SubscriptionTable.vue";
 
 const store = groupsStore();
 const userSettings = userSettingsStore();

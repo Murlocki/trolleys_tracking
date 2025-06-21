@@ -1119,7 +1119,7 @@ async def patch_camera(
     "/camera/crud/groups/{group_id}/cameras/{camera_id}/subscribers",
     response_model=AuthResponse[CameraUserAssociationDTO],
     responses={
-        200: {"description": "Successful addition"},
+        201: {"description": "Successful addition"},
         400: {"description": "Bad request"},
         401: {"description": "Unauthorized"},
         404: {"description": "Not found"},
@@ -1499,7 +1499,7 @@ async def get_camera_subscribes(
             logger.error(f"Invalid page number {page}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
-        if count < 1:
+        if count < 0:
             result.data = {"message": "Invalid number of users per page"}
             logger.error(f"Invalid number of users per page number {count}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
@@ -1509,6 +1509,10 @@ async def get_camera_subscribes(
             "User search initiated",
             extra={
                 "extra_data": {
+                    "pages": {
+                        "count": count,
+                        "page": page,
+                    },
                     "filters": {
                         "id": id,
                         "username": username[:3] + "..." if username else None,
@@ -1562,10 +1566,14 @@ async def get_camera_subscribes(
             }
         )
         logger.info(subscriptions)
+        if count == 0:
+            page_count = 1
+        else:
+            page_count = math.ceil(total_count / count)
         result.data = PaginatorList(
             page=page,
-            page_count=math.ceil(total_count / count),
-            items_per_page=count,
+            page_count=page_count,
+            items_per_page=len(subscriptions) if count == 0 else count,
             item_count=len(subscriptions),
             items=subscriptions
         )

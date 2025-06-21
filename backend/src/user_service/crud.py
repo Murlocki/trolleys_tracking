@@ -104,7 +104,8 @@ async def search_users(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt.offset(page * count).limit(count))
+    stmt = stmt.offset(page * count).limit(count) if count>0 else stmt
+    result = await db.execute(stmt)
     return [result.scalars().all(), total_count]
 
 

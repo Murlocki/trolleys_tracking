@@ -37,7 +37,12 @@ const columns = [
 ];
 
 // Pagination options
-const itemsPerPageOptions = [10, 15, 20, 30];
+const itemsPerPageOptions = [
+  10,
+  15,
+  20,
+  25
+];
 
 // Expanded rows management
 const expandedRows = ref({});
@@ -57,6 +62,7 @@ async function onRowClick(event) {
 
 // Handle row expansion to load sessions
 const sessions = sessionsStore()
+
 async function onRowExpand(event) {
   const user = event.data;
   await sessions.setUserId(user.id);
@@ -89,7 +95,10 @@ onMounted(async () => {
 // Handle pagination changes
 async function onPageChange(event) {
   console.log(event);
-  store.setPaginator(event.page, event.rows, event.pageCount);
+  store.setPaginator(
+      event.page,
+      event.row,
+      event.pageCount);
   expandedRows.value = {};
   await loadUsers();
 }
@@ -139,10 +148,10 @@ async function onLogOutUser(event) {
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: `${response.status}: ${response.status === 503?responseJson.message: responseJson.detail.data.message}`,
+      detail: `${response.status}: ${response.status === 503 ? responseJson.message : responseJson.detail.data.message}`,
       life: 3000
     });
-    userSettings.setJwtKey(response.status === 503? token: responseJson.detail.token);
+    userSettings.setJwtKey(response.status === 503 ? token : responseJson.detail.token);
     return;
   }
   userSettings.setJwtKey(responseJson.token);
@@ -158,6 +167,7 @@ async function onLogOutUser(event) {
 
 // User form handling
 const userForm = userFormStore();
+
 function onAddUser() {
   userForm.setCreatingUser(true);
   userForm.setVisible(true);
@@ -165,13 +175,15 @@ function onAddUser() {
 
 // Password form handling
 const userPasswordForm = userPasswordFormStore();
-function onEditUserPassword(event){
+
+function onEditUserPassword(event) {
   userPasswordForm.setVisible(true);
   userPasswordForm.setUserId(event.id);
 }
 
 // Search form handling
 const userSearchForm = userSearchFormStore();
+
 function onSearch() {
   userSearchForm.setVisible(true);
 }
@@ -262,7 +274,6 @@ function onSearch() {
           </div>
         </template>
       </Column>
-
       <!-- Expanded content template (sessions table) -->
       <template #expansion>
         <SessionTable

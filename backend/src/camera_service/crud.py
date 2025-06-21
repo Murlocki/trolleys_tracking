@@ -445,7 +445,7 @@ async def search_camera_subscriptions(
                 stmt = stmt.order_by(*order_clauses)
 
         # Apply pagination
-        stmt = stmt.offset(page * count).limit(count)
+        stmt = stmt.offset(page * count).limit(count) if count>0 else stmt
 
         # Execute query and process results
         result = await db.execute(stmt)

@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {SubscriptionDTO} from "@/models/SubscriptionDTO.js";
+import {SubscriptionDTO} from "@/models/subscription/SubscriptionDTO.js";
 import {deleteSubscriptionById, getCameraSubscribersList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
 
