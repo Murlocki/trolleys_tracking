@@ -19,9 +19,11 @@ import {userPasswordFormStore} from "@/store/users/userPasswordFormStore.js";
 import UserTableSearchForm from "@/components/UserView/UserTableSearchForm.vue";
 import {userSearchFormStore} from "@/store/users/userSearchFormStore.js";
 
+// Store instances initialization
 const store = usersStore();
 const userSettings = userSettingsStore();
 
+// Table column definitions
 const columns = [
   {field: "id", header: "ID"},
   {field: "username", header: "User Name"},
@@ -34,11 +36,13 @@ const columns = [
   {field: "updatedAt", header: "Updated at"},
 ];
 
+// Pagination options
 const itemsPerPageOptions = [10, 15, 20, 30];
 
-const expandedRows = ref({}); // для управления раскрытием строк
+// Expanded rows management
+const expandedRows = ref({});
 
-// Обработка клика по строке
+// Handle row click to expand/collapse
 async function onRowClick(event) {
   const row = event.data;
   const rowId = row.id;
@@ -51,20 +55,19 @@ async function onRowClick(event) {
   }
 }
 
-// Обработка открытия строки
+// Handle row expansion to load sessions
 const sessions = sessionsStore()
-
 async function onRowExpand(event) {
   const user = event.data;
   await sessions.setUserId(user.id);
 }
 
-
+// Error handling variables
 const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
 
-
+// Load users data
 async function loadUsers() {
   const token = userSettings.getJwt.value;
   userSettings.setLoading(true);
@@ -78,17 +81,19 @@ async function loadUsers() {
   userSettings.setLoading(false);
 }
 
+// Load users when component mounts
 onMounted(async () => {
   await loadUsers();
 });
 
-
+// Handle pagination changes
 async function onPageChange(event) {
   store.setPaginator(event.page, event.rows, event.pageCount);
   expandedRows.value = {};
   await loadUsers();
 }
 
+// Handle user deletion
 async function onDeleteUser(event) {
   userSettings.setLoading(true);
   const userId = event.id;
@@ -105,17 +110,19 @@ async function onDeleteUser(event) {
     return;
   }
   await loadUsers();
-
 }
 
+// Handle user edit
 function onEditUser(event) {
   userForm.setCreatingUser(false);
   userForm.setVisible(true);
   userForm.setUserId(event.id);
 }
 
+// Toast notification setup
 const toast = useToast();
 
+// Handle user logout (terminate all sessions)
 async function onLogOutUser(event) {
   const token = userSettings.getJwt.value;
   userSettings.setLoading(true);
@@ -126,17 +133,18 @@ async function onLogOutUser(event) {
     return;
   }
   const responseJson = await response.json();
-  userSettings.setJwtKey(responseJson.token);
   if (response.status !== 200) {
     userSettings.setLoading(false);
     toast.add({
       severity: 'error',
       summary: 'Error',
-      detail: `${responseJson.status}: ${responseJson.message}`,
+      detail: `${response.status}: ${response.status === 503?responseJson.message: responseJson.detail.data.message}`,
       life: 3000
     });
+    userSettings.setJwtKey(response.status === 503? token: responseJson.detail.token);
     return;
   }
+  userSettings.setJwtKey(responseJson.token);
   if (sessions.userId === userId) {
     sessions.userId = null;
     await sessions.clearUserSessions()
@@ -147,17 +155,21 @@ async function onLogOutUser(event) {
   return;
 }
 
+// User form handling
 const userForm = userFormStore();
 function onAddUser() {
   userForm.setCreatingUser(true);
   userForm.setVisible(true);
 }
+
+// Password form handling
 const userPasswordForm = userPasswordFormStore();
 function onEditUserPassword(event){
   userPasswordForm.setVisible(true);
   userPasswordForm.setUserId(event.id);
 }
 
+// Search form handling
 const userSearchForm = userSearchFormStore();
 function onSearch() {
   userSearchForm.setVisible(true);
@@ -168,13 +180,18 @@ function onSearch() {
 <template>
   <div class="w-full">
     <Toast/>
+    <!-- Form components that appear conditionally -->
     <UserFormView v-if="userForm.visible" @reload="loadUsers"/>
     <UserPasswordFormView v-if="userPasswordForm.visible" @reload="loadUsers"/>
     <UserTableSearchForm v-if="userSearchForm.visible" @reload="loadUsers"/>
+
+    <!-- Action buttons -->
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddUser"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @click="onSearch"/>
     </div>
+
+    <!-- Error display or main table -->
     <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <DataTable
         v-else
@@ -191,18 +208,17 @@ function onSearch() {
         @page="onPageChange"
         :rowsPerPageOptions="itemsPerPageOptions"
         :showCurrentPageReport="true"
-
         dataKey="id"
         :expandedRows="expandedRows"
         @row-click="onRowClick"
     >
-      <!-- Колонка для раскрытия -->
+      <!-- Expander column -->
       <Column
           expander
           style="width: 3em"
       ></Column>
 
-      <!-- Колонки из вашего массива -->
+      <!-- Dynamic columns from columns array -->
       <Column
           v-for="col in columns"
           :key="col.field"
@@ -210,6 +226,7 @@ function onSearch() {
           :header="col.header"
       ></Column>
 
+      <!-- Action buttons column -->
       <Column header="Actions" style="width: 140px">
         <template #body="slotProps">
           <div class="flex flex-row">
@@ -245,7 +262,7 @@ function onSearch() {
         </template>
       </Column>
 
-      <!-- Раскрывающаяся таблица с сессиями -->
+      <!-- Expanded content template (sessions table) -->
       <template #expansion>
         <SessionTable
         />

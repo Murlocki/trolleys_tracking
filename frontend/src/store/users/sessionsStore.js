@@ -7,7 +7,9 @@ import {logOutUser, processUnauthorized} from "@/validators/validators.js";
 
 export const sessionsStore = defineStore("sessionsStore", {
     state: () => ({
+        /** @type {Array[SessionDTO]} sessions - List of sessions data */
         sessions: [],
+        /** @type {number || null} userId - Sessions owner ID */
         userId: null,
     }),
     actions: {

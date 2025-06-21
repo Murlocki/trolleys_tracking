@@ -12,32 +12,51 @@ import {usersStore} from "@/store/users/usersStore.js";
 import {getUserRoleList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
 
+// Initialize Pinia stores
+const store = userSearchFormStore(); // Search form state and actions
+const users = usersStore(); // Users data store
+const userSettings = userSettingsStore(); // User settings store
 
-const store = userSearchFormStore();
-const users = usersStore();
-const userSettings = userSettingsStore()
+// Sort direction options for dropdowns
 const sortOptions = [
   {label: "Asc", value: "asc"},
   {label: "Desc", value: "desc"},
-  {label: "Not", value: null},
-]
+  {label: "Not", value: null}, // No sorting
+];
+
+// User active status filter options
 const isActiveOptions = [
   {label: "Yes", value: true},
   {label: "No", value: false},
-  {label: "Undefined", value: null},
-]
-const roleOptions = ref([])
+  {label: "Undefined", value: null}, // No filter
+];
+
+// User roles (loaded asynchronously)
+const roleOptions = ref([]);
+
+/**
+ * Component mounted lifecycle hook
+ * Loads user roles and initializes form state
+ */
 onMounted(async () => {
   userSettings.setLoading(true);
-  await store.setParams(users.params)
-  userSettings.setLoading(true);
+
+  // Sync search params between stores
+  await store.setParams(users.params);
+
+  // Fetch available user roles from API
   const token = userSettings.getJwt.value;
-  const response = await getUserRoleList(token)
+  const response = await getUserRoleList(token);
+
+  // Handle unauthorized access
   if (response.status === 401) {
-    await logOutUser(response)
+    await logOutUser(response);
     return;
   }
+
   const responseJson = await response.json();
+
+  // Handle API errors
   if (response.status !== 200) {
     userSettings.setJwtKey(response.status === 503 ? token : responseJson.token);
     toast.add({
@@ -48,45 +67,63 @@ onMounted(async () => {
     });
     store.setVisible(false);
     userSettings.setLoading(false);
+    return;
   }
-  roleOptions.value = responseJson.data;
-  if(store.params.role.length === 0){
-    store.params.role = roleOptions.value.map(it=>it.option);
-  }
-  userSettings.setLoading(false);
-})
 
+  // Set available roles
+  roleOptions.value = responseJson.data;
+
+  // Initialize role filter if empty
+  if (store.params.role.length === 0) {
+    store.params.role = roleOptions.value.map(it => it.option);
+  }
+
+  userSettings.setLoading(false);
+});
+
+/**
+ * Closes the search form and resets form data
+ */
 async function onClose() {
   await store.setVisible(false);
-  await store.clearData()
+  await store.clearData();
 }
 
-const emit = defineEmits(["reload"])
+// Define component events
+const emit = defineEmits(["reload"]);
 
+/**
+ * Applies the current search filters
+ * Clears existing user data and reloads with new filters
+ */
 async function onAccept() {
   userSettings.setLoading(true);
-  await users.clearUsers()
-  await users.setFilters(store.params)
+  await users.clearUsers(); // Clear current user list
+  await users.setFilters(store.params); // Apply new filters
   userSettings.setLoading(false);
-  emit("reload");
-  store.setVisible(false);
+  emit("reload"); // Emit reload event to parent
+  store.setVisible(false); // Close the form
 }
-
 </script>
 
 <template>
+  <!-- Search Form Dialog -->
   <Dialog
       modal
       class="md:w-5 sm:w-8 w-11"
       :closable="false"
       :visible="store.visible"
   >
+    <!-- Dialog Header -->
     <template #header>
       <div>
         <span class="text-2xl">Search user form</span>
       </div>
     </template>
+
+    <!-- Form Content -->
     <div class="flex flex-column gap-4">
+      <!-- ID Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">ID</span>
@@ -105,6 +142,8 @@ async function onAccept() {
         />
         <small id="user-id-help">Enter user ID.</small>
       </div>
+
+      <!-- Username Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Username</span>
@@ -123,6 +162,8 @@ async function onAccept() {
         />
         <small id="username-help">Enter user username.</small>
       </div>
+
+      <!-- Email Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Email</span>
@@ -142,6 +183,7 @@ async function onAccept() {
         <small id="username-help">Enter user email.</small>
       </div>
 
+      <!-- First Name Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">First name</span>
@@ -161,6 +203,7 @@ async function onAccept() {
         <small id="first-name-help">Enter user first name.</small>
       </div>
 
+      <!-- Last Name Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Last name</span>
@@ -180,6 +223,7 @@ async function onAccept() {
         <small id="last-name-help">Enter user last name.</small>
       </div>
 
+      <!-- Role Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Role</span>
@@ -199,8 +243,10 @@ async function onAccept() {
             option-value="option"
             option-label="name"
         />
-        <small id="role-help">Enter user role name.</small>
+        <small id="role-help">Select user roles to filter by.</small>
       </div>
+
+      <!-- Active Status Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Is active</span>
@@ -221,8 +267,10 @@ async function onAccept() {
             option-value="value"
             placeholder="Undefined"
         />
-        <small id="is-active-help">Enter user activity.</small>
+        <small id="is-active-help">Filter by active status.</small>
       </div>
+
+      <!-- Creation Date Filter Section -->
       <div class="flex flex-column gap-4">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Create date</span>
@@ -244,7 +292,7 @@ async function onAccept() {
               hourFormat="12"
               showButtonBar
           />
-          <small id="created-from-help">Enter user created from date.</small>
+          <small id="created-from-help">Filter users created after this date.</small>
         </div>
         <div class="flex flex-column gap-2">
           <label for="created-to">Created to</label>
@@ -256,9 +304,11 @@ async function onAccept() {
               hourFormat="12"
               showButtonBar
           />
-          <small id="created-to-help">Enter user created to date.</small>
+          <small id="created-to-help">Filter users created before this date.</small>
         </div>
       </div>
+
+      <!-- Update Date Filter Section -->
       <div class="flex flex-column gap-4">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
           <span class="text-2xl">Update date</span>
@@ -280,7 +330,7 @@ async function onAccept() {
               hourFormat="12"
               showButtonBar
           />
-          <small id="updated-from-help">Enter user updated from date.</small>
+          <small id="updated-from-help">Filter users updated after this date.</small>
         </div>
         <div class="flex flex-column gap-2">
           <label for="updated-to">Updated to</label>
@@ -292,11 +342,12 @@ async function onAccept() {
               hourFormat="12"
               showButtonBar
           />
-          <small id="updated-to-help">Enter user updated to date.</small>
+          <small id="updated-to-help">Filter users updated before this date.</small>
         </div>
       </div>
     </div>
 
+    <!-- Dialog Footer with Action Buttons -->
     <template #footer>
       <div class="w-full flex flex-row justify-content-between align-items-center">
         <Button label="Accept" size="large" @click="onAccept"/>
@@ -307,5 +358,5 @@ async function onAccept() {
 </template>
 
 <style scoped>
-
+/* Component-specific styles */
 </style>
