@@ -265,9 +265,10 @@ export async function getCameraSubscribersList(token, groupId, cameraId, params=
     try {
         const queryParams = new URLSearchParams();
         // Adding filter info to query
-        if (params.page !== undefined) queryParams.append('page', params.page);
-        if (params.count !== undefined) queryParams.append('count', params.count);
-
+        if (params.page) queryParams.append('page', params.page);
+        if (params.count) queryParams.append('count', params.count);
+        if (params.username) queryParams.append('user_name', params.username);
+        if (params.id) queryParams.append('id', params.id);
         if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
         if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
         if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());

@@ -9,9 +9,21 @@ export const subscriptionStore = defineStore("subscriptionStore", {
         cameraId: null,
         groupId: null,
         params: {
-            page: 1,
+            page: 0,
             count: 10,
-            totalPages: 1
+            totalPages: 1,
+            id: "",
+            username: "",
+            createdFrom: null,
+            createdTo: null,
+            updatedFrom: null,
+            updatedTo: null,
+            sortBy: {
+                createdAt: "desc",
+                updatedAt: null,
+                id: null,
+                username: null,
+            }
         }
     }),
     actions: {
@@ -35,8 +47,8 @@ export const subscriptionStore = defineStore("subscriptionStore", {
                 // Process successful response
                 const responseJson = await response.json();
                 if (response.ok) {
-                    await this.setSubscriptions(responseJson.data.items, groupId, cameraId);
-                    await this.setPaginator(
+                    this.setSubscriptions(responseJson.data.items);
+                    this.setPaginator(
                         responseJson.data.page,
                         responseJson.data.itemsPerPage,
                         responseJson.data.pageCount
@@ -52,7 +64,7 @@ export const subscriptionStore = defineStore("subscriptionStore", {
                 return {token, status: 503, message: "Network Error"};
             }
         },
-        async setSubscriptions(subscriptions, groupId, cameraId) {
+        setSubscriptions(subscriptions) {
             this.subscriptions = subscriptions.map(subscription => new SubscriptionDTO(
                 subscription.id,
                 subscription.cameraId,
@@ -74,7 +86,19 @@ export const subscriptionStore = defineStore("subscriptionStore", {
             this.params = {
                 page: 0,
                 count: 10,
-                totalPages: 1
+                totalPages: 1,
+                id: "",
+                username: "",
+                createdFrom: null,
+                createdTo: null,
+                updatedFrom: null,
+                updatedTo: null,
+                sortBy: {
+                    createdAt: "desc",
+                    updatedAt: null,
+                    id: null,
+                    username: null,
+                }
             }
         },
         setPaginator(page, pageSize, totalPages) {

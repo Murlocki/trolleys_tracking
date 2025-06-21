@@ -164,7 +164,7 @@ async function onCameraRowExpand(event) {
   subStore.setCamera(camera);
 }
 
-function onCameraRowCollapse(event) {
+async function onCameraRowCollapse(event) {
   const camera = event.data
   console.log("Строка закрыта:", camera.id);
   subStore.clearSubscriptions()

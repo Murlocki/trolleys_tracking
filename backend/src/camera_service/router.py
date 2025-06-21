@@ -1455,8 +1455,7 @@ async def get_camera_subscribes(
         page: int = Query(0, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         username: str | None = Query(None, description="Filter by username (partial match)"),
-        user_id: int | None = Query(None, description="Filter by user ID (partial match)"),
-        record_id: int | None = Query(None, description="Filter by record ID (partial match)"),
+        id: int | None = Query(None, description="Filter by record ID (partial match)"),
         created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
         created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
         updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
@@ -1511,9 +1510,13 @@ async def get_camera_subscribes(
             extra={
                 "extra_data": {
                     "filters": {
-                        "id": record_id,
+                        "id": id,
                         "username": username[:3] + "..." if username else None,
-                        "user_id": user_id if user_id else None
+                        "created_from": created_from if created_from else None,
+                        "created_to": created_to if created_to else None,
+                        "updated_from": updated_from if updated_from else None,
+                        "updated_to": updated_to if updated_to else None,
+
                     },
                     "sorting": {
                         "by": sort_by,
@@ -1536,9 +1539,8 @@ async def get_camera_subscribes(
         subscriptions, total_count = await crud.search_camera_subscriptions(
             db=db,
             filters={
-                "id": record_id,
+                "id": id,
                 "user_name": username,
-                "user_id": user_id,
                 "created_from": created_from,
                 "created_to": created_to,
                 "updated_from": updated_from,

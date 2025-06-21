@@ -49,16 +49,12 @@ watch(() => store.$state.cameraId, async (newVal) => {
 // Функции для обработки событий ПОДПИСОК
 const columns = [
   {field: "id", header: "ID"},
-  {field: "cameraName", header: "Camera Name"},
   {field: "userName", header: "User name"},
   {field: "createdAt", header: "Created at"},
   {field: "updatedAt", header: "Updated at"},
 ];
 
 function onAddSubscription(event) {
-}
-
-function onEditSubscription(event) {
 }
 
 function onDeleteSubscription(event) {
@@ -114,12 +110,6 @@ async function onPageSubscriptionChange(event) {
               class="p-button-rounded p-button-text p-button-danger"
               @click.stop="onDeleteSubscription(slotProps.data)"
               :aria-label="'Delete ' + slotProps.data.name"
-          />
-          <Button
-              icon="pi pi-edit"
-              class="p-button-rounded p-button-text p-button-danger"
-              @click.stop="onEditSubscription(slotProps.data)"
-              :aria-label="'Edit ' + slotProps.data.name"
           />
         </div>
       </template>

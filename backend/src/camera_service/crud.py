@@ -379,80 +379,93 @@ async def search_camera_subscriptions(
         filters: dict,
         sort_by: list[str] = None,
         sort_order: list[str] = None,
-        page: int = 1,
+        page: int = 0,
         count: int = 10
 ):
-    # Базовый запрос с оптимизированной загрузкой
-    stmt = (
-        select(CameraUserAssociation)
-        .options(
-            joinedload(CameraUserAssociation.camera).load_only(Camera.name, Camera.version),
-            joinedload(CameraUserAssociation.user).load_only(User.username)
+    try:
+        logger.info(f"Searching camera subscriptions for {camera}")
+        logger.info(f"Filters: {filters}")
+        # Base query with optimized loading
+        stmt = (
+            select(CameraUserAssociation)
+            .options(
+                joinedload(CameraUserAssociation.camera).load_only(Camera.name, Camera.version),
+                joinedload(CameraUserAssociation.user).load_only(User.username)
+            )
+            .where(CameraUserAssociation.camera_id == camera.id)
         )
-        .where(CameraUserAssociation.camera_id == camera.id)
-    )
 
-    # Маппинг полей для фильтрации
-    filter_field_map = {
-        "id": CameraUserAssociation.id,
-        "user_id": CameraUserAssociation.user_id,
-        "user_name": User.username,
-        "created_at": CameraUserAssociation.created_at,
-        "updated_at": CameraUserAssociation.updated_at,
-    }
+        # Field mapping for filtering
+        filter_field_map = {
+            "id": CameraUserAssociation.id,
+            "user_name": User.username,
+            "created_at": CameraUserAssociation.created_at,
+            "updated_at": CameraUserAssociation.updated_at,
+        }
 
-    # Применение фильтров
-    conditions = []
-    for field, value in filters.items():
-        if value is None or field not in filter_field_map:
-            continue
+        # Apply filters
+        conditions = []
+        for field, value in filters.items():
+            if value is None or field not in filter_field_map:
+                continue
 
-        column = filter_field_map[field]
-        if field == "user_name":
-            conditions.append(User.username.ilike(f"%{value}%"))
-        elif field.endswith("_from"):
-            conditions.append(column >= value)
-        elif field.endswith("_to"):
-            conditions.append(column <= value)
-        else:
-            conditions.append(column == value)
+            if field == "user_name":
+                conditions.append(User.username.ilike(f"%{value}%"))
+            elif field == "created_from" and value is not None:
+                conditions.append(CameraUserAssociation.created_at >= value)
+            elif field == "created_to" and value is not None:
+                conditions.append(CameraUserAssociation.created_at <= value)
+            elif field == "updated_from" and value is not None:
+                conditions.append(CameraUserAssociation.updated_at >= value)
+            elif field == "updated_to" and value is not None:
+                conditions.append(CameraUserAssociation.updated_at <= value)
 
-    if conditions:
-        stmt = stmt.join(User).where(and_(*conditions))
-    total_count = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
+        if conditions:
+            stmt = stmt.join(User).where(and_(*conditions))
 
-    # Применение сортировки
-    if sort_by:
-        order_clauses = []
-        for i, field in enumerate(sort_by):
-            if field in filter_field_map:
-                order = sort_order[i] if i < len(sort_order) else "asc"
-                order_clauses.append(
-                    desc(filter_field_map[field]) if order.lower() == "desc"
-                    else asc(filter_field_map[field]))
+        # Get total count (without joins to avoid duplicates)
+        count_stmt = select(func.count(CameraUserAssociation.id)).where(
+            CameraUserAssociation.camera_id == camera.id
+        )
+        logger.info(stmt)
+        if conditions:
+            count_stmt = count_stmt.join(User).where(and_(*conditions))
+        total_count = (await db.execute(count_stmt)).scalar_one()
 
-        if order_clauses:
-            stmt = stmt.order_by(*order_clauses)
+        # Apply sorting
+        if sort_by:
+            order_clauses = []
+            for i, field in enumerate(sort_by):
+                if field in filter_field_map:
+                    order = sort_order[i] if i < len(sort_order) else "asc"
+                    order_clauses.append(
+                        desc(filter_field_map[field]) if order.lower() == "desc"
+                        else asc(filter_field_map[field]))
+            if order_clauses:
+                stmt = stmt.order_by(*order_clauses)
 
+        # Apply pagination
+        stmt = stmt.offset(page * count).limit(count)
 
-    result = await db.execute(
-        stmt.offset(page * count).limit(count)
-    )
+        # Execute query and process results
+        result = await db.execute(stmt)
+        items = []
 
-    # Формирование результата
-    items = []
-    for association in result.unique().scalars().all():
-        items.append(CameraUserAssociationAdminDTO(
-            id=association.id,
-            camera_id=association.camera_id,
-            camera_name=association.camera.name,
-            user_id=association.user_id,
-            user_name=association.user.username,
-            created_at=association.created_at.isoformat() if association.created_at else None,
-            updated_at=association.updated_at.isoformat() if association.updated_at else None,
-        ))
+        # Remove .unique() call which might be causing issues
+        for association in result.scalars().all():
+            items.append(CameraUserAssociationAdminDTO(
+                id=association.id,
+                camera_id=association.camera_id,
+                camera_name=association.camera.name,
+                user_id=association.user_id,
+                user_name=association.user.username,
+                created_at=association.created_at.isoformat() if association.created_at else None,
+                updated_at=association.updated_at.isoformat() if association.updated_at else None,
+            ))
 
-    return [items, total_count]
+        return [items, total_count]
+    except Exception as e:
+        logger.error(f"Error getting camera subscription {str(e)}", exc_info=True)
 
 
 async def get_user_subscriptions(db: AsyncSession, user_id: int):
