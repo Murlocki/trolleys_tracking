@@ -57,7 +57,30 @@ const columns = [
 function onAddSubscription(event) {
 }
 
-function onDeleteSubscription(event) {
+async function onDeleteSubscription(event) {
+  settings.setLoading(true);
+  // Отправляем запрос на удаление сессии
+  const response = await store.deleteSubscriptionById(
+      settings.getJwt.value,
+      event.id
+  );
+
+  settings.setJwtKey(response.token);
+
+  // Обработка ошибок
+  if (response.status !== 200) {
+    settings.setLoading(false);
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.message}`,
+      life: 3000
+    });
+    return;
+  }
+
+  // Обновляем список сессий после удаления
+  await setSubscriptions(store.groupId, store.cameraId);
 }
 
 function onSubscriptionSearch(event) {
@@ -72,47 +95,49 @@ async function onPageSubscriptionChange(event) {
 </script>
 
 <template>
-  <div class="flex flex-row justify-content-between mb-3">
-    <Button label="Add" icon="pi pi-plus" @click="onAddSubscription"/>
-    <Button label="Search" severity="contrast" icon="pi pi-search" @click="onSubscriptionSearch"/>
+  <div>
+    <div class="flex flex-row justify-content-between mb-3">
+      <Button label="Add" icon="pi pi-plus" @click="onAddSubscription"/>
+      <Button label="Search" severity="contrast" icon="pi pi-search" @click="onSubscriptionSearch"/>
+    </div>
+    <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
+    <div class="w-full flex justify-content-center" v-else-if="store.subscriptions.length===0">
+      <span class="text-2xl">No subscribers</span>
+    </div>
+    <DataTable
+        v-else
+        :value="store.subscriptions || []"
+        size="small"
+        class="w-full nested-table"
+        :scrollable="true"
+        stripedRows
+        :lazy="true"
+        dataKey="id"
+        :paginator="true"
+        :rows="store.pageSize"
+        :totalRecords="store.totalRecords"
+        @page="onPageSubscriptionChange"
+        :rowsPerPageOptions="itemsPerPageOptions"
+        :showCurrentPageReport="true"
+    >
+      <Column
+          v-for="col in columns"
+          :key="col.field"
+          :field="col.field"
+          :header="col.header"
+      ></Column>
+      <Column header="Actions" style="width: 140px">
+        <template #body="slotProps">
+          <div class="w-full flex justify-content-center align-content-center">
+            <Button
+                icon="pi pi-trash"
+                class="p-button-rounded p-button-text p-button-danger"
+                @click.stop="onDeleteSubscription(slotProps.data)"
+                :aria-label="'Delete ' + slotProps.data.name"
+            />
+          </div>
+        </template>
+      </Column>
+    </DataTable>
   </div>
-  <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
-  <div class="w-full flex justify-content-center" v-else-if="store.subscriptions.length===0">
-    <span class="text-2xl">No subscribers</span>
-  </div>
-  <DataTable
-      v-else
-      :value="store.subscriptions || []"
-      size="small"
-      class="w-full nested-table"
-      :scrollable="true"
-      stripedRows
-      :lazy="true"
-      dataKey="id"
-      :paginator="true"
-      :rows="store.pageSize"
-      :totalRecords="store.totalRecords"
-      @page="onPageSubscriptionChange"
-      :rowsPerPageOptions="itemsPerPageOptions"
-      :showCurrentPageReport="true"
-  >
-    <Column
-        v-for="col in columns"
-        :key="col.field"
-        :field="col.field"
-        :header="col.header"
-    ></Column>
-    <Column header="Actions" style="width: 140px">
-      <template #body="slotProps">
-        <div class="w-full flex justify-content-center align-content-center">
-          <Button
-              icon="pi pi-trash"
-              class="p-button-rounded p-button-text p-button-danger"
-              @click.stop="onDeleteSubscription(slotProps.data)"
-              :aria-label="'Delete ' + slotProps.data.name"
-          />
-        </div>
-      </template>
-    </Column>
-  </DataTable>
 </template>

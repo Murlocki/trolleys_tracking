@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {SubscriptionDTO} from "@/models/SubscriptionDTO.js";
-import {getCameraSubscribersList} from "@/externalRequests/requests.js";
+import {deleteSubscriptionById, getCameraSubscribersList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
 
 export const subscriptionStore = defineStore("subscriptionStore", {
@@ -106,7 +106,42 @@ export const subscriptionStore = defineStore("subscriptionStore", {
             this.params.count = pageSize;
             this.params.totalPages = totalPages;
             console.log(`Page: ${this.page}, Page Size: ${this.pageSize}, Total Pages: ${this.totalPages}`);
-        }
+        },
+        /**
+         * Deletes a user session by ID.
+         * @param {string} token - JWT token.
+         * @param {number} subscriptionId - Subscription ID
+         * @returns {Promise<{token: string, status: number, message?: string}>} - Response data.
+         */
+        async deleteSubscriptionById(token, subscriptionId) {
+            try {
+
+                const response = await deleteSubscriptionById(token, this.$state.groupId, this.$state.cameraId, subscriptionId);
+
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+
+                // Handle network error
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+
+                // Handle success request
+                const responseJson = await response.json();
+                if (response.ok) {
+                    return {token: responseJson.token, status: response.status};
+                }
+
+                // Handle other errors
+                const details = responseJson.detail
+                console.log(responseJson)
+                return {token: details.token, status: response.status, message: details.message};
+            } catch (error) {
+                return {token, status: 503, message: "Network Error"};
+            }
+        },
     },
     getters: {
         /** @returns {number} Total users count in current view */

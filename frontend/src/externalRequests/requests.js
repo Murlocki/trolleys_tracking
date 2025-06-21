@@ -1,5 +1,5 @@
 import {
-    createUser,
+    createUser, deleteCameraSubscription,
     deleteUser,
     deleteUserSessionById,
     deleteUserSessions,
@@ -301,6 +301,42 @@ export async function getCameraSubscribersList(token, groupId, cameraId, params=
             statusText: error.message,
             error: "Server is unreachable. Check your connection."
         };
+    }
+}
+
+/**
+ * Delete subscription by ID
+ * @param {string} token - Auth token
+ * @param {number} groupID - Group ID
+ * @param {number} cameraID - Group ID
+ * @param {number} subscriptionID - Group ID
+ * @returns {Promise<Response>} - Deleted user info
+ */
+export async function deleteSubscriptionById(token, groupID, cameraID, subscriptionID) {
+    try {
+        return await fetch(`${deleteCameraSubscription(groupID, cameraID, subscriptionID)}`, {
+            method: 'DELETE',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
     }
 }
 

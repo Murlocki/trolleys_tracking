@@ -346,7 +346,7 @@ function onCameraStatusUpdate(event) {
               <div>
                 <h3 class="text-2xl mb-3">Subscribers for camera: {{ slotProps.data.name }}</h3>
               </div>
-              <SubscriptionTable />
+              <SubscriptionTable/>
             </template>
           </DataTable>
         </div>
