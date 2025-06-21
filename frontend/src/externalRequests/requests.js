@@ -1,15 +1,20 @@
 import {
     createUser,
     deleteUser,
-    deleteUserSessionById, deleteUserSessions,
+    deleteUserSessionById,
+    deleteUserSessions,
     getCameraGroups,
     getCameraOfGroup,
     getCameraSubscriptions,
-    getMyProfile, getUser, getUserRoles,
+    getMyProfile,
+    getUser,
+    getUserRoles,
     getUserSessions,
     getUsersList,
     login,
-    logout, updateUser, updateUserPassword
+    logout,
+    updateUser,
+    updateUserPassword
 } from "@/externalRequests/endpoints.js";
 import {camelToSnake} from "@/validators/validators.js";
 
@@ -200,9 +205,30 @@ export async function deleteUserSessionList(token, userId) {
 }
 
 
-export async function getCameraGroupsList(token) {
+export async function getCameraGroupsList(token, params = {}) {
     try {
-        const response = await fetch(`${getCameraGroups}`, {
+        const queryParams = new URLSearchParams();
+        // Adding filter info to query
+        if (params.page !== undefined) queryParams.append('page', params.page);
+        if (params.count !== undefined) queryParams.append('count', params.count);
+
+        if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
+        if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
+        if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());
+        if (params.updatedTo) queryParams.append('updated_to', params.updatedTo.toISOString());
+
+        // Adding sorting parameters to query
+        for (const val in params.sortBy) {
+            if (params.sortBy[val] !== null) {
+                queryParams.append('sort_by', camelToSnake(val));
+                queryParams.append('sort_order', params.sortBy[val]);
+            }
+        }
+        console.log(queryParams.toString());
+
+        const url = `${getCameraGroups}?${queryParams.toString()}`;
+
+        return await fetch(`${url}`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -210,9 +236,7 @@ export async function getCameraGroupsList(token) {
                 'Authorization': `Bearer ${token}`,
                 'X-API-Key': apikey
             }
-        });
-
-        return response
+        })
     } catch (error) {
         return {
             ok: false,
@@ -237,16 +261,46 @@ export async function getCamerasList(token, groupId) {
 }
 
 
-export async function getCameraSubscribersList(token, groupId, cameraId) {
-    return await fetch(`${getCameraSubscriptions(groupId, cameraId)}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-API-Key': apikey
+export async function getCameraSubscribersList(token, groupId, cameraId, params={}) {
+    try {
+        const queryParams = new URLSearchParams();
+        // Adding filter info to query
+        if (params.page !== undefined) queryParams.append('page', params.page);
+        if (params.count !== undefined) queryParams.append('count', params.count);
+
+        if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
+        if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
+        if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());
+        if (params.updatedTo) queryParams.append('updated_to', params.updatedTo.toISOString());
+
+        // Adding sorting parameters to query
+        for (const val in params.sortBy) {
+            if (params.sortBy[val] !== null) {
+                queryParams.append('sort_by', camelToSnake(val));
+                queryParams.append('sort_order', params.sortBy[val]);
+            }
         }
-    })
+        console.log(queryParams.toString());
+
+        const url = `${getCameraSubscriptions(groupId, cameraId)}?${queryParams.toString()}`;
+
+        return await fetch(`${url}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+    } catch (error) {
+        return {
+            ok: false,
+            status: 0, // 0 = Network Error
+            statusText: error.message,
+            error: "Server is unreachable. Check your connection."
+        };
+    }
 }
 
 

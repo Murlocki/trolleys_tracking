@@ -88,6 +88,7 @@ onMounted(async () => {
 
 // Handle pagination changes
 async function onPageChange(event) {
+  console.log(event);
   store.setPaginator(event.page, event.rows, event.pageCount);
   expandedRows.value = {};
   await loadUsers();

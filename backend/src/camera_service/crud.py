@@ -47,7 +47,7 @@ async def search_groups(
         filters: dict,
         sort_by: list[str] = None,
         sort_order: list[str] = None,
-        page: int = 1,
+        page: int = 0,
         count: int = 10
 ):
     stmt = select(CameraGroup)
@@ -84,6 +84,7 @@ async def search_groups(
     if conditions:
         stmt = stmt.where(*conditions)
 
+    total_count = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
     # Сортировка
     order_clauses = []
     if sort_by:
@@ -96,8 +97,8 @@ async def search_groups(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt.offset((page - 1) * count).limit(count))
-    return result.scalars().all()
+    result = await db.execute(stmt.offset(page * count).limit(count))
+    return [result.scalars().all(), total_count]
 
 
 async def delete_group(db: AsyncSession, camera_group: CameraGroup):
@@ -418,6 +419,7 @@ async def search_camera_subscriptions(
 
     if conditions:
         stmt = stmt.join(User).where(and_(*conditions))
+    total_count = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
 
     # Применение сортировки
     if sort_by:
@@ -434,7 +436,7 @@ async def search_camera_subscriptions(
 
 
     result = await db.execute(
-        stmt.offset((page - 1) * count).limit(count)
+        stmt.offset(page * count).limit(count)
     )
 
     # Формирование результата
@@ -450,7 +452,7 @@ async def search_camera_subscriptions(
             updated_at=association.updated_at.isoformat() if association.updated_at else None,
         ))
 
-    return items
+    return [items, total_count]
 
 
 async def get_user_subscriptions(db: AsyncSession, user_id: int):

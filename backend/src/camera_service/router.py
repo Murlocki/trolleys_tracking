@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from datetime import datetime
@@ -215,7 +216,7 @@ async def get_camera_group_by_id(camera_group_id: int, db: AsyncSession = Depend
     }
 )
 async def get_camera_groups(
-        page: int = Query(1, description="Page number"),
+        page: int = Query(0, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         name: str | None = Query(None, description="Filter by group name (partial match)"),
         address: str | None = Query(None, description="Filter by address (partial match)"),
@@ -253,7 +254,7 @@ async def get_camera_groups(
     """
     result = AuthResponse(token=token, data={})
     try:
-        if page < 1:
+        if page < 0:
             result.data = {"message": "Invalid page number"}
             logger.error(f"Invalid page number {page}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
@@ -273,6 +274,10 @@ async def get_camera_groups(
                         "name": name if name else None,
                         "description": description if description else None,
                         "address": address if address else None,
+                        "created_from": created_from if created_from else None,
+                        "created_to": created_to if created_to else None,
+                        "updated_from": updated_from if updated_from else None,
+                        "updated_to": updated_to if updated_to else None
                     },
                     "sorting": {
                         "by": sort_by,
@@ -293,7 +298,7 @@ async def get_camera_groups(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
         # Execute the search
-        groups = await crud.search_groups(
+        groups, total_count = await crud.search_groups(
             db=db,
             filters={
                 "id": group_id,
@@ -322,7 +327,7 @@ async def get_camera_groups(
         logger.info([group.to_dict() for group in groups])
         result.data = PaginatorList(
             page=page,
-            page_count=len(groups) // count + 1,
+            page_count=math.ceil(total_count / count),
             items_per_page=count,
             item_count=len(groups),
             items=[CameraGroupAdminDTO(**group.to_dict()) for group in groups]
@@ -1447,7 +1452,7 @@ async def get_camera_subscribe(
 async def get_camera_subscribes(
         group_id: int,
         camera_id: int,
-        page: int = Query(1, description="Page number"),
+        page: int = Query(0, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         username: str | None = Query(None, description="Filter by username (partial match)"),
         user_id: int | None = Query(None, description="Filter by user ID (partial match)"),
@@ -1490,7 +1495,7 @@ async def get_camera_subscribes(
                 detail=result.model_dump()
             )
 
-        if page < 1:
+        if page < 0:
             result.data = {"message": "Invalid page number"}
             logger.error(f"Invalid page number {page}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
@@ -1528,7 +1533,7 @@ async def get_camera_subscribes(
             result.data = {"message": "Sort_by and Sort_order must have same length"}
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
-        subscriptions = await crud.search_camera_subscriptions(
+        subscriptions, total_count = await crud.search_camera_subscriptions(
             db=db,
             filters={
                 "id": record_id,
@@ -1557,7 +1562,7 @@ async def get_camera_subscribes(
         logger.info(subscriptions)
         result.data = PaginatorList(
             page=page,
-            page_count=len(subscriptions) // count + 1,
+            page_count=math.ceil(total_count / count),
             items_per_page=count,
             item_count=len(subscriptions),
             items=subscriptions

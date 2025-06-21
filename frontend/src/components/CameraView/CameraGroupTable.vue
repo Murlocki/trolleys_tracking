@@ -6,16 +6,18 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import Image from "primevue/image";
 
-import {groupsStore} from "@/store/groupStore.js";
+import {groupsStore} from "@/store/cameras/groupStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import {
   getCameraGroupsList,
   getCamerasList,
   getCameraSubscribersList,
 } from "@/externalRequests/requests.js";
-import {camerasStore} from "@/store/cameraStore.js";
-import {subscriptionStore} from "@/store/subscriptionStore.js";
+import {camerasStore} from "@/store/cameras/cameraStore.js";
+import {subscriptionStore} from "@/store/cameras/subscriptionStore.js";
 import {imagePath, testCart} from "@assets";
+import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
+import SubscriptionTable from "@/components/CameraView/SubscriptionTable.vue";
 
 const store = groupsStore();
 const userSettings = userSettingsStore();
@@ -45,6 +47,11 @@ async function onRowClick(event) {
     await onRowExpand(event);
   }
 }
+
+const error = ref(false)
+const errorTitle = ref("ERROR")
+const errorCode = ref(0)
+
 
 onMounted(async () => {
   const token = userSettings.getJwt.value;
@@ -154,28 +161,7 @@ const subStore = subscriptionStore()
 
 async function onCameraRowExpand(event) {
   const camera = event.data;
-  console.log(subStore.subscriptions);
-  const token = userSettings.getJwt.value;
-  userSettings.setLoading(true);
-
-  const response = await getCameraSubscribersList(token, camera.groupId, camera.id);
-  if (response.status === 200) {
-    const response_json = await response.json();
-    console.log(response_json)
-    userSettings.setJwtKey(response_json.token);
-    if (response_json.data.items.length > 0) {
-      await subStore.setSubscriptions(response_json.data.items);
-      await subStore.setPaginator(
-          response_json.data.page,
-          response_json.data.itemsPerPage,
-          response_json.data.pageCount
-      )
-    }
-  } else {
-    console.error("Failed to fetch sessions:", response.statusText);
-  }
-
-  userSettings.setLoading(false);
+  subStore.setCamera(camera);
 }
 
 function onCameraRowCollapse(event) {
@@ -231,16 +217,18 @@ function onCameraStatusUpdate(event) {
       <Button label="Search" severity="contrast" icon="pi pi-search" @input="onGroupSearch"/>
     </div>
 
+    <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <DataTable
-        :value="store.$state.groups"
+        v-else
+        :value="store.groups"
         tableStyle="min-width: 50rem"
         size="large"
         :scrollable="true"
         stripedRows
         class="w-full mt-4"
         :paginator="true"
-        :rows="store.$state.pageSize"
-        :totalRecords="store.pageSize * store.totalPages"
+        :rows="store.pageSize"
+        :totalRecords="store.totalRecords"
         :lazy="true"
         @page="onPageChange"
         :rowsPerPageOptions="itemsPerPageOptions"
@@ -358,57 +346,7 @@ function onCameraStatusUpdate(event) {
               <div>
                 <h3 class="text-2xl mb-3">Subscribers for camera: {{ slotProps.data.name }}</h3>
               </div>
-              <div class="w-full flex justify-content-center" v-if="subStore.subscriptions.length===0">
-                <span class="text-2xl">No subscribers</span>
-              </div>
-              <div v-else>
-                <div class="flex flex-row justify-content-between mb-3">
-                  <Button label="Add" icon="pi pi-plus" @click="onAddSubscription"/>
-                  <Button label="Search" severity="contrast" icon="pi pi-search" @click="onSubscriptionSearch"/>
-                </div>
-                <DataTable
-                    :value="subStore.subscriptions || []"
-                    size="small"
-                    class="w-full nested-table"
-                    :scrollable="true"
-                    stripedRows
-                    :lazy="true"
-                    dataKey="id"
-                    @row-click="onCameraRowClick"
-
-                    :paginator="true"
-                    :rows="subStore.pageSize"
-                    :totalRecords="subStore.pageSize * subStore.totalPages"
-                    @page="onPageSubscriptionChange"
-                    :rowsPerPageOptions="itemsPerPageOptions"
-                    :showCurrentPageReport="true"
-                >
-                  <Column
-                      v-for="col in columnsSubscriptions"
-                      :key="col.field"
-                      :field="col.field"
-                      :header="col.header"
-                  ></Column>
-                  <Column header="Actions" style="width: 140px">
-                    <template #body="slotProps">
-                      <div class="w-full flex justify-content-center align-content-center">
-                        <Button
-                            icon="pi pi-trash"
-                            class="p-button-rounded p-button-text p-button-danger"
-                            @click.stop="onDeleteSubscription(slotProps.data)"
-                            :aria-label="'Delete ' + slotProps.data.name"
-                        />
-                        <Button
-                            icon="pi pi-edit"
-                            class="p-button-rounded p-button-text p-button-danger"
-                            @click.stop="onEditSubscription(slotProps.data)"
-                            :aria-label="'Edit ' + slotProps.data.name"
-                        />
-                      </div>
-                    </template>
-                  </Column>
-                </DataTable>
-              </div>
+              <SubscriptionTable />
             </template>
           </DataTable>
         </div>
