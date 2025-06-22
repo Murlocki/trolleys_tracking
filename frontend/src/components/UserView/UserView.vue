@@ -108,7 +108,8 @@ async function onPageChange(event) {
 async function onDeleteUser(event) {
   userSettings.setLoading(true);
   const userId = event.id;
-  const response = await store.deleteUserRecordById(userId);
+  const token = userSettings.getJwt.value;
+  const response = await store.deleteUserRecordById(token, userId);
   userSettings.setJwtKey(response.token);
   if (response.status !== 200) {
     toast.add({

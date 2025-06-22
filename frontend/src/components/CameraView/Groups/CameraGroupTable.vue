@@ -19,6 +19,8 @@ import GroupTableSearchForm from "@/components/CameraView/Groups/GroupTableSearc
 import {groupSearchFormStore} from "@/store/groups/groupSearchFormStore.js";
 import GroupFormView from "@/components/CameraView/Groups/GroupFormView.vue";
 import {groupFormStore} from "@/store/groups/groupFormStore.js";
+import {useToast} from "primevue/usetoast";
+import Toast from "primevue/toast";
 
 const store = groupsStore();
 const userSettings = userSettingsStore();
@@ -35,6 +37,9 @@ const columns = [
 const itemsPerPageOptions = [1, 10, 15, 20, 30];
 
 const expandedRows = ref({}); // для управления раскрытием строк
+
+// Toast notification setup
+const toast = useToast();
 
 async function onRowClick(event) {
   const row = event.data;
@@ -110,7 +115,23 @@ function onGroupSearch(event) {
   groupSearchForm.setVisible(true)
 }
 
-function onDeleteGroup(event) {
+async function onDeleteGroup(event) {
+  userSettings.setLoading(true);
+  const groupId = event.id;
+  const token = userSettings.getJwt.value;
+  const response = await store.deleteGroupById(token, groupId);
+  userSettings.setJwtKey(response.token);
+  if (response.status !== 200) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.message}`,
+      life: 3000
+    });
+    userSettings.setLoading(false);
+    return;
+  }
+  await loadGroups();
 }
 
 
@@ -119,6 +140,7 @@ function onDeleteGroup(event) {
 
 <template>
   <div class="w-full">
+    <Toast/>
     <!-- Панель сверху: кнопка Добавить + поиск -->
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddGroup"/>

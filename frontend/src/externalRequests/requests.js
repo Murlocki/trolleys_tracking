@@ -2,7 +2,7 @@ import {
     createCameraGroup,
     createCameraOfGroup,
     createCameraSubscription,
-    createUser, deleteCameraOfGroup,
+    createUser, deleteCameraGroup, deleteCameraOfGroup,
     deleteCameraSubscription,
     deleteUser,
     deleteUserSessionById,
@@ -341,6 +341,40 @@ export async function updateGroup(token, groupId, group) {
                 'X-API-Key': apikey
             },
             body: JSON.stringify(group)
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Delete group
+ * @param {string} token - Auth token
+ * @param {number} groupId - Group ID
+ * @returns {Promise<Response>} - Deleted group info
+ */
+export async function deleteGroup(token, groupId) {
+    try {
+        return await fetch(`${deleteCameraGroup(groupId)}`, {
+            method: 'DELETE',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
         })
 
     } catch (error) {
@@ -736,7 +770,7 @@ export async function getUsers(token, params = {}) {
  */
 export async function deleteUserById(token, userId) {
     try {
-        return await fetch(`${deleteUser(token, userId)}`, {
+        return await fetch(`${deleteUser(userId)}`, {
             method: 'DELETE',
             mode: 'cors',
             headers: {

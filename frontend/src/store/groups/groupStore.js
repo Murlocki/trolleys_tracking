@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {getCameraGroupsList, getUsers} from "@/externalRequests/requests.js";
+import {deleteGroup, getCameraGroupsList, getUsers} from "@/externalRequests/requests.js";
 import {CameraGroupDTO} from "@/models/CameraGroupDTO.js";
 import {logOutUser} from "@/validators/validators.js";
 
@@ -87,7 +87,46 @@ export const groupsStore = defineStore("groupsStore", {
                 return { token, status: 503, message: "Network Error" };
             }
         },
+        /**
+         * Deletes Group by ID
+         * @param {string} token - Authentication token
+         * @param {number} groupId - Group ID to delete
+         * @returns {Promise<{token: string, status: number, message?: string}>}
+         */
+        async deleteGroupById(token, groupId) {
+            try {
+                const response = await deleteGroup(token, groupId);
 
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+
+                // Handle network error
+                if (response.status === 503) {
+                    return { token: token, status: 503, message: "Network Error" };
+                }
+
+                const responseJson = await response.json();
+
+                // Process successful response
+                if (response.ok) {
+                    return { token: responseJson.token, status: response.status };
+                }
+
+                // Handle API errors
+                const details = responseJson.detail;
+                return {
+                    token: details.token,
+                    status: response.status,
+                    message: details.data.message
+                };
+
+            } catch (error) {
+                console.error("User deletion error:", error);
+                return { token, status: 503, message: "Network Error" };
+            }
+        },
 
         async setGroups(groups) {
             this.groups = groups.map(group => new CameraGroupDTO(

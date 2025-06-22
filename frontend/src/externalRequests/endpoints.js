@@ -20,8 +20,7 @@ export const getCameraGroups = `${cameraUrl}/camera/crud/groups`;
 export const getCameraGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}`;
 export const createCameraGroup = `${cameraUrl}/camera/crud/groups`;
 export const updateCameraGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}`;
-
-
+export const deleteCameraGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}`;
 export const getCameraOfGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras`;
 export const getCameraOfGroupById = (groupId, cameraId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}`;
 export const createCameraOfGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras`;
