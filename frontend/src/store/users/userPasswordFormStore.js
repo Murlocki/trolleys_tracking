@@ -1,18 +1,7 @@
 import {defineStore} from "pinia";
-import {
-    createUserRecord,
-    deleteUserById,
-    getUserById,
-    getUsers,
-    updateUserPasswordRecord,
-    updateUserRecord
-} from "@/externalRequests/requests.js";
-import {UserAdminDTO} from "@/models/user/UserAdminDTO.js";
-import {SessionDTO} from "@/models/SessionDTO.js";
+import {getUserById, updateUserPasswordRecord} from "@/externalRequests/requests.js";
 import {logOutUser, unprocessableEntity} from "@/validators/validators.js";
-import {UserData, UserDTO} from "@/models/user/UserDTO.js";
-import {UserCreate} from "@/models/user/UserCreate.js";
-import {UserUpdate} from "@/models/user/UserUpdate.js";
+import {UserDTO} from "@/models/user/UserDTO.js";
 import {PasswordDTO} from "@/models/user/PasswordDTO.js";
 
 /**

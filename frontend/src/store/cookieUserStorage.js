@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import {defineStore} from 'pinia'
+import {computed} from 'vue'
 import Cookies from 'js-cookie'
-import { userSettingsStore } from './userSettingsStore'
+
 export const cookieUserStorage = defineStore('cookieUserStorage', () => {
     function setJwtKey(newKey) {
         Cookies.set('wewatch-token', newKey)

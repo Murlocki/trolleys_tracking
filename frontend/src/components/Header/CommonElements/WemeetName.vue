@@ -9,9 +9,10 @@
 <script setup>
 import Image from 'primevue/image'
 import Button from 'primevue/button'
-import { textLogoPath, textLogoPathWhite } from '@assets/index.js'
-import { userSettingsStore } from '@/store/userSettingsStore.js'
-import { computed } from 'vue'
+import {textLogoPath, textLogoPathWhite} from '@assets/index.js'
+import {userSettingsStore} from '@/store/userSettingsStore.js'
+import {computed} from 'vue'
+import {useRouter} from 'vue-router'
 
 const store = userSettingsStore()
 const themeIcon = computed(() => {
@@ -19,7 +20,6 @@ const themeIcon = computed(() => {
     return textLogoPathWhite
 })
 
-import { useRouter } from 'vue-router'
 const router = useRouter()
 const navigateToLink = () => {
     router.push('/')

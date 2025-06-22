@@ -30,7 +30,9 @@
 import RightPanelTitlesVue from './RightPanelTitles.vue'
 import RightPanelLogForm from './RightPanelLogForm.vue'
 import Button from 'primevue/button'
-import { ref } from 'vue'
+import {computed, ref} from 'vue'
+import {userSettingsStore} from '@/store/userSettingsStore.js'
+import {loginButtonIcon, loginButtonIconBlack, signUpButtonBlack, signUpButtonWhite} from '@assets/index.js'
 
 const loginFormOpen = ref(false)
 const createdForm = ref(false)
@@ -50,10 +52,6 @@ function openLoginForm() {
 }
 
 
-import { userSettingsStore } from '@/store/userSettingsStore.js'
-import { computed } from 'vue'
-import { loginButtonIcon, loginButtonIconBlack } from '@assets/index.js'
-import { signUpButtonBlack, signUpButtonWhite } from '@assets/index.js'
 const store = userSettingsStore()
 const themeIcon = computed(() => {
     if (!store.$state.darkModeOn) return loginButtonIconBlack

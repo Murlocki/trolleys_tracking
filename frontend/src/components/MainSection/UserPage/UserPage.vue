@@ -31,11 +31,9 @@
 
 <script setup>
 import Profile from '../../SettingsPage/Profile.vue'
-import { onBeforeMount, ref } from 'vue'
+import {onBeforeMount, ref} from 'vue'
 import UserGetService from '../../../services/UserGetService'
-import { onBeforeRouteUpdate } from 'vue-router'
-import { useRoute } from 'vue-router'
-import Inplace from 'primevue/inplace'
+import {onBeforeRouteUpdate, useRoute} from 'vue-router'
 
 const userInfo = ref({})
 const userGet = new UserGetService()

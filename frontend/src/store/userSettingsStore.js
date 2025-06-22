@@ -1,7 +1,8 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { localUserStorage } from './localUserStorage'
-import { cookieUserStorage } from './cookieUserStorage'
+import {defineStore} from 'pinia'
+import {computed, ref} from 'vue'
+import {localUserStorage} from './localUserStorage'
+import {cookieUserStorage} from './cookieUserStorage'
+
 export const userSettingsStore = defineStore('userSettingsStore', () => {
     const darkModeOn = ref(false)
     function setVisualMode() {

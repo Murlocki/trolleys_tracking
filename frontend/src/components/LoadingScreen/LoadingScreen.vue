@@ -1,7 +1,7 @@
 <script setup>
 import BlockUI from 'primevue/blockui'
 import ProgressSpinner from 'primevue/progressspinner'
-import { userSettingsStore} from "@/store/userSettingsStore.js";
+import {userSettingsStore} from "@/store/userSettingsStore.js";
 
 const store = userSettingsStore()
 console.log(store.isLoading)

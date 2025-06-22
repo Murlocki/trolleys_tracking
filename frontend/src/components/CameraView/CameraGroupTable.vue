@@ -1,5 +1,5 @@
 <script setup>
-import {ref, onMounted} from "vue";
+import {onMounted, ref} from "vue";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
@@ -8,14 +8,10 @@ import Image from "primevue/image";
 
 import {groupsStore} from "@/store/cameras/groupStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {
-  getCameraGroupsList,
-  getCamerasList,
-  getCameraSubscribersList,
-} from "@/externalRequests/requests.js";
+import {getCameraGroupsList, getCamerasList,} from "@/externalRequests/requests.js";
 import {camerasStore} from "@/store/cameras/cameraStore.js";
 import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
-import {imagePath, testCart} from "@assets";
+import {testCart} from "@assets";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SubscriptionTable from "@/components/CameraView/Subscriptions/SubscriptionTable.vue";
 

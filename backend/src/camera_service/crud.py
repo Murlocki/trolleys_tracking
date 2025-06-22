@@ -406,11 +406,10 @@ async def search_camera_subscriptions(
         # Apply filters
         conditions = []
         for field, value in filters.items():
-            if value is None or field not in filter_field_map:
-                continue
-
-            if field == "user_name":
+            if field == "user_name" and value is not None:
                 conditions.append(User.username.ilike(f"%{value}%"))
+            elif field == "id" and value is not None:
+                conditions.append(CameraUserAssociation.id.cast(String).ilike(f"%{value}%"))
             elif field == "created_from" and value is not None:
                 conditions.append(CameraUserAssociation.created_at >= value)
             elif field == "created_to" and value is not None:

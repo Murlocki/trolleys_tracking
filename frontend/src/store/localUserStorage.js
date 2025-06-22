@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
-import { userSettingsStore } from './userSettingsStore'
+import {defineStore} from 'pinia'
+import {computed} from 'vue'
+
 export const localUserStorage = defineStore('localUserStorage', () => {
     function setJwtKey(newKey) {
         localStorage.setItem("wewatch-token", newKey)

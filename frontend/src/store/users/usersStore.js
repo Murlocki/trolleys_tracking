@@ -1,7 +1,7 @@
-import { defineStore } from "pinia";
-import { deleteUserById, getUsers } from "@/externalRequests/requests.js";
-import { UserAdminDTO } from "@/models/user/UserAdminDTO.js";
-import { logOutUser } from "@/validators/validators.js";
+import {defineStore} from "pinia";
+import {deleteUserById, getUsers} from "@/externalRequests/requests.js";
+import {UserAdminDTO} from "@/models/user/UserAdminDTO.js";
+import {logOutUser} from "@/validators/validators.js";
 
 /**
  * Pinia store for managing users data

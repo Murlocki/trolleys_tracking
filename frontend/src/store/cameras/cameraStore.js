@@ -1,8 +1,4 @@
 import {defineStore} from "pinia";
-import {getUsers} from "@/externalRequests/requests.js";
-import {UserAdminDTO} from "@/models/user/UserAdminDTO.js";
-import {SessionDTO} from "@/models/SessionDTO.js";
-import {CameraGroupDTO} from "@/models/CameraGroupDTO.js";
 import {CameraDTO} from "@/models/CameraDTO.js";
 
 export const  camerasStore = defineStore("camerasStore", {

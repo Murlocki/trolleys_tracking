@@ -108,6 +108,13 @@ export const subscriptionStore = defineStore("subscriptionStore", {
             console.log(`Page: ${this.page}, Page Size: ${this.pageSize}, Total Pages: ${this.totalPages}`);
         },
         /**
+         * Updates search filters
+         * @param {Object} filters - New filter values
+         */
+        setFilters(filters) {
+            this.params = { ...this.params, ...filters };
+        },
+        /**
          * Deletes a user session by ID.
          * @param {string} token - JWT token.
          * @param {number} subscriptionId - Subscription ID

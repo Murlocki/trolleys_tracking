@@ -1,5 +1,5 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import {createApp} from 'vue'
+import {createPinia} from 'pinia'
 import PrimeVue from 'primevue/config'
 
 import './style.css'
@@ -9,7 +9,6 @@ import 'primeflex/primeflex.css'
 import 'primeicons/primeicons.css'
 
 import Tooltip from 'primevue/tooltip'
-import Cookies from "js-cookie";
 import ToastService from "primevue/toastservice";
 
 const pinia = createPinia()

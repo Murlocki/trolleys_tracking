@@ -16,10 +16,11 @@
 <script setup>
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import { userSettingsStore } from '@/store/userSettingsStore.js'
-import { computed } from 'vue'
-import { localUserStorage } from '@/store/localUserStorage.js'
-import { cookieUserStorage } from '@/store/cookieUserStorage.js'
+import {userSettingsStore} from '@/store/userSettingsStore.js'
+import {computed} from 'vue'
+import {localUserStorage} from '@/store/localUserStorage.js'
+import {cookieUserStorage} from '@/store/cookieUserStorage.js'
+
 const store = userSettingsStore()
 
 const localStore = localUserStorage()

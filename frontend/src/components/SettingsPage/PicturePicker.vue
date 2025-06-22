@@ -38,7 +38,7 @@
 import FileUpload from 'primevue/fileupload'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
-import { ref } from 'vue'
+import {ref} from 'vue'
 
 
 const props = defineProps({

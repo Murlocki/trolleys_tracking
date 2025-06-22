@@ -19,7 +19,7 @@
 <script setup>
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
-import { helpPageText } from '@assets/index.js'
+import {helpPageText} from '@assets/index.js'
 </script>
 
 <style></style>

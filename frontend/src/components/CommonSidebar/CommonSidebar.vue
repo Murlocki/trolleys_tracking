@@ -56,7 +56,7 @@
 import Sidebar from 'primevue/sidebar'
 import Image from 'primevue/image'
 import Button from 'primevue/button'
-import {defineModel, computed, onMounted} from 'vue'
+import {computed, defineModel, onMounted} from 'vue'
 import {userSettingsStore} from '@/store/userSettingsStore.js'
 import {imagePath, wemeetLogoWhite} from '@assets/index.js'
 import Accordion from 'primevue/accordion'

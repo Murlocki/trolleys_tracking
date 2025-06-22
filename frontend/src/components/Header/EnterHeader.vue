@@ -26,7 +26,7 @@ import WatchLogo from './CommonElements/WatchLogo.vue'
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
 import CommonSidebar from '../CommonSidebar/CommonSidebar.vue'
-import { ref } from 'vue'
+import {ref} from 'vue'
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 
 const store = userSettingsStore();

@@ -8,6 +8,8 @@ import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import {subscriptionFormStore} from "@/store/subscriptions/subscriptionFormStore.js";
 import SubscriptionFormView from "@/components/CameraView/Subscriptions/SubscriptionFormView.vue";
+import {subscriptionSearchFormStore} from "@/store/subscriptions/subscriptionSearchFormStore.js";
+import SubscriptionTableSearchForm from "@/components/CameraView/Subscriptions/SubscriptionTableSearchForm.vue";
 
 const settings = userSettingsStore();
 
@@ -89,11 +91,12 @@ async function onDeleteSubscription(event) {
   await setSubscriptions(store.groupId, store.cameraId);
 }
 
+const subSearchForm = subscriptionSearchFormStore();
 function onSubscriptionSearch(event) {
+  subSearchForm.setVisible(true);
 }
 
 async function onPageSubscriptionChange(event) {
-  console.log(event);
   store.setPaginator(event.page, event.rows, event.pageCount);
   await setSubscriptions(store.groupId, store.cameraId);
 }
@@ -104,6 +107,10 @@ async function onPageSubscriptionChange(event) {
   <div>
     <SubscriptionFormView
         v-if="subscriptionForm.visible"
+        @reload="setSubscriptions(store.groupId, store.cameraId)"
+    />
+    <SubscriptionTableSearchForm
+        v-if="subSearchForm.visible"
         @reload="setSubscriptions(store.groupId, store.cameraId)"
     />
     <div class="flex flex-row justify-content-between mb-3">

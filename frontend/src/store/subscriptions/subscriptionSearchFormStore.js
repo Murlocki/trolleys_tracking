@@ -4,7 +4,7 @@ import {defineStore} from "pinia";
  * Pinia store for managing user search forms
  * @module stores/users/userSearchFormStore
  */
-export const userSearchFormStore = defineStore("userSearchFormStore", {
+export const subscriptionSearchFormStore = defineStore("subscriptionSearchFormStore", {
     state: () => ({
         /** @type {boolean} visible - Controls visibility of a search form */
         visible: false,

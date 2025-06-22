@@ -1,8 +1,9 @@
 <script setup>
-import {error, errorWhite, imagePath, wemeetLogoWhite} from "@/assets/index.js"
+import {error, errorWhite} from "@/assets/index.js"
 import Image from "primevue/image";
 import {computed} from "vue";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
+
 const props = defineProps({
   errorText: String,
   errorCode: Number

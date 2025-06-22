@@ -50,8 +50,9 @@
 
 <script setup>
 import Galleria from 'primevue/galleria'
-import { ref } from 'vue'
+import {ref} from 'vue'
 import imagesData from '@assets/sliderImages/sliderImages.json'
+
 const images = ref([])
 images.value = imagesData
 </script>

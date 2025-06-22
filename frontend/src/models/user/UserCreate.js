@@ -1,4 +1,4 @@
-import { UserData } from "@/models/user/UserDTO.js";
+import {UserData} from "@/models/user/UserDTO.js";
 
 /**
  * Data Transfer Object (DTO) for user creation

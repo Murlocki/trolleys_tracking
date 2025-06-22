@@ -43,12 +43,13 @@
 
 <script setup>
 import PicturePicker from './PicturePicker.vue'
-import { userSettingsStore } from '../../store/userSettingsStore'
-import { computed, ref } from 'vue'
+import {userSettingsStore} from '../../store/userSettingsStore'
+import {computed, ref} from 'vue'
 import InputEditor from './InputEditor.vue'
 import PersonalValidator from './PersonalValidator.vue'
 import BirthdatePicker from './BirthdatePicker.vue'
 import Profile from './Profile.vue'
+
 const store = userSettingsStore()
 
 const back = computed(() => {

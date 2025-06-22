@@ -1,16 +1,6 @@
 import {defineStore} from "pinia";
-import {
-    createSubscription,
-    createUserRecord,
-    getUserById,
-    getUsers,
-    updateUserRecord
-} from "@/externalRequests/requests.js";
+import {createSubscription, getUsers} from "@/externalRequests/requests.js";
 import {logOutUser, unprocessableEntity} from "@/validators/validators.js";
-import {UserData, UserDTO} from "@/models/user/UserDTO.js";
-import {UserCreate} from "@/models/user/UserCreate.js";
-import {UserUpdate} from "@/models/user/UserUpdate.js";
-import {SubscriptionDTO} from "@/models/subscription/SubscriptionDTO.js";
 import {SubscriptionCreateDTO} from "@/models/subscription/SubscriptionCreateDTO.js";
 
 /**

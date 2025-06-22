@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import {ref} from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 

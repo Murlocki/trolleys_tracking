@@ -82,8 +82,15 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Checkbox from 'primevue/checkbox';
-import { userSettingsStore } from '@/store/userSettingsStore.js'
-import { ref } from 'vue'
+import {userSettingsStore} from '@/store/userSettingsStore.js'
+//Настройка иконок
+import {computed, ref} from 'vue'
+import {backArrowBlack, backArrowWhite, loginArrowBlack, loginArrowWhite} from '@assets/index.js'
+import {loginUser} from "@/externalRequests/requests.js";
+import router from "@/router/index.js";
+/* Валидация формы */
+import {UAParser} from 'ua-parser-js';
+import {AuthForm} from "@/models/user/AuthForm.js"
 
 const formOpen = defineModel('loginFormOpen')
 const formCreation = defineModel('createdForm')
@@ -128,12 +135,6 @@ const loginFormEnters = [
     },
 ]
 
-//Настройка иконок
-import { computed } from 'vue'
-import { loginArrowWhite, loginArrowBlack } from '@assets/index.js'
-import { backArrowBlack, backArrowWhite } from '@assets/index.js'
-import {loginUser} from "@/externalRequests/requests.js";
-import router from "@/router/index.js";
 const themeIcon = computed(() => {
     if (!store.$state.darkModeOn) return loginArrowBlack
     return loginArrowWhite
@@ -144,10 +145,6 @@ const themeBackIcon = computed(() => {
     return backArrowWhite
 })
 
-
-/* Валидация формы */
-import {UAParser} from 'ua-parser-js';
-import {AuthForm} from "@/models/user/AuthForm.js"
 
 const error = ref("");
 const loading = ref(false);

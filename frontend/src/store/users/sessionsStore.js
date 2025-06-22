@@ -1,9 +1,7 @@
 import {defineStore} from "pinia";
-import {deleteUserSession, getUsers, getUserSessionList} from "@/externalRequests/requests.js";
-import {UserAdminDTO} from "@/models/user/UserAdminDTO.js";
+import {deleteUserSession, getUserSessionList} from "@/externalRequests/requests.js";
 import {SessionDTO} from "@/models/SessionDTO.js";
-import router from "@/router/index.js";
-import {logOutUser, processUnauthorized} from "@/validators/validators.js";
+import {logOutUser} from "@/validators/validators.js";
 
 export const sessionsStore = defineStore("sessionsStore", {
     state: () => ({
