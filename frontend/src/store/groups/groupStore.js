@@ -1,6 +1,7 @@
 import {defineStore} from "pinia";
-import {getUsers} from "@/externalRequests/requests.js";
+import {getCameraGroupsList, getUsers} from "@/externalRequests/requests.js";
 import {CameraGroupDTO} from "@/models/CameraGroupDTO.js";
+import {logOutUser} from "@/validators/validators.js";
 
 export const groupsStore = defineStore("groupsStore", {
     state: () => ({
@@ -8,7 +9,36 @@ export const groupsStore = defineStore("groupsStore", {
         params: {
             page: 0,
             count: 10,
-            totalPages: 1
+            totalPages: 1,
+            // Filter fields
+            /** @type {string} id - Group ID filter */
+            id: "",
+            /** @type {string} address - Group address filter */
+            address: "",
+            /** @type {string} name - Group name filter */
+            name: "",
+            /** @type {string} description - Group description filter */
+            description: "",
+            /** @type {Date || null} createdFrom - User createdFrom filter */
+            createdFrom: null,
+            /** @type {Date || null} createdTo - User createdTo filter */
+            createdTo: null,
+            /** @type {Date || null} updatedFrom - User updatedFrom filter */
+            updatedFrom: null,
+            /** @type {Date || null} updatedTo - User updatedTo filter */
+            updatedTo: null,
+
+            // Sorting configuration
+            sortBy: {
+                id: null,
+                name: null,
+                address: null,
+                description: null,
+                /** @type {string || null} createdAt - User created at sort */
+                createdAt: "desc", // Default sort
+                /** @type {string || null} updatedAt - User updatedAt sort */
+                updatedAt: null,
+            }
         }
     }),
     actions: {
@@ -17,9 +47,9 @@ export const groupsStore = defineStore("groupsStore", {
          * @param {string} token - Authentication token
          * @returns {Promise<{token: string, status: number, message?: string}>}
          */
-        async fetchUsers(token) {
+        async fetchGroups(token) {
             try {
-                const response = await getUsers(token, this.params);
+                const response = await getCameraGroupsList(token, this.params);
 
                 // Handle unauthorized access
                 if (response.status === 401) {
@@ -35,7 +65,7 @@ export const groupsStore = defineStore("groupsStore", {
 
                 // Process successful response
                 if (response.ok) {
-                    await this.setUsers(responseJson.data.items);
+                    await this.setGroups(responseJson.data.items);
                     await this.setPaginator(
                         responseJson.data.page,
                         responseJson.data.itemsPerPage,
@@ -74,9 +104,27 @@ export const groupsStore = defineStore("groupsStore", {
         clearGroups() {
             this.groups = [];
             this.params = {
-                page: 1,
+                page: 0,
                 count: 10,
-                totalPages: 1
+                totalPages: 1,
+                id: "",
+                address: "",
+                name: "",
+                description: "",
+                createdFrom: null,
+                createdTo: null,
+                updatedFrom: null,
+                updatedTo: null,
+
+                // Sorting configuration
+                sortBy: {
+                    id: null,
+                    name: null,
+                    address: null,
+                    description: null,
+                    createdAt: "desc", // Default sort
+                    updatedAt: null,
+                }
             }
         },
         setPaginator(page, pageSize, totalPages) {

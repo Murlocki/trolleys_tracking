@@ -6,7 +6,7 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import Image from "primevue/image";
 
-import {groupsStore} from "@/store/cameras/groupStore.js";
+import {groupsStore} from "@/store/groups/groupStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import {getCameraGroupsList, getCamerasList,} from "@/externalRequests/requests.js";
 import {camerasStore} from "@/store/cameras/cameraStore.js";
@@ -28,7 +28,7 @@ const columns = [
   {field: "updatedAt", header: "Updated at"},
 ];
 
-const itemsPerPageOptions = [10, 15, 20, 30];
+const itemsPerPageOptions = [1, 10, 15, 20, 30];
 
 const expandedRows = ref({}); // для управления раскрытием строк
 
@@ -49,29 +49,31 @@ const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
 
-
-onMounted(async () => {
-  const token = userSettings.getJwt.value;
+async function loadGroups(){
+  expandedRows.value = {};
+  const token = userSettings.getJwt.token;
   userSettings.setLoading(true);
-
-  const response = await getCameraGroupsList(token);
-  if (response.status === 200) {
-    const response_json = await response.json();
-    userSettings.setJwtKey(response_json.token);
-    await store.setGroups(response_json.data.items);
-    await store.setPaginator(
-        response_json.data.page,
-        response_json.data.itemsPerPage,
-        response_json.data.pageCount
-    );
-  } else {
-    console.log("Failed to fetch groups:", response.statusText);
+  const response = await store.fetchGroups(token);
+  userSettings.setJwtKey(response.token);
+  if (response.status !== 200) {
+    error.value = true;
+    errorCode.value = response.status;
+    errorTitle.value = response.message;
   }
   userSettings.setLoading(false);
+}
+
+onMounted(async () => {
+  await loadGroups();
 });
 
-function onPageChange(event) {
-  store.setPaginator(event.first / event.rows, event.rows, event.pageCount);
+async function onPageChange(event) {
+  console.log(event);
+  store.setPaginator(
+      event.page,
+      event.rows,
+      event.pageCount);
+  await loadGroups();
 }
 
 const camStore = camerasStore()

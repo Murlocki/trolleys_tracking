@@ -31,6 +31,7 @@ const errorCode = ref(0)
 
 const cameraExpandedRows = ref({});
 async function setCameras(groupId) {
+  cameraExpandedRows.value = {};
   error.value = false;
   errorCode.value = 0;
   errorTitle.value = "";

@@ -75,6 +75,7 @@ const errorCode = ref(0)
 
 // Load users data
 async function loadUsers() {
+  expandedRows.value = {};
   const token = userSettings.getJwt.value;
   userSettings.setLoading(true);
   const response = await store.fetchUsers(token);
@@ -97,7 +98,7 @@ async function onPageChange(event) {
   console.log(event);
   store.setPaginator(
       event.page,
-      event.row,
+      event.rows,
       event.pageCount);
   expandedRows.value = {};
   await loadUsers();
