@@ -105,6 +105,7 @@ async function onAccept() {
 
   // Update token and reload parent component
   userSettings.setJwtKey(response.token);
+  userForm.clearData()
   userSettings.setLoading(false);
   emit("reload");
   await userForm.setVisible(false);

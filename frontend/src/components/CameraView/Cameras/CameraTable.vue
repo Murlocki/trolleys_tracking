@@ -17,6 +17,8 @@ import Dialog from "primevue/dialog";
 import Image from "primevue/image";
 import CameraTableSearchForm from "@/components/CameraView/Cameras/CameraTableSearchForm.vue";
 import {cameraSearchFormStore} from "@/store/cameras/cameraSearchFormStore.js";
+import {cameraFormStore} from "@/store/cameras/cameraFormStore.js";
+import CameraFormView from "@/components/CameraView/Cameras/CameraFormView.vue";
 
 const settings = userSettingsStore();
 
@@ -67,10 +69,11 @@ const columns = [
   {field: "updatedAt", header: "Updated at"},
 ];
 
-const subscriptionForm = subscriptionFormStore();
+const cameraForm = cameraFormStore();
 function onAddCamera(event) {
-  subscriptionForm.setVisible(true);
-  subscriptionForm.setCamera(store.cameraId, store.groupId)
+  cameraForm.setVisible(true);
+  cameraForm.setCreatingCamera(true);
+  cameraForm.setCameraId(store.groupId, null)
 }
 
 async function onDeleteCamera(event) {
@@ -105,7 +108,9 @@ function onCameraSearch(event) {
 }
 
 function onEditCamera(event) {
-
+   cameraForm.setCreatingCamera(false);
+   cameraForm.setVisible(true);
+   cameraForm.setCameraId(store.groupId, event.id);
 }
 
 async function onPageCameraChange(event) {
@@ -161,8 +166,8 @@ function onCameraStatusUpdate(event) {
 
 <template>
   <div>
-    <SubscriptionFormView
-        v-if="subscriptionForm.visible"
+    <CameraFormView
+        v-if="cameraForm.visible"
         @reload="setCameras(store.groupId)"
     />
     <CameraTableSearchForm
