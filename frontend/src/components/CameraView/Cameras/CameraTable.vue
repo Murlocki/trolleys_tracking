@@ -15,6 +15,8 @@ import {camerasStore} from "@/store/cameras/cameraStore.js";
 import {testCart} from "@assets";
 import Dialog from "primevue/dialog";
 import Image from "primevue/image";
+import CameraTableSearchForm from "@/components/CameraView/Cameras/CameraTableSearchForm.vue";
+import {cameraSearchFormStore} from "@/store/cameras/cameraSearchFormStore.js";
 
 const settings = userSettingsStore();
 
@@ -97,9 +99,9 @@ async function onDeleteCamera(event) {
   await setCameras(store.groupId);
 }
 
-const subSearchForm = subscriptionSearchFormStore();
+const cameraSearchForm = cameraSearchFormStore();
 function onCameraSearch(event) {
-  subSearchForm.setVisible(true);
+  cameraSearchForm.setVisible(true);
 }
 
 function onEditCamera(event) {
@@ -163,13 +165,13 @@ function onCameraStatusUpdate(event) {
         v-if="subscriptionForm.visible"
         @reload="setCameras(store.groupId)"
     />
-    <SubscriptionTableSearchForm
-        v-if="subSearchForm.visible"
+    <CameraTableSearchForm
+        v-if="cameraSearchForm.visible"
         @reload="setCameras(store.groupId)"
     />
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddCamera"/>
-      <Button label="Search" severity="contrast" icon="pi pi-search" @input="onCameraSearch"/>
+      <Button label="Search" severity="contrast" icon="pi pi-search" @click="onCameraSearch"/>
     </div>
     <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <div class="w-full flex justify-content-center" v-else-if="store.cameras.length===0">
