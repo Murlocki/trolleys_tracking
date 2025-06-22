@@ -17,6 +17,11 @@ export const getUserSessions = `${sessionUrl}/session/crud`;
 export const deleteUserSessions = (userId) => `${sessionUrl}/session/crud/${userId}`;
 export const deleteUserSessionById = (userId, sessionId) => `${sessionUrl}/session/crud/${userId}/${sessionId}`;
 export const getCameraGroups = `${cameraUrl}/camera/crud/groups`;
+export const getCameraGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}`;
+export const createCameraGroup = `${cameraUrl}/camera/crud/groups`;
+export const updateCameraGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}`;
+
+
 export const getCameraOfGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras`;
 export const getCameraOfGroupById = (groupId, cameraId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}`;
 export const createCameraOfGroup = (groupId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras`;

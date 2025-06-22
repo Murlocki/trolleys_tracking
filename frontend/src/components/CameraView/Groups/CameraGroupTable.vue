@@ -17,6 +17,8 @@ import SubscriptionTable from "@/components/CameraView/Subscriptions/Subscriptio
 import CameraTable from "@/components/CameraView/Cameras/CameraTable.vue";
 import GroupTableSearchForm from "@/components/CameraView/Groups/GroupTableSearchForm.vue";
 import {groupSearchFormStore} from "@/store/groups/groupSearchFormStore.js";
+import GroupFormView from "@/components/CameraView/Groups/GroupFormView.vue";
+import {groupFormStore} from "@/store/groups/groupFormStore.js";
 
 const store = groupsStore();
 const userSettings = userSettingsStore();
@@ -91,10 +93,17 @@ function onRowCollapse(event) {
   camStore.clearCameras()
 }
 
-function onAddGroup(event) {
+const groupForm = groupFormStore()
+async function onAddGroup(event) {
+  groupForm.setCreatingGroup(true);
+  groupForm.setVisible(true);
+
 }
 
 function onEditGroup(event) {
+  groupForm.setGroupId(event.id);
+  groupForm.setCreatingGroup(false);
+  groupForm.setVisible(true);
 }
 const groupSearchForm = groupSearchFormStore()
 function onGroupSearch(event) {
@@ -116,6 +125,7 @@ function onDeleteGroup(event) {
       <Button label="Search" severity="contrast" icon="pi pi-search" @click="onGroupSearch"/>
     </div>
     <GroupTableSearchForm v-if="groupSearchForm.visible" @reload="loadGroups"/>
+    <GroupFormView v-if="groupForm.visible" @reload="loadGroups"/>
     <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <DataTable
         v-else
