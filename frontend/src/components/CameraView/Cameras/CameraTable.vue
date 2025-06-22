@@ -25,7 +25,7 @@ const error = ref(false)
 const errorTitle = ref("ERROR")
 const errorCode = ref(0)
 
-
+const cameraExpandedRows = ref({});
 async function setCameras(groupId) {
   error.value = false;
   errorCode.value = 0;
@@ -74,7 +74,7 @@ function onAddCamera(event) {
 async function onDeleteCamera(event) {
   settings.setLoading(true);
   // Отправляем запрос на удаление сессии
-  const response = await store.deleteSubscriptionById(
+  const response = await store.deleteCameraById(
       settings.getJwt.value,
       event.id
   );
@@ -93,7 +93,7 @@ async function onDeleteCamera(event) {
     return;
   }
 
-  // Обновляем список сессий после удаления
+  // Обновляем список камер после удаления
   await setCameras(store.groupId);
 }
 
@@ -110,8 +110,6 @@ async function onPageCameraChange(event) {
   store.setPaginator(event.page, event.rows, event.pageCount);
   await setCameras(store.groupId);
 }
-
-const cameraExpandedRows = ref({});
 
 
 async function onCameraRowClick(event) {

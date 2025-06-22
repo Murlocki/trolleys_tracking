@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {CameraDTO} from "@/models/CameraDTO.js";
-import {getCamerasList, getCameraSubscribersList} from "@/externalRequests/requests.js";
+import {deleteCameraById, getCamerasList, getCameraSubscribersList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
 
 export const camerasStore = defineStore("camerasStore", {
@@ -124,7 +124,43 @@ export const camerasStore = defineStore("camerasStore", {
          */
         setFilters(filters) {
             this.params = {...this.params, ...filters};
-        }
+        },
+
+        /**
+         * Deletes a user session by ID.
+         * @param {string} token - JWT token.
+         * @param {number} cameraId - Camera ID
+         * @returns {Promise<{token: string, status: number, message?: string}>} - Response data.
+         */
+        async deleteCameraById(token, cameraId) {
+            try {
+
+                const response = await deleteCameraById(token, this.$state.groupId, cameraId);
+
+                // Handle unauthorized access
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+
+                // Handle network error
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+
+                // Handle success request
+                const responseJson = await response.json();
+                if (response.ok) {
+                    return {token: responseJson.token, status: response.status};
+                }
+
+                // Handle other errors
+                const details = responseJson.detail
+                console.log(responseJson)
+                return {token: details.token, status: response.status, message: details.message};
+            } catch (error) {
+                return {token, status: 503, message: "Network Error"};
+            }
+        },
     },
     getters: {
         /** @returns {number} Total cameras count in current view */

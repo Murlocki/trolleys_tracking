@@ -1,6 +1,6 @@
 import {
     createCameraSubscription,
-    createUser,
+    createUser, deleteCameraOfGroup,
     deleteCameraSubscription,
     deleteUser,
     deleteUserSessionById,
@@ -293,6 +293,43 @@ export async function getCamerasList(token, groupId, params={}) {
         };
     }
 }
+
+
+/**
+ * Delete camera by ID
+ * @param {string} token - Auth token
+ * @param {number} groupID - Group ID
+ * @param {number} cameraID - Camera ID
+ * @returns {Promise<Response>} - Deleted user info
+ */
+export async function deleteCameraById(token, groupID, cameraID) {
+    try {
+        return await fetch(`${deleteCameraOfGroup(groupID, cameraID)}`, {
+            method: 'DELETE',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
 
 
 export async function getCameraSubscribersList(token, groupId, cameraId, params={}) {
