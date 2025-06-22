@@ -4,7 +4,7 @@ import {defineStore} from "pinia";
  * Pinia store for managing camera search forms
  * @module stores/cameras/cameraSearchFormStore
  */
-export const cameraSearchFormStore = defineStore("cameraSearchFormStore", {
+export const groupSearchFormStore = defineStore("groupSearchFormStore", {
     state: () => ({
         /** @type {boolean} visible - Controls visibility of a search form */
         visible: false,

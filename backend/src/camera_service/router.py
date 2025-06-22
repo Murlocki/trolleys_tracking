@@ -221,7 +221,7 @@ async def get_camera_groups(
         name: str | None = Query(None, description="Filter by group name (partial match)"),
         address: str | None = Query(None, description="Filter by address (partial match)"),
         description: str | None = Query(None, description="Filter by description (partial match)"),
-        group_id: int | None = Query(None, description="Filter by group id(partial match)"),
+        id: int | None = Query(None, description="Filter by group id(partial match)"),
         created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
         created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
         updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
@@ -270,7 +270,7 @@ async def get_camera_groups(
             extra={
                 "extra_data": {
                     "filters": {
-                        "id": group_id,
+                        "id": id,
                         "name": name if name else None,
                         "description": description if description else None,
                         "address": address if address else None,
@@ -301,7 +301,7 @@ async def get_camera_groups(
         groups, total_count = await crud.search_groups(
             db=db,
             filters={
-                "id": group_id,
+                "id": id,
                 "name": name,
                 "description": description,
                 "address": address,

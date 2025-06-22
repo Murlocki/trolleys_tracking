@@ -132,6 +132,13 @@ export const groupsStore = defineStore("groupsStore", {
             this.params.count = pageSize;
             this.params.totalPages = totalPages;
             console.log(`Page: ${this.page}, Page Size: ${this.pageSize}, Total Pages: ${this.totalPages}`);
+        },
+        /**
+         * Updates search filters
+         * @param {Object} filters - New filter values
+         */
+        setFilters(filters) {
+            this.params = { ...this.params, ...filters };
         }
     },
     getters: {

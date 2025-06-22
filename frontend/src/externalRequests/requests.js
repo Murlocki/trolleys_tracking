@@ -214,7 +214,10 @@ export async function getCameraGroupsList(token, params = {}) {
         // Adding filter info to query
         if (params.page !== undefined) queryParams.append('page', params.page);
         if (params.count !== undefined) queryParams.append('count', params.count);
-
+        if (params.id) queryParams.append('id', params.id);
+        if (params.name) queryParams.append('name', params.name);
+        if (params.address) queryParams.append('address', params.address);
+        if (params.description) queryParams.append('description', params.description);
         if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
         if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
         if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());

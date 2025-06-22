@@ -7,14 +7,14 @@ import Dropdown from "primevue/dropdown";
 import MultiSelect from "primevue/multiselect";
 import {defineEmits, onMounted, ref} from "vue";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {userSearchFormStore} from "@/store/users/userSearchFormStore.js";
-import {usersStore} from "@/store/users/usersStore.js";
 import {getUserRoleList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
+import {groupSearchFormStore} from "@/store/groups/groupSearchFormStore.js";
+import {groupsStore} from "@/store/groups/groupStore.js";
 
 // Initialize Pinia stores
-const store = userSearchFormStore(); // Search form state and actions
-const users = usersStore(); // Users data store
+const store = groupSearchFormStore(); // Search form state and actions
+const groups = groupsStore(); // Users data store
 const userSettings = userSettingsStore(); // User settings store
 
 // Sort direction options for dropdowns
@@ -24,15 +24,7 @@ const sortOptions = [
   {label: "Not", value: null}, // No sorting
 ];
 
-// User active status filter options
-const isActiveOptions = [
-  {label: "Yes", value: true},
-  {label: "No", value: false},
-  {label: "Undefined", value: null}, // No filter
-];
 
-// User roles (loaded asynchronously)
-const roleOptions = ref([]);
 
 /**
  * Component mounted lifecycle hook
@@ -40,44 +32,7 @@ const roleOptions = ref([]);
  */
 onMounted(async () => {
   userSettings.setLoading(true);
-
-  // Sync search params between stores
-  await store.setParams(users.params);
-
-  // Fetch available user roles from API
-  const token = userSettings.getJwt.value;
-  const response = await getUserRoleList(token);
-
-  // Handle unauthorized access
-  if (response.status === 401) {
-    await logOutUser(response);
-    return;
-  }
-
-  const responseJson = await response.json();
-
-  // Handle API errors
-  if (response.status !== 200) {
-    userSettings.setJwtKey(response.status === 503 ? token : responseJson.token);
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: `${response.status}: ${response.status === 503 ? responseJson.message : responseJson.detail.data.message}`,
-      life: 3000
-    });
-    store.setVisible(false);
-    userSettings.setLoading(false);
-    return;
-  }
-
-  // Set available roles
-  roleOptions.value = responseJson.data;
-
-  // Initialize role filter if empty
-  if (store.params.role.length === 0) {
-    store.params.role = roleOptions.value.map(it => it.option);
-  }
-
+  await store.setParams(groups.params);
   userSettings.setLoading(false);
 });
 
@@ -94,15 +49,15 @@ const emit = defineEmits(["reload"]);
 
 /**
  * Applies the current search filters
- * Clears existing user data and reloads with new filters
+ * Clears existing group data and reloads with new filters
  */
 async function onAccept() {
   userSettings.setLoading(true);
-  await users.clearUsers(); // Clear current user list
-  await users.setFilters(store.params); // Apply new filters
+  await groups.clearGroups();
+  await groups.setFilters(store.params);
   userSettings.setLoading(false);
-  emit("reload"); // Emit reload event to parent
-  store.setVisible(false); // Close the form
+  emit("reload");
+  store.setVisible(false);
 }
 </script>
 
@@ -140,134 +95,64 @@ async function onAccept() {
             aria-describedby="user-id-help"
             v-model="store.params.id"
         />
-        <small id="user-id-help">Enter user ID.</small>
+        <small id="user-id-help">Enter group ID.</small>
       </div>
 
-      <!-- Username Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
-          <span class="text-2xl">Username</span>
+          <span class="text-2xl">Name</span>
           <Dropdown
               :options="sortOptions"
               option-label="label"
               option-value="value"
-              v-model="store.params.sortBy.username"
+              v-model="store.params.sortBy.name"
               placeholder="Not"
           />
         </div>
         <InputText
-            id="username"
-            aria-describedby="username-help"
-            v-model="store.params.username"
+            id="name"
+            aria-describedby="name-help"
+            v-model="store.params.name"
         />
-        <small id="username-help">Enter user username.</small>
+        <small id="name-help">Enter group name.</small>
       </div>
 
-      <!-- Email Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
-          <span class="text-2xl">Email</span>
+          <span class="text-2xl">Description</span>
           <Dropdown
               :options="sortOptions"
               option-label="label"
               option-value="value"
-              v-model="store.params.sortBy.email"
+              v-model="store.params.sortBy.description"
               placeholder="Not"
           />
         </div>
         <InputText
-            id="email"
-            aria-describedby="username-help"
-            v-model="store.params.email"
+            id="description"
+            aria-describedby="description-help"
+            v-model="store.params.description"
         />
-        <small id="username-help">Enter user email.</small>
+        <small id="description-help">Enter group description.</small>
       </div>
 
-      <!-- First Name Filter Section -->
       <div class="flex flex-column gap-2">
         <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
-          <span class="text-2xl">First name</span>
+          <span class="text-2xl">Address</span>
           <Dropdown
               :options="sortOptions"
               option-label="label"
               option-value="value"
-              v-model="store.params.sortBy.firstName"
+              v-model="store.params.sortBy.addressLink"
               placeholder="Not"
           />
         </div>
         <InputText
-            id="first-name"
-            aria-describedby="first-name-help"
-            v-model="store.params.firstName"
+            id="address"
+            aria-describedby="address-help"
+            v-model="store.params.addressLink"
         />
-        <small id="first-name-help">Enter user first name.</small>
-      </div>
-
-      <!-- Last Name Filter Section -->
-      <div class="flex flex-column gap-2">
-        <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
-          <span class="text-2xl">Last name</span>
-          <Dropdown
-              :options="sortOptions"
-              option-label="label"
-              option-value="value"
-              v-model="store.params.sortBy.lastName"
-              placeholder="Not"
-          />
-        </div>
-        <InputText
-            id="last-name"
-            aria-describedby="last-name-help"
-            v-model="store.params.lastName"
-        />
-        <small id="last-name-help">Enter user last name.</small>
-      </div>
-
-      <!-- Role Filter Section -->
-      <div class="flex flex-column gap-2">
-        <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
-          <span class="text-2xl">Role</span>
-          <Dropdown
-              :options="sortOptions"
-              option-label="label"
-              option-value="value"
-              v-model="store.params.sortBy.role"
-              placeholder="Not"
-          />
-        </div>
-        <MultiSelect
-            id="role"
-            aria-describedby="role-help"
-            :options="roleOptions"
-            v-model="store.params.role"
-            option-value="option"
-            option-label="name"
-        />
-        <small id="role-help">Select user roles to filter by.</small>
-      </div>
-
-      <!-- Active Status Filter Section -->
-      <div class="flex flex-column gap-2">
-        <div class="flex flex-row justify-content-between align-items-center border-bottom-1 border-primary">
-          <span class="text-2xl">Is active</span>
-          <Dropdown
-              :options="sortOptions"
-              option-label="label"
-              option-value="value"
-              v-model="store.params.sortBy.isActive"
-              placeholder="Not"
-          />
-        </div>
-        <Dropdown
-            id="is-active"
-            aria-describedby="is-active-help"
-            v-model="store.params.isActive"
-            :options="isActiveOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="Undefined"
-        />
-        <small id="is-active-help">Filter by active status.</small>
+        <small id="address-help">Enter group address.</small>
       </div>
 
       <!-- Creation Date Filter Section -->

@@ -15,6 +15,8 @@ import {testCart} from "@assets";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SubscriptionTable from "@/components/CameraView/Subscriptions/SubscriptionTable.vue";
 import CameraTable from "@/components/CameraView/Cameras/CameraTable.vue";
+import GroupTableSearchForm from "@/components/CameraView/Groups/GroupTableSearchForm.vue";
+import {groupSearchFormStore} from "@/store/groups/groupSearchFormStore.js";
 
 const store = groupsStore();
 const userSettings = userSettingsStore();
@@ -94,8 +96,9 @@ function onAddGroup(event) {
 
 function onEditGroup(event) {
 }
-
+const groupSearchForm = groupSearchFormStore()
 function onGroupSearch(event) {
+  groupSearchForm.setVisible(true)
 }
 
 function onDeleteGroup(event) {
@@ -110,9 +113,9 @@ function onDeleteGroup(event) {
     <!-- Панель сверху: кнопка Добавить + поиск -->
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddGroup"/>
-      <Button label="Search" severity="contrast" icon="pi pi-search" @input="onGroupSearch"/>
+      <Button label="Search" severity="contrast" icon="pi pi-search" @click="onGroupSearch"/>
     </div>
-
+    <GroupTableSearchForm v-if="groupSearchForm.visible" @reload="loadGroups"/>
     <ErrorPage v-if="error" :error-code="errorCode" :error-text="errorTitle"/>
     <DataTable
         v-else
