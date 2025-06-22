@@ -250,16 +250,48 @@ export async function getCameraGroupsList(token, params = {}) {
 }
 
 
-export async function getCamerasList(token, groupId) {
-    return await fetch(`${getCameraOfGroup(groupId)}`, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-API-Key': apikey
+export async function getCamerasList(token, groupId, params={}) {
+    try {
+        const queryParams = new URLSearchParams();
+        // Adding filter info to query
+        if (params.page) queryParams.append('page', params.page);
+        if (params.count) queryParams.append('count', params.count);
+        if (params.id) queryParams.append('id', params.id);
+        if (params.name) queryParams.append('name', params.name);
+        if (params.addressLink) queryParams.append('address_link', params.addressLink);
+        if (params.createdFrom) queryParams.append('created_from', params.createdFrom.toISOString());
+        if (params.createdTo) queryParams.append('created_to', params.createdTo.toISOString());
+        if (params.updatedFrom) queryParams.append('updated_from', params.updatedFrom.toISOString());
+        if (params.updatedTo) queryParams.append('updated_to', params.updatedTo.toISOString());
+
+        // Adding sorting parameters to query
+        for (const val in params.sortBy) {
+            if (params.sortBy[val] !== null) {
+                queryParams.append('sort_by', camelToSnake(val));
+                queryParams.append('sort_order', params.sortBy[val]);
+            }
         }
-    })
+        console.log(queryParams.toString());
+
+        const url = `${getCameraOfGroup(groupId)}?${queryParams.toString()}`;
+
+        return await fetch(`${url}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+    } catch (error) {
+        return {
+            ok: false,
+            status: 0, // 0 = Network Error
+            statusText: error.message,
+            error: "Server is unreachable. Check your connection."
+        };
+    }
 }
 
 

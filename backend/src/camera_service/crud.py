@@ -206,7 +206,7 @@ async def search_cameras(
         filters: dict,
         sort_by: list[str] = None,
         sort_order: list[str] = None,
-        page: int = 1,
+        page: int = 0,
         count: int = 10
 ):
     stmt = select(Camera)
@@ -244,6 +244,7 @@ async def search_cameras(
 
     if conditions:
         stmt = stmt.where(*conditions)
+    total_count = (await db.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
 
     # Сортировка
     order_clauses = []
@@ -257,8 +258,9 @@ async def search_cameras(
     if order_clauses:
         stmt = stmt.order_by(*order_clauses)
 
-    result = await db.execute(stmt.offset((page - 1) * count).limit(count))
-    return result.scalars().all()
+    stmt = stmt.offset(page * count).limit(count) if count > 0 else stmt
+    result = await db.execute(stmt)
+    return [result.scalars().all(), total_count]
 
 
 async def update_camera(db: AsyncSession, camera_id: int, camera: CameraSchema):

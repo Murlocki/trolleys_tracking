@@ -832,11 +832,11 @@ async def get_camera(
 )
 async def get_cameras(
         group_id: int = Path(..., description="ID of camera group"),
-        page: int = Query(1, description="Page number"),
+        page: int = Query(0, description="Page number"),
         count: int = Query(10, description="Number of users to return"),
         name: str | None = Query(None, description="Filter by name (partial match)"),
         address_link: str | None = Query(None, description="Filter by address_link (partial match)"),
-        camera_id: int | None = Query(None, description="Filter by camera id (partial match)"),
+        id: int | None = Query(None, description="Filter by camera id (partial match)"),
         created_from: datetime | None = Query(None, description="Filter by creation date (from)"),
         created_to: datetime | None = Query(None, description="Filter by creation date (to)"),
         updated_from: datetime | None = Query(None, description="Filter by update date (from)"),
@@ -869,7 +869,7 @@ async def get_cameras(
     """
     result = AuthResponse(token=token, data={})
     try:
-        if page < 1:
+        if page < 0:
             result.data = {"message": "Invalid page number"}
             logger.error(f"Invalid page number {page}")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
@@ -891,7 +891,7 @@ async def get_cameras(
             extra={
                 "extra_data": {
                     "filters": {
-                        "id": camera_id,
+                        "id": id,
                         "name": name if name else None,
                         "address_link": address_link if address_link else None,
                         "created_from": created_from if created_from else None,
@@ -919,10 +919,10 @@ async def get_cameras(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.model_dump())
 
         # Execute the search
-        cameras = await crud.search_cameras(
+        cameras, total_count = await crud.search_cameras(
             db=db,
             filters={
-                "id": camera_id,
+                "id": id,
                 "name": name,
                 "address_link": address_link,
                 "group_id": group_id,
@@ -946,10 +946,14 @@ async def get_cameras(
             }
         )
         logger.info([camera.to_dict() for camera in cameras])
+        if count == 0:
+            page_count = 1
+        else:
+            page_count = math.ceil(total_count / count)
         result.data = PaginatorList(
             page=page,
-            page_count=len(cameras) // count + 1,
-            items_per_page=count,
+            page_count=page_count,
+            items_per_page=len(cameras) if count == 0 else count,
             item_count=len(cameras),
             items=[CameraAdminDTO(**camera.to_dict()) for camera in cameras]
         )
