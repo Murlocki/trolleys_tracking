@@ -3,6 +3,7 @@ const userUrl = import.meta.env.VITE_USER_URL;
 const sessionUrl = import.meta.env.VITE_SESSION_URL;
 const cameraUrl = import.meta.env.VITE_CAMERA_URL;
 const cameraReaderUrl = import.meta.env.VITE_CAMERA_READER_URL;
+const cameraImages = import.meta.env.VITE_CAMERA_IMAGE_URL;
 // EndPoints
 export const login = `${authUrl}/auth/login`;
 export const logout = `${authUrl}/auth/logout`;
@@ -33,3 +34,4 @@ export const stopCameraOfGroup = (groupId, cameraId) => `${cameraReaderUrl}/came
 export const getCameraSubscriptions = (groupId, cameraId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}/subscribers`;
 export const deleteCameraSubscription = (groupId, cameraId, subscriptionId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}/subscribers/${subscriptionId}`;
 export const createCameraSubscription = (groupId, cameraId) => `${cameraUrl}/camera/crud/groups/${groupId}/cameras/${cameraId}/subscribers`;
+export const connectSocket = `${cameraImages}`

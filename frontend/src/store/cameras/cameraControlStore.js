@@ -1,13 +1,6 @@
 import {defineStore} from "pinia";
-import {
-    createCamera,
-    getCameraById,
-    getCameraStatusById, startCameraById,
-    stopCameraById,
-    updateCameraById
-} from "@/externalRequests/requests.js";
-import {logOutUser, unprocessableEntity} from "@/validators/validators.js";
-import {CameraDTO} from "@/models/CameraDTO.js";
+import {getCameraStatusById, startCameraById, stopCameraById} from "@/externalRequests/requests.js";
+import {logOutUser} from "@/validators/validators.js";
 
 /**
  * @module stores/cameras/cameraControlStore
@@ -21,6 +14,7 @@ export const cameraControlStore = defineStore("cameraControlStore", {
         classificationRegime: null,
         trackingRegime: null,
         visible: false,
+        watchVisible: false,
     }),
     actions: {
         /**
@@ -34,6 +28,9 @@ export const cameraControlStore = defineStore("cameraControlStore", {
         },
         setVisible(visible) {
             this.$state.visible = visible;
+        },
+        setWatchVisible(visible) {
+            this.$state.watchVisible = visible;
         },
         /**
          * Fetches camera status by ID

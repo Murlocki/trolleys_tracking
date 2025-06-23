@@ -62,6 +62,7 @@ async def connect(sid, environ, auth=None):
         # 2. Получаем токены
         authorization = headers.get("authorization", "")
         api_key = headers.get("x-api-key")
+        camera_id = int(headers.get("x-cam"))
         logger.info(f"Auth headers: {headers}")
         class FakeCredentials:
             credentials = authorization.removeprefix("Bearer ")
@@ -76,24 +77,13 @@ async def connect(sid, environ, auth=None):
         user_id = decoded_token.get("sub")
         logger.info(f"User ID: {user_id}")
 
-        # 6. Находим подписки пользователя
-        response = await find_user_subscriptions(user_id=user_id, api_key=settings.api_key)
-        if error := verify_response(response):
-            logger.error(f"Error while finding user_id:{user_id} subscriptions: {error}")
-            await sio.disconnect(sid)
-
-        subs = response.json()
-        subs = subs['data']
-        for sub in subs:
-            camera_id = sub.get('camera_id') or sub.get('cameraId')
-            await sio.enter_room(sid, camera_id)
-            logger.info(f"Subscribed: user_id: {user_id} on camera_id:{camera_id}")
+        await sio.enter_room(sid, camera_id)
+        logger.info(f"Subscribed: user_id: {user_id} on camera_id:{camera_id}")
 
         logger.info(f"[CONNECT] Authorized sid={sid}")
         return True
     except Exception as e:
         logger.warning(f"[CONNECT] Authorization failed: {str(e)}")
-        raise e
         return False
 
 

@@ -1,13 +1,10 @@
 <script setup>
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import InputText from "primevue/inputtext";
-import {defineEmits, onMounted} from "vue";
 import Dropdown from "primevue/dropdown";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import Toast from "primevue/toast";
 import {useToast} from "primevue/usetoast";
-import {cameraFormStore} from "@/store/cameras/cameraFormStore.js";
 import {cameraControlStore} from "@/store/cameras/cameraControlStore.js";
 
 // Store instances initialization

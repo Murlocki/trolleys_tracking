@@ -8,9 +8,6 @@ import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
 import SubscriptionTable from "@/components/CameraView/Subscriptions/SubscriptionTable.vue";
 import {camerasStore} from "@/store/cameras/cameraStore.js";
-import {testCart} from "@assets";
-import Dialog from "primevue/dialog";
-import Image from "primevue/image";
 import Toast from "primevue/toast";
 import CameraTableSearchForm from "@/components/CameraView/Cameras/CameraTableSearchForm.vue";
 import {cameraSearchFormStore} from "@/store/cameras/cameraSearchFormStore.js";
@@ -18,9 +15,8 @@ import {cameraFormStore} from "@/store/cameras/cameraFormStore.js";
 import CameraFormView from "@/components/CameraView/Cameras/CameraFormView.vue";
 import {cameraControlStore} from "@/store/cameras/cameraControlStore.js";
 import {useToast} from "primevue/usetoast";
-import {getCameraStatusById, stopCameraById} from "@/externalRequests/requests.js";
-import {logOutUser} from "@/validators/validators.js";
 import CameraStartForm from "@/components/CameraView/Cameras/CameraStartForm.vue";
+import CameraWatchView from "@/components/CameraView/Cameras/CameraWatchView.vue";
 
 
 const settings = userSettingsStore();
@@ -190,10 +186,9 @@ async function onCameraStop(event) {
   await setCameras(store.groupId);
 }
 
-const openCameraWatch = ref(false);
 
 function onCameraWatch(event) {
-  openCameraWatch.value = true;
+  cameraControl.setWatchVisible(true);
 }
 
 async function updateCameraStatus() {
@@ -305,43 +300,6 @@ async function onCameraStatusUpdate(event) {
         <SubscriptionTable/>
       </template>
     </DataTable>
-    <Dialog
-        v-model:visible="openCameraWatch"
-        modal
-        :show-header="false"
-        class="md:w-8 sm:w-10 w-full pt-4 px-4"
-        contentStyle="padding: 0"
-    >
-      <!-- Контейнер с изображением, занимает всё доступное пространство -->
-      <div class="flex-grow-1 w-full h-full relative overflow-hidden">
-        <div class="w-full">
-          <span class="text-3xl font-bold">Camera watching</span>
-        </div>
-        <Image :src="testCart" :preview="false" containerClass="w-full h-full">
-          <template #image>
-            <img
-                :src="testCart"
-                alt="Camera View"
-                class="w-full h-full"
-                style="object-fit: fill;"
-            />
-          </template>
-        </Image>
-      </div>
-
-      <template #footer>
-        <div
-            class="flex flex-row justify-content-center align-items-center p-2 border-top-1 surface-border bg-white w-full"
-            style="min-height: auto;">
-          <Button
-              label="Close"
-              icon="pi pi-times"
-              class="p-button-danger py-4 px-6"
-              @click="openCameraWatch = false"
-
-          />
-        </div>
-      </template>
-    </Dialog>
+    <CameraWatchView v-if="cameraControl.watchVisible" />
   </div>
 </template>

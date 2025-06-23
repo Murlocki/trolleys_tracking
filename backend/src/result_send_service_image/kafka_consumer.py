@@ -66,10 +66,10 @@ async def consume_kafka():
                 logger.info(f"Sent frame to room {camera_id}")
 
             except Exception as e:
-                logger.error(f"Error processing Kafka message: {e}")
+                logger.error(f"Error processing Kafka message: {str(e)}")
 
     except Exception as e:
-        logger.error(f"Kafka consume error: {e}")
+        logger.error(f"Kafka consume error: {str(e)}")
 
     finally:
         await consumer.stop()
