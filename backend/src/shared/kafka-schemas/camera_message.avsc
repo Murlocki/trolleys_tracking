@@ -19,7 +19,7 @@
             "type": {
               "type": "enum",
               "name": "DetectionRegime",
-              "symbols": ["yoloV8x", "yoloV9x", "yoloV11"]
+              "symbols": ["yoloV8x"]
             },
             "default": "yoloV8x"
           },
@@ -28,9 +28,9 @@
             "type": {
               "type": "enum",
               "name": "ClassificationRegime",
-              "symbols": ["yoloV8x", "yoloV9x", "yoloV11"]
+              "symbols": ["ResNet"]
             },
-            "default": "yoloV8x"
+            "default": "ResNet"
           },
           {
             "name": "trackingRegime",
