@@ -6,19 +6,21 @@ import Button from "primevue/button";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
 import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
-import {subscriptionFormStore} from "@/store/subscriptions/subscriptionFormStore.js";
-import SubscriptionFormView from "@/components/CameraView/Subscriptions/SubscriptionFormView.vue";
-import {subscriptionSearchFormStore} from "@/store/subscriptions/subscriptionSearchFormStore.js";
-import SubscriptionTableSearchForm from "@/components/CameraView/Subscriptions/SubscriptionTableSearchForm.vue";
 import SubscriptionTable from "@/components/CameraView/Subscriptions/SubscriptionTable.vue";
 import {camerasStore} from "@/store/cameras/cameraStore.js";
 import {testCart} from "@assets";
 import Dialog from "primevue/dialog";
 import Image from "primevue/image";
+import Toast from "primevue/toast";
 import CameraTableSearchForm from "@/components/CameraView/Cameras/CameraTableSearchForm.vue";
 import {cameraSearchFormStore} from "@/store/cameras/cameraSearchFormStore.js";
 import {cameraFormStore} from "@/store/cameras/cameraFormStore.js";
 import CameraFormView from "@/components/CameraView/Cameras/CameraFormView.vue";
+import {cameraControlStore} from "@/store/cameras/cameraControlStore.js";
+import {useToast} from "primevue/usetoast";
+import {getCameraStatusById, stopCameraById} from "@/externalRequests/requests.js";
+import {logOutUser} from "@/validators/validators.js";
+
 
 const settings = userSettingsStore();
 
@@ -30,6 +32,10 @@ const errorTitle = ref("ERROR")
 const errorCode = ref(0)
 
 const cameraExpandedRows = ref({});
+
+// Toast notification setup
+const toast = useToast();
+
 async function setCameras(groupId) {
   cameraExpandedRows.value = {};
   error.value = false;
@@ -71,6 +77,7 @@ const columns = [
 ];
 
 const cameraForm = cameraFormStore();
+
 function onAddCamera(event) {
   cameraForm.setVisible(true);
   cameraForm.setCreatingCamera(true);
@@ -104,14 +111,15 @@ async function onDeleteCamera(event) {
 }
 
 const cameraSearchForm = cameraSearchFormStore();
+
 function onCameraSearch(event) {
   cameraSearchForm.setVisible(true);
 }
 
 function onEditCamera(event) {
-   cameraForm.setCreatingCamera(false);
-   cameraForm.setVisible(true);
-   cameraForm.setCameraId(store.groupId, event.id);
+  cameraForm.setCreatingCamera(false);
+  cameraForm.setVisible(true);
+  cameraForm.setCameraId(store.groupId, event.id);
 }
 
 async function onPageCameraChange(event) {
@@ -135,10 +143,14 @@ async function onCameraRowClick(event) {
 
 
 const subStore = subscriptionStore()
+const cameraControl = cameraControlStore()
 
 async function onCameraRowExpand(event) {
   const camera = event.data;
   subStore.setCamera(camera);
+  cameraControl.setCameraId(camera.groupId, camera.id);
+
+  await updateCameraStatus()
 }
 
 async function onCameraRowCollapse(event) {
@@ -153,20 +165,63 @@ function onCameraStart(event) {
 
 }
 
+async function onCameraStop(event) {
+  settings.setLoading(true);
+  const token = settings.getJwt.value;
+  // Отправляем запрос на удаление сессии
+  const response = await cameraControl.stopCameraProcess(token, cameraControl.groupId, cameraControl.cameraId);
+
+  settings.setJwtKey(response.token);
+
+  // Обработка ошибок
+  if (response.status !== 200) {
+    settings.setLoading(false);
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.message}`,
+      life: 3000
+    });
+    return;
+  }
+
+  // Обновляем список камер после удаления
+  await setCameras(store.groupId);
+}
+
 const openCameraWatch = ref(false);
 
 function onCameraWatch(event) {
   openCameraWatch.value = true;
 }
 
-function onCameraStatusUpdate(event) {
+async function updateCameraStatus() {
+  settings.setLoading(true);
+  const response = await cameraControl.fetchCameraStatus(settings.getJwt.value, cameraControl.groupId, cameraControl.cameraId);
+  settings.setJwtKey(response.token);
 
+  // Обработка ошибок
+  if (response.status !== 200) {
+    settings.setLoading(false);
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: `${response.status}: ${response.message}`,
+      life: 3000
+    });
+  }
+  settings.setLoading(false);
+}
+
+async function onCameraStatusUpdate(event) {
+  await updateCameraStatus();
 }
 
 </script>
 
 <template>
   <div>
+    <Toast />
     <CameraFormView
         v-if="cameraForm.visible"
         @reload="setCameras(store.groupId)"
@@ -236,7 +291,8 @@ function onCameraStatusUpdate(event) {
             <h3 class="text-2xl mb-3">Control camera</h3>
           </div>
           <div class="flex gap-4">
-            <Button label="Start" severity="contrast" icon="pi pi-circle-off" @click="onCameraStart"/>
+            <Button label="Stop" v-if="cameraControl.isActive" severity="contrast" icon="pi pi-circle-off" @click="onCameraStop"/>
+            <Button label="Start" v-else severity="contrast" icon="pi pi-circle-off" @click="onCameraStart"/>
             <Button label="Watch" severity="contrast" icon="pi pi-eye" @click="onCameraWatch"/>
             <Button label="Status Update" severity="contrast" icon="pi pi-sync" @click="onCameraStatusUpdate"/>
           </div>

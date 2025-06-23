@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {deleteGroup, getCameraGroupsList, getUsers} from "@/externalRequests/requests.js";
+import {deleteGroup, getCameraGroupsList} from "@/externalRequests/requests.js";
 import {CameraGroupDTO} from "@/models/CameraGroupDTO.js";
 import {logOutUser} from "@/validators/validators.js";
 

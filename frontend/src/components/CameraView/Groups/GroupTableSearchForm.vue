@@ -4,11 +4,8 @@ import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import Calendar from "primevue/calendar";
 import Dropdown from "primevue/dropdown";
-import MultiSelect from "primevue/multiselect";
-import {defineEmits, onMounted, ref} from "vue";
+import {defineEmits, onMounted} from "vue";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {getUserRoleList} from "@/externalRequests/requests.js";
-import {logOutUser} from "@/validators/validators.js";
 import {groupSearchFormStore} from "@/store/groups/groupSearchFormStore.js";
 import {groupsStore} from "@/store/groups/groupStore.js";
 

@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
 import {CameraDTO} from "@/models/CameraDTO.js";
-import {deleteCameraById, getCamerasList, getCameraSubscribersList} from "@/externalRequests/requests.js";
+import {deleteCameraById, getCamerasList} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
 
 export const camerasStore = defineStore("camerasStore", {

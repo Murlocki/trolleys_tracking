@@ -1,16 +1,6 @@
 import {defineStore} from "pinia";
-import {
-    createCamera, createGroup,
-    createUserRecord,
-    getCameraById, getGroupById,
-    getUserById, updateCameraById, updateGroup,
-    updateUserRecord
-} from "@/externalRequests/requests.js";
+import {createGroup, getGroupById, updateGroup} from "@/externalRequests/requests.js";
 import {logOutUser, unprocessableEntity} from "@/validators/validators.js";
-import {UserData, UserDTO} from "@/models/user/UserDTO.js";
-import {UserCreate} from "@/models/user/UserCreate.js";
-import {UserUpdate} from "@/models/user/UserUpdate.js";
-import {CameraDTO} from "@/models/CameraDTO.js";
 import {CameraGroupDTO} from "@/models/CameraGroupDTO.js";
 
 /**

@@ -2,14 +2,8 @@
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
-import Dropdown from "primevue/dropdown";
-import Checkbox from "primevue/checkbox";
-import Password from "primevue/password";
-import {userFormStore} from "@/store/users/userFormStore.js";
-import {defineEmits, onMounted, ref} from "vue";
-import {getUserRoleList} from "@/externalRequests/requests.js";
+import {defineEmits, onMounted} from "vue";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {logOutUser} from "@/validators/validators.js";
 import Toast from "primevue/toast";
 import {useToast} from "primevue/usetoast";
 import {groupFormStore} from "@/store/groups/groupFormStore.js";

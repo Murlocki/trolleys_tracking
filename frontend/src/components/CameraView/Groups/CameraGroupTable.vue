@@ -3,17 +3,11 @@ import {onMounted, ref} from "vue";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
-import Dialog from "primevue/dialog";
-import Image from "primevue/image";
 
 import {groupsStore} from "@/store/groups/groupStore.js";
 import {userSettingsStore} from "@/store/userSettingsStore.js";
-import {getCameraGroupsList, getCamerasList,} from "@/externalRequests/requests.js";
 import {camerasStore} from "@/store/cameras/cameraStore.js";
-import {subscriptionStore} from "@/store/subscriptions/subscriptionStore.js";
-import {testCart} from "@assets";
 import ErrorPage from "@/components/ErrorPage/ErrorPage.vue";
-import SubscriptionTable from "@/components/CameraView/Subscriptions/SubscriptionTable.vue";
 import CameraTable from "@/components/CameraView/Cameras/CameraTable.vue";
 import GroupTableSearchForm from "@/components/CameraView/Groups/GroupTableSearchForm.vue";
 import {groupSearchFormStore} from "@/store/groups/groupSearchFormStore.js";

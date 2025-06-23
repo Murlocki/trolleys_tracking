@@ -2,13 +2,17 @@ import {
     createCameraGroup,
     createCameraOfGroup,
     createCameraSubscription,
-    createUser, deleteCameraGroup, deleteCameraOfGroup,
+    createUser,
+    deleteCameraGroup,
+    deleteCameraOfGroup,
     deleteCameraSubscription,
     deleteUser,
     deleteUserSessionById,
-    deleteUserSessions, getCameraGroup,
+    deleteUserSessions,
+    getCameraGroup,
     getCameraGroups,
-    getCameraOfGroup, getCameraOfGroupById,
+    getCameraOfGroup,
+    getCameraOfGroupById, getCameraOfGroupStatus,
     getCameraSubscriptions,
     getMyProfile,
     getUser,
@@ -16,7 +20,9 @@ import {
     getUserSessions,
     getUsersList,
     login,
-    logout, updateCameraGroup, updateCameraOfGroup,
+    logout, stopCameraOfGroup,
+    updateCameraGroup,
+    updateCameraOfGroup,
     updateUser,
     updateUserPassword
 } from "@/externalRequests/endpoints.js";
@@ -547,7 +553,6 @@ export async function updateCameraById(token, groupID, cameraID, camera) {
     }
 }
 
-
 /**
  * Create camera
  * @param {string} token - Auth token
@@ -566,6 +571,76 @@ export async function createCamera(token, groupID, camera) {
                 'X-API-Key': apikey
             },
             body: JSON.stringify(camera)
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Extract camera status by ID
+ * @param {string} token - Auth token
+ * @param {number} groupId - Group ID
+ * @param {number} cameraId - Camera ID
+ * @returns {Promise<Response>} - Extracted camera status info
+ */
+export async function getCameraStatusById(token, groupId, cameraId) {
+    try {
+        return await fetch(`${getCameraOfGroupStatus(groupId, cameraId)}`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Stop camera process by ID
+ * @param {string} token - Auth token
+ * @param {number} groupId - Group ID
+ * @param {number} cameraId - Camera ID
+ * @returns {Promise<Response>} - Stopped camera process info
+ */
+export async function stopCameraById(token, groupId, cameraId) {
+    try {
+        return await fetch(`${stopCameraOfGroup(groupId, cameraId)}`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            }
         })
 
     } catch (error) {
