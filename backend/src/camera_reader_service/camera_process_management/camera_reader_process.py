@@ -20,10 +20,10 @@ def start_camera_reader(camera_id: int):
     asyncio.run(read_camera(camera_id))
 
 def local_string(address_link):
-    # if address_link.isdigit():
-    #     return int(address_link)
-    # #return address_link
-    return r"C:\Users\kirill\Desktop\diploma\trolleys_tracking\backend\output_video.mp4"
+    if address_link.isdigit():
+        return int(address_link)
+    return address_link
+    #return r"C:\Users\kirill\Desktop\diploma\trolleys_tracking\backend\output_video.mp4"
 def test_camera_connection(address_link: str) -> bool:
     logger.info(f"Connecting to {address_link}")
     cap = cv2.VideoCapture(local_string(address_link))
