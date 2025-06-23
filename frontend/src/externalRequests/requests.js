@@ -20,7 +20,7 @@ import {
     getUserSessions,
     getUsersList,
     login,
-    logout, stopCameraOfGroup,
+    logout, startCameraOfGroup, stopCameraOfGroup,
     updateCameraGroup,
     updateCameraOfGroup,
     updateUser,
@@ -658,6 +658,44 @@ export async function stopCameraById(token, groupId, cameraId) {
         });
     }
 }
+
+/**
+ * Stop camera process by ID
+ * @param {string} token - Auth token
+ * @param {number} groupId - Group ID
+ * @param {number} cameraId - Camera ID
+ * @param {Object} params - Process params
+ * @returns {Promise<Response>} - Stopped camera process info
+ */
+export async function startCameraById(token, groupId, cameraId, params) {
+    try {
+        return await fetch(`${startCameraOfGroup(groupId, cameraId)}`, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                'X-API-Key': apikey
+            },
+            body: JSON.stringify(params)
+        })
+
+    } catch (error) {
+        // Create response for network errors
+        return new Response(JSON.stringify({
+            error: "Network request failed",
+            message: error.message
+        }), {
+            status: 503,
+            detail: {
+                data: {
+                    message: "Network Error"
+                }
+            }
+        });
+    }
+}
+
 
 
 export async function getCameraSubscribersList(token, groupId, cameraId, params={}) {

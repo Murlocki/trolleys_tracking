@@ -20,6 +20,7 @@ import {cameraControlStore} from "@/store/cameras/cameraControlStore.js";
 import {useToast} from "primevue/usetoast";
 import {getCameraStatusById, stopCameraById} from "@/externalRequests/requests.js";
 import {logOutUser} from "@/validators/validators.js";
+import CameraStartForm from "@/components/CameraView/Cameras/CameraStartForm.vue";
 
 
 const settings = userSettingsStore();
@@ -162,7 +163,7 @@ async function onCameraRowCollapse(event) {
 }
 
 function onCameraStart(event) {
-
+  cameraControl.setVisible(true);
 }
 
 async function onCameraStop(event) {
@@ -230,6 +231,7 @@ async function onCameraStatusUpdate(event) {
         v-if="cameraSearchForm.visible"
         @reload="setCameras(store.groupId)"
     />
+    <CameraStartForm v-if="cameraControl.visible"/>
     <div class="flex flex-row justify-content-between mb-3">
       <Button label="Add" icon="pi pi-plus" @click="onAddCamera"/>
       <Button label="Search" severity="contrast" icon="pi pi-search" @click="onCameraSearch"/>

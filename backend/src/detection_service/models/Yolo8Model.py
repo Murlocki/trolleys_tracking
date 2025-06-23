@@ -9,7 +9,7 @@ from src.shared.schemas import BoundingBox
 
 logger = setup_logger(__name__)
 
-class Yolo11Model(BasicModel):
+class Yolo8Model(BasicModel):
     def process_bounding_box(self, prediction:  list[Results]) -> list[BoundingBox] | None:
         if prediction:
             boxes = prediction[0].boxes.xywh
@@ -39,7 +39,7 @@ class Yolo11Model(BasicModel):
         self.model = YOLO(model_path)
         self.parameters = parameters
 
-yolo11_model = Yolo11Model(model_path=detection_settings.full_model_path,
+yolo8_model = Yolo8Model(model_path=detection_settings.full_model_path,
                            parameters={
                                "imgsz":detection_settings.detection_yolo_11_img_sz,
                                "conf":detection_settings.detection_yolo_11_conf,

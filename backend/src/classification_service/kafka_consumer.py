@@ -60,7 +60,7 @@ async def consume_loop():
             logger.info("Received message:")
             image_msg = ImageMessage.model_validate(value)
 
-            regime = image_msg.activation_props.detection_regime
+            regime = image_msg.activation_props.classification_regime
             model = models_dict.get(regime)
             if model is None:
                 logger.warning(f"No model for regime {regime}")
@@ -82,4 +82,4 @@ async def consume_loop():
             )
             logger.info(f"Sent message to tracking")
     except Exception as e:
-        logger.error(f"Error in consume_loop: {e}")
+        logger.error(f"Error in consume_loop: {str(e)}")

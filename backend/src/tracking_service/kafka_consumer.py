@@ -29,35 +29,38 @@ consumer.subscribe([settings.kafka_tracking_topic_name])
 
 
 async def consume_loop():
-    logger.info("Starting consumer loop")
-    loop = asyncio.get_running_loop()
+    try:
+        logger.info("Starting consumer loop")
+        loop = asyncio.get_running_loop()
 
-    while True:
-        msg = await loop.run_in_executor(None, consumer.poll, 1.0)
-        if msg is None:
-            continue
-        if msg.error():
-            if msg.error().code() == KafkaError._PARTITION_EOF:
+        while True:
+            msg = await loop.run_in_executor(None, consumer.poll, 1.0)
+            if msg is None:
                 continue
-            logger.error(f"Consumer error: {msg.error()}")
-            continue
+            if msg.error():
+                if msg.error().code() == KafkaError._PARTITION_EOF:
+                    continue
+                logger.error(f"Consumer error: {msg.error()}")
+                continue
 
-        context = SerializationContext(msg.topic(), MessageField.VALUE)
-        value = avro_deserializer(msg.value(), context)
-        if value is None:
-            logger.error("Failed to deserialize message")
-            continue
+            context = SerializationContext(msg.topic(), MessageField.VALUE)
+            value = avro_deserializer(msg.value(), context)
+            if value is None:
+                logger.error("Failed to deserialize message")
+                continue
 
-        try:
-            image_msg = ImageMessage.model_validate(value)
-        except Exception as e:
-            logger.error(f"Invalid image message: {e}")
-            continue
+            try:
+                image_msg = ImageMessage.model_validate(value)
+            except Exception as e:
+                logger.error(f"Invalid image message: {e}")
+                continue
 
-        regime = image_msg.activation_props.tracking_regime
-        if models_dict.get(regime) is None:
-            logger.warning(f"No model for regime {regime}")
-            continue
+            regime = image_msg.activation_props.tracking_regime
+            if models_dict.get(regime) is None:
+                logger.warning(f"No model for regime {regime}")
+                continue
 
-        logger.info(f"Received message for camera {image_msg.camera_id}, regime {regime}")
-        await push_to_camera_queue(image_msg.camera_id, image_msg)
+            logger.info(f"Received message for camera {image_msg.camera_id}, regime {regime}")
+            await push_to_camera_queue(image_msg.camera_id, image_msg)
+    except Exception as e:
+        logger.error(f"Consumer error: {str(e)}")

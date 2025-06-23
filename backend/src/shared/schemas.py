@@ -135,9 +135,7 @@ class DetectionRegime(str,Enum):
     yoloV11: str = "yoloV11",
 
 class ClassificationRegime(str,Enum):
-    yoloV8x: str = "yoloV8x"
-    yoloV9x: str = "yoloV9x",
-    yoloV11: str = "yoloV11",
+    ResNet: str = "ResNet",
 
 class TrackingRegime(str,Enum):
     deepsort: str = "deepsort"
@@ -149,7 +147,7 @@ class ActivationProps(BaseModel):
         validation_alias=AliasChoices('detection_regime', 'detectionRegime')
     )
     classification_regime: ClassificationRegime = Field(
-        default=ClassificationRegime.yoloV8x,
+        default=ClassificationRegime.ResNet,
         description = "Classification regime",
         validation_alias = AliasChoices('classification_regime', 'classificationRegime')
     )

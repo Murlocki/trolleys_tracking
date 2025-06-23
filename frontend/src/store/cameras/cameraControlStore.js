@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {
     createCamera,
     getCameraById,
-    getCameraStatusById,
+    getCameraStatusById, startCameraById,
     stopCameraById,
     updateCameraById
 } from "@/externalRequests/requests.js";
@@ -17,6 +17,10 @@ export const cameraControlStore = defineStore("cameraControlStore", {
         groupId: null,
         cameraId: null,
         status: null,
+        detectionRegime: null,
+        classificationRegime: null,
+        trackingRegime: null,
+        visible: false,
     }),
     actions: {
         /**
@@ -28,7 +32,9 @@ export const cameraControlStore = defineStore("cameraControlStore", {
             this.$state.groupId = groupId;
             this.$state.cameraId = cameraId;
         },
-
+        setVisible(visible) {
+            this.$state.visible = visible;
+        },
         /**
          * Fetches camera status by ID
          * @param {string} token - Authentication token
@@ -79,6 +85,36 @@ export const cameraControlStore = defineStore("cameraControlStore", {
                 const responseJson = await response.json();
                 if (response.ok) {
                     await this.setStatus(responseJson.data.status);
+                    return {token: responseJson.token, status: response.status};
+                }
+
+                const details = responseJson.detail;
+                return {token: details.token, status: response.status, message: details.data.message};
+            } catch (error) {
+                console.error(error);
+                return {token, status: 503, message: "Network Error"};
+            }
+        },
+        async startCameraProcess(token) {
+            try {
+                const params = {
+                    detectionRegime:this.detectionRegime,
+                    classificationRegime:this.classificationRegime,
+                    trackingRegime:this.trackingRegime,
+                }
+                const response = await startCameraById(token, this.groupId, this.cameraId, params);
+
+                if (response.status === 401) {
+                    return await logOutUser(response);
+                }
+
+                if (response.status === 503) {
+                    return {token: token, status: 503, message: "Network Error"};
+                }
+
+                const responseJson = await response.json();
+                if (response.ok) {
+                    await this.setStatus("active");
                     return {token: responseJson.token, status: response.status};
                 }
 
